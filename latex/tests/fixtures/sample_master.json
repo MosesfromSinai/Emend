@@ -1,0 +1,57 @@
+{
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "phone": "555-010-1010",
+  "links": ["linkedin.com/in/ada-lovelace", "github.com/adal"],
+  "education": [
+    {
+      "school": "University of London",
+      "degree": "B.S. in Mathematics",
+      "location": "London, UK",
+      "grad_date": "May 2024",
+      "coursework": ["Analytical Engines", "Number Theory", "Algorithms & Data Structures"]
+    }
+  ],
+  "experiences": [
+    {
+      "id": "exp1",
+      "company": "Babbage & Co",
+      "title": "Software Engineer Intern",
+      "location": "London, UK",
+      "start": "Jun 2023",
+      "end": "Aug 2023",
+      "facts": [
+        {"id": "f1", "text": "Wrote the first published algorithm intended for machine execution"},
+        {"id": "f2", "text": "Improved punch-card throughput by 40% using R&D best practices"},
+        {"id": "f3", "text": "Documented the analytical_engine module for 100+ users"}
+      ]
+    },
+    {
+      "id": "exp2",
+      "company": "Royal Society",
+      "title": "Research Assistant",
+      "location": "London, UK",
+      "start": "Sep 2022",
+      "end": "May 2023",
+      "facts": [
+        {"id": "f4", "text": "Translated and annotated scientific papers on computation"},
+        {"id": "f5", "text": "Presented findings on looping constructs to 20+ members"}
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj1",
+      "name": "Bernoulli Number Generator",
+      "tech": ["Analytical Engine", "Punch Cards"],
+      "facts": [
+        {"id": "f6", "text": "Designed a program computing Bernoulli numbers mechanically"},
+        {"id": "f7", "text": "Reduced card count ~25% via subroutine reuse"}
+      ]
+    }
+  ],
+  "skills": {
+    "Languages": ["Ada", "Assembly", "Python"],
+    "Tools": ["Git", "Docker", "LaTeX"]
+  }
+}

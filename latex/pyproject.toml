@@ -1,0 +1,15 @@
+[project]
+name = "emend-latex"
+version = "0.1.0"
+description = "Jinja2 -> LaTeX rendering and sandboxed Tectonic compilation"
+requires-python = ">=3.12"
+dependencies = [
+    "jinja2>=3.1",
+    "pydantic>=2.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]

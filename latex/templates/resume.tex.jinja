@@ -1,0 +1,177 @@
+%-------------------------
+% Resume in LaTeX
+% Based on Jake Gutierrez's template (MIT): https://github.com/jakegut/resume
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+% Note: this document compiles with XeTeX (Tectonic), whose PDF text is
+% Unicode-native and ATS-parsable without pdfTeX's glyphtounicode setup.
+% If you compile with pdfLaTeX instead, you may add:
+%   \input{glyphtounicode}  and  \pdfgentounicode=1
+
+
+%----------FONT OPTIONS----------
+% sans-serif
+% \usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape \VAR{name}} \\ \vspace{1pt}
+    \small \VAR{phone} $|$ \href{mailto:\VAR{email}}{\underline{\VAR{email}}}
+    \BLOCK{for link in links}
+    $|$ \href{\VAR{link.url}}{\underline{\VAR{link.display}}}
+    \BLOCK{endfor}
+\end{center}
+
+\BLOCK{if education}
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \BLOCK{for edu in education}
+    \resumeSubheading
+      {\VAR{edu.school}}{\VAR{edu.location}}
+      {\VAR{edu.degree}}{\VAR{edu.grad_date}}
+    \BLOCK{if edu.coursework}
+    \resumeItemListStart
+      \resumeItem{\textbf{Relevant Coursework}{: \VAR{edu.coursework | join(', ')}}}
+    \resumeItemListEnd
+    \BLOCK{endif}
+    \BLOCK{endfor}
+  \resumeSubHeadingListEnd
+\BLOCK{endif}
+
+\BLOCK{if experiences}
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \BLOCK{for exp in experiences}
+    \resumeSubheading
+      {\VAR{exp.title}}{\VAR{exp.dates}}
+      {\VAR{exp.company}}{\VAR{exp.location}}
+      \resumeItemListStart
+        \BLOCK{for bullet in exp.bullets}
+        \resumeItem{\VAR{bullet}}
+        \BLOCK{endfor}
+      \resumeItemListEnd
+    \BLOCK{endfor}
+  \resumeSubHeadingListEnd
+\BLOCK{endif}
+
+\BLOCK{if projects}
+%-----------PROJECTS-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+      \BLOCK{for proj in projects}
+      \resumeProjectHeading
+          {\textbf{\VAR{proj.name}}\BLOCK{if proj.tech} $|$ \emph{\VAR{proj.tech}}\BLOCK{endif}}{}
+          \resumeItemListStart
+            \BLOCK{for bullet in proj.bullets}
+            \resumeItem{\VAR{bullet}}
+            \BLOCK{endfor}
+          \resumeItemListEnd
+      \BLOCK{endfor}
+    \resumeSubHeadingListEnd
+\BLOCK{endif}
+
+\BLOCK{if skills}
+%-----------TECHNICAL SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \BLOCK{for category, items in skills.items()}
+     \textbf{\VAR{category}}{: \VAR{items | join(', ')}}\BLOCK{if not loop.last} \\\BLOCK{endif}
+     \BLOCK{endfor}
+    }}
+ \end{itemize}
+\BLOCK{endif}
+
+%-------------------------------------------
+\end{document}
