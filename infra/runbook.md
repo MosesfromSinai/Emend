@@ -67,6 +67,11 @@ migration aborts the deploy.
   (`infra/scripts/warm-tectonic-cache.py`), and CI proves it by compiling inside
   `docker run --network=none`.
 - Non-root `appuser` in the image.
+- The rendered `.tex` includes `% grounded: <fact ids>` receipt comments — they are
+  product output (the proof artifact), not build noise. Never add comment
+  stripping/minification anywhere in the pipeline; hostile ids are already
+  whitespace-collapsed and escaped at render time so they can't break out of the
+  comment.
 
 ## Reading a failed compile
 
@@ -108,7 +113,7 @@ The Dockerfiles / compose / fly.toml assume, per the brief's architecture:
 
 If any of these differ, the fix belongs in `infra/` — ping Workflow C.
 
-## Known gaps (as of 2026-07-19)
+## Known gaps (updated 2026-07-19, post-Emend scope change)
 
 - `api/` (Workflow B) and `web/` (Workflow D) don't exist yet: the compose `api`
   / `web` services and the full `runtime` Docker stage won't build until they
