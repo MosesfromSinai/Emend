@@ -26,7 +26,18 @@ _env = Environment(
 )
 
 
-def _experience_row(exp: Experience, bullets: list[str]) -> dict:
+def _grounding_comment(ids: list[str]) -> str:
+    # Ids land inside a % comment, which runs to end-of-line: collapse any
+    # whitespace (esp. newlines) so a hostile id can never terminate the
+    # comment and leak content into the document body.
+    return ", ".join(" ".join(i.split()) for i in ids)
+
+
+def _bullet_row(text: str, source_ids: list[str]) -> dict:
+    return {"text": text, "grounded": _grounding_comment(source_ids)}
+
+
+def _experience_row(exp: Experience, bullets: list[dict]) -> dict:
     return {
         "title": exp.title,
         "dates": f"{exp.start} -- {exp.end}",
@@ -36,7 +47,7 @@ def _experience_row(exp: Experience, bullets: list[str]) -> dict:
     }
 
 
-def _project_row(proj: Project, bullets: list[str]) -> dict:
+def _project_row(proj: Project, bullets: list[dict]) -> dict:
     return {
         "name": proj.name,
         "tech": ", ".join(proj.tech),
@@ -52,7 +63,7 @@ def _tailored_rows(
         source = by_id.get(section.ref_id)
         if source is None:
             raise ValueError(f"tailored {kind} section references unknown id {section.ref_id!r}")
-        bullets = [b.text for b in section.bullets]
+        bullets = [_bullet_row(b.text, b.source_fact_ids) for b in section.bullets]
         if isinstance(source, Experience):
             rows.append(_experience_row(source, bullets))
         else:
@@ -68,10 +79,23 @@ def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
     (by ref_id) render, with tailored bullets substituting the master facts —
     structural fields (company, title, dates, location, tech) always come from
     master, so the tailor can never alter them. Unknown ref_ids raise ValueError.
+
+    Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
+    comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
+    refactor mode. Coursework and skills carry no receipts: they are confirmed
+    master data with no fact ids in the contract, not generated content. A bullet
+    with empty source_fact_ids renders an empty receipt; rejecting sourceless
+    bullets is the upstream validator's job.
     """
     if tailored is None:
-        experiences = [_experience_row(e, [f.text for f in e.facts]) for e in master.experiences]
-        projects = [_project_row(p, [f.text for f in p.facts]) for p in master.projects]
+        experiences = [
+            _experience_row(e, [_bullet_row(f.text, [f.id]) for f in e.facts])
+            for e in master.experiences
+        ]
+        projects = [
+            _project_row(p, [_bullet_row(f.text, [f.id]) for f in p.facts])
+            for p in master.projects
+        ]
         skills = master.skills
     else:
         exp_by_id: dict[str, Experience | Project] = {e.id: e for e in master.experiences}
