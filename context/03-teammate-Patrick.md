@@ -1,15 +1,15 @@
-# Workflow C — LaTeX Toolchain & Infra
+# Emend · Workflow C — LaTeX Toolchain & Infra
 
 **Owner: Teammate C** · Directories: `latex/` + `infra/` · Branches: `feat/latex/*`, `feat/infra/*`
 **Hand-off:** paste `00-project-brief.md` + this file into Claude Cowork; build only inside `latex/` and `infra/`.
 
 ## Mission
 
-Safely turn structured resume objects into beautiful PDFs and clean `.tex`, and own everything that runs the project — sandbox, dev environment, CI, and production. Both product views (rendered PDF and copyable LaTeX) are this workflow's output.
+Safely turn structured resume objects into beautiful PDFs and clean `.tex`, and own everything that runs the project — sandbox, dev environment, CI, and production. Both product views are this workflow's output, and the `.tex` this workflow renders is where Emend's "receipts" become visible to the user.
 
 ## Build list (implementation order)
 
-1. The Jake's-style single-page LaTeX template; Jinja2 environment with `\VAR{}`/`\BLOCK{}` delimiters (defaults collide with LaTeX braces); escaping filter for `& % $ # _ { } ~ ^ \` applied to every rendered string. The output `.tex` must be clean enough that users are proud to copy it.
+1. The Jake's-style single-page LaTeX template; Jinja2 environment with `\VAR{}`/`\BLOCK{}` delimiters (defaults collide with LaTeX braces); escaping filter for `& % $ # _ { } ~ ^ \` applied to every rendered string. **Emit a `% grounded: GA-01, GA-02` comment above each rendered bullet** from its `source_fact_ids` (in refactor mode, the bullet's own fact id) — the copyable `.tex` is the product's proof artifact, so it must be clean enough that users are proud to copy it. Note: the web's Ink & Paper fonts do **not** apply here — the typeset resume stays conventional and ATS-safe.
 2. `latex.render_and_compile(master, tailored|None) -> (tex, pdf_path, log)` per the brief's Contracts: renders the master (refactor mode) or the tailored selection, compiles with Tectonic `--untrusted`, and surfaces compile logs on failure — never a silent hang.
 3. Sandbox hardening in the api Docker image: pre-warmed package cache (~1–2s compiles, no network at runtime), hard timeout, CPU/memory caps, non-root user; hostile-input tests (shell-escape attempt, infinite loop, absurd length) must fail safely with a clean error.
 4. docker-compose dev environment: web + api + postgres with hot reload; fresh clone → one command → working app.
@@ -19,15 +19,15 @@ Safely turn structured resume objects into beautiful PDFs and clean `.tex`, and 
 ## Interfaces
 
 **Exposes:** `latex.render_and_compile` (contract with Workflow B) and the running platform.
-**Consumes:** `core` schemas.
-**Do not:** enable shell-escape, allow network egress at compile time, or add queues/object storage.
+**Consumes:** `core` schemas, including the fact-id scheme for grounding comments.
+**Do not:** enable shell-escape, allow network egress at compile time, add queues/object storage, or restyle the LaTeX template with web brand fonts.
 
 ## Acceptance criteria
 
-Hostile `.tex` fails safely with a surfaced error · compiled output matches the template pixel-for-pixel on all four teammates' resumes · production URL live · one-command local dev from a fresh clone.
+Hostile `.tex` fails safely with a surfaced error · every rendered bullet carries its grounding comment · compiled output matches the template pixel-for-pixel on all four teammates' resumes · production URL live · one-command local dev from a fresh clone.
 
 ## Resume bullets earned
 
 - Built a sandboxed LaTeX compilation service (Tectonic `--untrusted`, network-isolated image with pre-warmed cache, CPU/memory/time limits) rendering resumes in ~[X]s
-- Designed the Jinja2→LaTeX rendering layer with custom delimiters and injection-safe escaping, producing user-facing `.tex` and print-ready PDFs
+- Designed the Jinja2→LaTeX rendering layer with custom delimiters, injection-safe escaping, and per-bullet grounding annotations, producing user-facing `.tex` and print-ready PDFs
 - Owned CI/CD and deployment for a 4-person product: per-PR GitHub Actions, one-command docker-compose dev env, production on Vercel + Fly.io with Neon Postgres
