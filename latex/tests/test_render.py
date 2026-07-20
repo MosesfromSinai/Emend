@@ -69,6 +69,44 @@ def test_empty_tailored_skills_falls_back_to_master(master, tailored):
     assert r"\textbf{Languages}{: Ada, Assembly, Python}" in tex
 
 
+def test_refactor_bullets_carry_own_fact_id_receipts(master):
+    tex = render_tex(master, None)
+    lines = [line.strip() for line in tex.splitlines()]
+    for section in (*master.experiences, *master.projects):
+        for fact in section.facts:
+            idx = lines.index(f"% grounded: {fact.id}")
+            assert lines[idx + 1].startswith(r"\resumeItem{")
+    idx = lines.index("% grounded: BAB-01")
+    assert lines[idx + 1].startswith(r"\resumeItem{Wrote the first published algorithm")
+
+
+def test_tailor_bullets_carry_source_fact_ids(master, tailored):
+    tex = render_tex(master, tailored)
+    lines = [line.strip() for line in tex.splitlines()]
+    idx = lines.index("% grounded: BAB-01")
+    assert lines[idx + 1].startswith(r"\resumeItem{Authored the first machine-executable")
+    # merged bullets list every contributing fact
+    idx = lines.index("% grounded: BERN-01, BERN-02")
+    assert lines[idx + 1].startswith(r"\resumeItem{Built a mechanical Bernoulli")
+
+
+def test_every_fact_backed_bullet_has_exactly_one_receipt(master, tailored):
+    # coursework/skills are confirmed master data, not generated content — no receipts
+    refactor = render_tex(master, None)
+    n_facts = sum(len(s.facts) for s in (*master.experiences, *master.projects))
+    assert refactor.count("% grounded:") == n_facts
+    tailor = render_tex(master, tailored)
+    n_bullets = sum(len(s.bullets) for s in (*tailored.experiences, *tailored.projects))
+    assert tailor.count("% grounded:") == n_bullets
+
+
+def test_empty_source_fact_ids_still_renders_receipt(master, tailored):
+    # sourceless bullets are the upstream validator's problem; the receipt stays truthful
+    tailored.experiences[0].bullets[0].source_fact_ids = []
+    tex = render_tex(master, tailored)
+    assert "% grounded:" in [line.strip() for line in tex.splitlines()]
+
+
 def test_injection_in_every_field_is_escaped(master):
     master.name = r"Evil \write18{rm -rf /} & Co"
     master.experiences[0].company = "100% $legit_corp^{tm}"

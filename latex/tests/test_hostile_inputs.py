@@ -15,6 +15,19 @@ def test_shell_escape_payload_is_neutralized_by_escaping(master):
     assert r"\textbackslash{}immediate\textbackslash{}write18" in tex
 
 
+def test_newline_in_fact_id_cannot_break_out_of_comment(master):
+    # a % comment runs to end-of-line: a newline smuggled into an id must not
+    # terminate the receipt and leak the rest into the document body
+    master.experiences[0].facts[0] = Fact(
+        id="GA-01\n" + SHELL_ESCAPE_PAYLOAD, text="Legit bullet text"
+    )
+    tex = render_tex(master, None)
+    assert r"\write18" not in tex.replace(r"\textbackslash{}write18", "")
+    receipt_lines = [line for line in tex.splitlines() if "% grounded: GA-01" in line]
+    assert len(receipt_lines) == 1
+    assert "write18" in receipt_lines[0], "smuggled newline split the receipt comment"
+
+
 def test_raw_write18_compile_does_not_execute(tmp_path):
     marker = tmp_path / "pwned"
     doc = (
