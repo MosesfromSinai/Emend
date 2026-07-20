@@ -14,39 +14,39 @@
   ],
   "experiences": [
     {
-      "id": "exp1",
+      "id": "BAB",
       "company": "Babbage & Co",
       "title": "Software Engineer Intern",
       "location": "London, UK",
       "start": "Jun 2023",
       "end": "Aug 2023",
       "facts": [
-        {"id": "f1", "text": "Wrote the first published algorithm intended for machine execution"},
-        {"id": "f2", "text": "Improved punch-card throughput by 40% using R&D best practices"},
-        {"id": "f3", "text": "Documented the analytical_engine module for 100+ users"}
+        {"id": "BAB-01", "text": "Wrote the first published algorithm intended for machine execution"},
+        {"id": "BAB-02", "text": "Improved punch-card throughput by 40% using R&D best practices"},
+        {"id": "BAB-03", "text": "Documented the analytical_engine module for 100+ users"}
       ]
     },
     {
-      "id": "exp2",
+      "id": "RS",
       "company": "Royal Society",
       "title": "Research Assistant",
       "location": "London, UK",
       "start": "Sep 2022",
       "end": "May 2023",
       "facts": [
-        {"id": "f4", "text": "Translated and annotated scientific papers on computation"},
-        {"id": "f5", "text": "Presented findings on looping constructs to 20+ members"}
+        {"id": "RS-01", "text": "Translated and annotated scientific papers on computation"},
+        {"id": "RS-02", "text": "Presented findings on looping constructs to 20+ members"}
       ]
     }
   ],
   "projects": [
     {
-      "id": "proj1",
+      "id": "BERN",
       "name": "Bernoulli Number Generator",
       "tech": ["Analytical Engine", "Punch Cards"],
       "facts": [
-        {"id": "f6", "text": "Designed a program computing Bernoulli numbers mechanically"},
-        {"id": "f7", "text": "Reduced card count ~25% via subroutine reuse"}
+        {"id": "BERN-01", "text": "Designed a program computing Bernoulli numbers mechanically"},
+        {"id": "BERN-02", "text": "Reduced card count ~25% via subroutine reuse"}
       ]
     }
   ],

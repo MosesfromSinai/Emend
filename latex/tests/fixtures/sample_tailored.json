@@ -2,18 +2,18 @@
   "summary_of_strategy": "Emphasize algorithms and documentation for a backend role.",
   "experiences": [
     {
-      "ref_id": "exp1",
+      "ref_id": "BAB",
       "bullets": [
-        {"text": "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals", "source_fact_ids": ["f1"]},
-        {"text": "Boosted processing throughput 40% through systematic R&D practices", "source_fact_ids": ["f2"]}
+        {"text": "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals", "source_fact_ids": ["BAB-01"]},
+        {"text": "Boosted processing throughput 40% through systematic R&D practices", "source_fact_ids": ["BAB-02"]}
       ]
     }
   ],
   "projects": [
     {
-      "ref_id": "proj1",
+      "ref_id": "BERN",
       "bullets": [
-        {"text": "Built a mechanical Bernoulli number program with reusable subroutines", "source_fact_ids": ["f6", "f7"]}
+        {"text": "Built a mechanical Bernoulli number program with reusable subroutines", "source_fact_ids": ["BERN-01", "BERN-02"]}
       ]
     }
   ],

