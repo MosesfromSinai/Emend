@@ -46,3 +46,12 @@ def test_validate_grounding_rejects_project_fact_on_experience():
 
     with pytest.raises(GroundingError, match="outside-section ids"):
         validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_unsupported_numbers():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[1].text = "Boosted processing throughput 95%"
+
+    with pytest.raises(GroundingError, match="unsupported numbers"):
+        validate_grounding(master, tailored)
