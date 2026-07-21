@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from core.pipeline import mock_refactor_resume
-from core.schemas import MasterResume
+from core.pipeline import mock_refactor_resume, mock_tailor_resume
+from core.schemas import JDExtract, MasterResume
 from core.validation import validate_grounding
 
 FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
@@ -26,3 +26,21 @@ def test_mock_refactor_preserves_fact_text_and_ids():
 def test_mock_refactor_passes_grounding_validation():
     master = _master()
     validate_grounding(master, mock_refactor_resume(master))
+
+
+def test_mock_tailor_returns_grounded_resume_and_keyword_data():
+    master = _master()
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Python", "Kubernetes"],
+    )
+
+    tailored, score, matched, missing = mock_tailor_resume(master, jd)
+    validate_grounding(master, tailored)
+    assert score == 0.5
+    assert matched == ["Python"]
+    assert missing == ["Kubernetes"]
