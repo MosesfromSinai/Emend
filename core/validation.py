@@ -50,9 +50,20 @@ def _validate_sections(
                 raise GroundingError(f"low fact overlap: {bullet.text}")
 
 
+def _validate_skills(master_skills: dict[str, list[str]], tailored_skills: dict[str, list[str]]) -> None:
+    allowed = {skill.lower() for skills in master_skills.values() for skill in skills}
+    for category, skills in tailored_skills.items():
+        if category not in master_skills:
+            raise GroundingError(f"unknown skill category: {category}")
+        unsupported = {skill for skill in skills if skill.lower() not in allowed}
+        if unsupported:
+            raise GroundingError(f"unsupported skills: {sorted(unsupported)}")
+
+
 def validate_grounding(master: MasterResume, tailored: TailoredResume) -> None:
     """Reject bullets that do not cite confirmed master-resume facts."""
     experience_facts = {e.id: {fact.id: fact.text for fact in e.facts} for e in master.experiences}
     project_facts = {p.id: {fact.id: fact.text for fact in p.facts} for p in master.projects}
     _validate_sections(tailored.experiences, experience_facts)
     _validate_sections(tailored.projects, project_facts)
+    _validate_skills(master.skills, tailored.skills)
