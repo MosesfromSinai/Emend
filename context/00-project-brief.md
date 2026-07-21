@@ -21,30 +21,35 @@ Each member pastes **this brief + their own workflow file** into Cowork and inst
 
 ## In scope — the shippable product
 
-Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import with an LLM-proposed fact schema gated by a **user confirmation screen** · refactor mode (no JD) · tailor mode (deterministic match score, hit/miss keyword chips, grounded rewriting, read-only provenance report) · dual-view workspace (react-pdf + copyable `.tex` pane) with downloads and print · **the Emend landing page** (built from the v2 design component) · async job UX with polling and surfaced compile logs · history list · eval suite of ≥5 real postings with reported numbers · deployed production URL · one-command local dev · CI per PR · seed script · README with architecture diagram and demo GIF.
+Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import with an LLM-proposed fact schema gated by a **user confirmation screen** · refactor mode (no JD) · tailor mode (deterministic match score, hit/miss keyword chips, grounded rewriting, read-only provenance report) · dual-view workspace (react-pdf + copyable `.tex` pane) with downloads and print · **the Emend landing page** (built from the v2 design component, responsive) · async job UX with polling and surfaced compile logs · history list · eval suite of ≥5 real postings with reported numbers · deployed production URL · one-command local dev · CI per PR · seed script · README with architecture diagram and demo GIF.
 
 ## Explicitly deferred — do NOT build
 
-Application autofill / browser extension · accounts & auth · job-URL ingestion · PDF upload · **live** per-sentence rewrite cycling or accept/reject editing (the landing demo is scripted — see reconciliations) · chat refinement · diff views · in-browser `.tex` editing · rate limiting · Redis/queues · additional templates · object storage.
+Application autofill / browser extension · accounts & auth · job-URL ingestion · PDF upload · **live** per-sentence rewrite cycling or accept/reject editing in the workspace (the landing demo is scripted — see reconciliations) · chat refinement · diff views · in-browser `.tex` editing · rate limiting · Redis/queues · additional templates · object storage.
 
 ## Design system ("Ink & Paper")
 
-**Design files (from Claude Design):** `Emend Landing v2.dc.html` (current landing — the implementation source), `Emend Landing.dc.html` (v1, history), `Resume Tailor Options.dc.html` (brand exploration; **1a "Ink & Paper" chosen**), `uploads/` (this brief + the sample resume PDF that grounds all demo content).
+**Design files (from Claude Design):** `Emend Landing v2.dc.html` (current landing — the implementation source), `Emend Landing.dc.html` (v1, history), `Resume Tailor Options.dc.html` (brand exploration; **1a "Ink & Paper" chosen**), `uploads/` (project brief; the real resume PDF there is a private eval fixture only — all demo content now grounds to `docs/demo-persona.md`).
 
 **Visual language:** paper background `#faf8f4`, ink `#1c1b18`, amber accent family `#8a6d1f` (soft `#f3ecd9`, bright `#c9a648`) · type: **Source Serif 4** (headings, resume body on the web), **JetBrains Mono** (fact tags, code, labels), system-ui (UI copy) · dark code panes `#211f1a` with amber LaTeX syntax highlighting · scroll-reveal on every section via IntersectionObserver (`[data-reveal]`) · tone: friendly, confident, job-seeker audience — the anti-hallucination story is the hero differentiator.
 
-**Landing page v2 sections:** sticky blurred nav → hero (badge *structured generation · no hallucination by design*; product mock with JD-match card, keyword chips, 82 score ring, "grounded 18/18" pill, floating fact-tag badges; CTA pair + trust line) → proof strip → how-it-works (3 alternating steps) → **"Every sentence, your call"** interactive full-resume demo (scripted from the sample resume: click a sentence → toolbar → ‹ › cycles 3 grounded rewrites → "view my original" → inline edit while selected; every bullet shows its fact tag) → "Structured, so it can't hallucinate" pipeline diagram + stat cards (18/18, <60s, .tex) → testimonials, FAQ accordion, dark CTA band, footer.
+**Landing page v2 sections:** sticky blurred nav → hero (badge *structured generation · no hallucination by design*; product mock with JD-match card + blinking cursor, keyword chips, 82 score ring, "grounded 18/18" pill, floating fact-tag badges; CTA pair + trust line) → proof strip → how-it-works (3 alternating steps) → **"Every sentence, your call"** interactive full-resume demo with a floating "↓ try it — click any sentence below" hint pill; click a sentence → block highlights + dark toolbar: ‹ › cycles 3 grounded rewrites (dots indicator), "view my original" reverts to the original wording ("↩ back to my edit / Emend's rewrite" returns), and text is **click-to-edit for real** — typing shows "↺ discard my edit" instantly, blur/Enter saves (tag flips to "edited ✎", label "your edit · based on fact GA-01"), cycling or discard replaces it; click off to deselect; every bullet shows its fact tag, flipping to "original" on revert → "Structured, so it can't hallucinate" pipeline diagram + stat cards (18/18, <60s, .tex) → testimonials, FAQ accordion, dark CTA band, footer.
+
+**Demo implementation notes (from the design component):** sentence state updates use functional setState (stale-closure race fix); the contenteditable span carries a state-derived `key` so text remounts when its source changes.
+
+**Responsive spec:** the design component achieves responsiveness via media queries + `.em-*` utility classes (`!important` over inline styles); the Next.js port translates these into Tailwind responsive utilities while preserving the behavior — **≤960px:** hero & workflow steps collapse to 1 column (text first), pipeline stacks with rotated arrows, testimonials stack, footer 2-col; **≤680px:** smaller headings, nav anchors hidden (logo + Get started stay), tighter section padding, resume card slims, stats/CTA/step-3 rows stack, floating hero badges hidden, footer 1-col; `overflow-x: hidden` on html/body.
 
 **Theming/tweaks to preserve:** `colorScheme` (Amber default / Teal tide / Oxblood / Forest) swaps the accent family via `--em-*` CSS vars — all new elements must use `var(--em-accent|soft|softb|bright|deep, fallback)`; `revealMotion` (Subtle/Standard/Dramatic); `revealReplay`.
 
-**Design conventions:** sample/demo content must stay grounded in the real resume in `uploads/` — never invent achievements. The web brand fonts do **not** change the LaTeX template: the typeset resume stays conventional (ATS-safe) — brand typography is web-only.
+**Design conventions:** demo/sample content must stay grounded in the fact file that sources it — never invent achievements. The web brand fonts do **not** change the LaTeX template: the typeset resume stays conventional (ATS-safe) — brand typography is web-only.
 
-### Design ↔ scope reconciliations (team decisions, decided now)
+### Design ↔ scope reconciliations (team decisions)
 
 1. **"Paste a link to the posting" field (hero + step 01):** job-URL ingestion is deferred — hide the field or disable it with a "coming soon" tooltip until it ships.
 2. **Dark CTA band "Create a free account…":** accounts are deferred — reword the CTA (v1 is anonymous sessions); account copy returns when auth ships.
-3. **Interactive sentence-rewrite demo:** on the landing page it is **scripted** (three pre-written grounded rewrites per sentence, ported from the design component). Live per-sentence cycling in the workspace is post-MVP.
+3. **Interactive sentence demo:** on the landing page it is **scripted** (three pre-written grounded rewrites per sentence, ported from the design component; the click-to-edit behavior is real but client-side only). Live per-sentence cycling in the workspace is post-MVP.
 4. **Testimonials:** ship only real quotes. Invented testimonials would violate the product's own no-invented-claims brand — drop or replace the section until real users exist.
+5. **Demo resume source — DECIDED: fictional persona.** The landing demo and hero mock are built from the **Sam Reyes** persona in `docs/demo-persona.md` (same resume shape as the original demo content; ids like `HX-01`), so no real contact info, employer names, or implied endorsements ship on the marketing page. The real resume stays private as a Workflow A eval fixture. The "never invent" convention reads: every demo sentence and rewrite traces to the persona fact file.
 
 ## Architecture
 
@@ -119,14 +124,14 @@ emend/
 ├── latex/   # Workflow C — template, Jinja env, escaping, Tectonic wrapper
 ├── web/     # Workflow D — Next.js app + landing page
 ├── infra/   # Workflow C — Dockerfiles, compose, CI workflows
-└── docs/    # this brief, the four workflow files, design components, architecture diagram
+└── docs/    # this brief, the four workflow files, design components, demo persona fact file, architecture diagram
 ```
 
 `main` protected (green CI + 1 review) · branches `feat/<area>/<slug>` / `fix/<area>/<slug>` · conventional commits · rotate reviewers across workflows · never edit another workflow's directories · if it's not in a workflow file, it doesn't exist — claim it before building it.
 
 ## Non-functional requirements
 
-Warm compiles ~1–2s with a hard timeout · no network egress from the compile step at runtime · every rendered string passes the escaping filter · input size limits on all text fields · session-scoped access on every query and artifact · works cleanly on a phone · fresh clone → one command → running app.
+Warm compiles ~1–2s with a hard timeout · no network egress from the compile step at runtime · every rendered string passes the escaping filter · input size limits on all text fields · session-scoped access on every query and artifact · works cleanly on a phone (per the responsive spec) · fresh clone → one command → running app.
 
 ## Shared finish line
 
