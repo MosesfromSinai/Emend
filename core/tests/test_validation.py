@@ -64,3 +64,21 @@ def test_validate_grounding_rejects_low_fact_overlap():
 
     with pytest.raises(GroundingError, match="low fact overlap"):
         validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_unsupported_skill():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.skills["Tools"].append("Kubernetes")
+
+    with pytest.raises(GroundingError, match="unsupported skills"):
+        validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_unknown_skill_category():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.skills["Cloud"] = ["AWS"]
+
+    with pytest.raises(GroundingError, match="unknown skill category"):
+        validate_grounding(master, tailored)
