@@ -38,6 +38,13 @@ def mock_refactor_resume(master: MasterResume) -> TailoredResume:
     )
 
 
+def mock_refactor_result(master: MasterResume) -> tuple[TailoredResume, Report]:
+    """Return grounded mock refactor output plus its validation report."""
+    tailored = mock_refactor_resume(master)
+    validate_grounding(master, tailored)
+    return tailored, build_grounding_report(tailored, 0.0, [], [])
+
+
 def mock_tailor_resume(master: MasterResume, jd: JDExtract) -> tuple[TailoredResume, Report]:
     """Return grounded mock tailoring plus its validation report."""
     tailored = mock_refactor_resume(master)
