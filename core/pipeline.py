@@ -1,6 +1,7 @@
 """Deterministic mock pipeline helpers."""
 
-from core.schemas import Experience, MasterResume, Project, TailoredBullet, TailoredResume, TailoredSection
+from core.matching import keyword_match
+from core.schemas import JDExtract, Experience, MasterResume, Project, TailoredBullet, TailoredResume, TailoredSection
 
 
 def _fact_bullets(facts) -> list[TailoredBullet]:
@@ -25,3 +26,13 @@ def mock_refactor_resume(master: MasterResume) -> TailoredResume:
         projects=[project_section(project) for project in master.projects],
         skills=master.skills,
     )
+
+
+def mock_tailor_resume(
+    master: MasterResume, jd: JDExtract
+) -> tuple[TailoredResume, float, list[str], list[str]]:
+    """Return grounded mock tailoring plus deterministic keyword data."""
+    tailored = mock_refactor_resume(master)
+    score, matched, missing = keyword_match(jd, master)
+    tailored.summary_of_strategy = "Mock tailor: preserve facts and report keyword overlap."
+    return tailored, score, matched, missing
