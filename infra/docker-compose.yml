@@ -1,0 +1,66 @@
+# Fresh clone -> one command (from the repo root):
+#   docker compose -f infra/docker-compose.yml up --build
+# NOTE: the api and web services need Workflow B's api/ and Workflow D's web/
+# to exist before they build; postgres works standalone today.
+
+name: emend
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: emend
+      POSTGRES_PASSWORD: emend
+      POSTGRES_DB: emend
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emend"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://emend:emend@postgres:5432/emend
+      MOCK: ${MOCK:-1}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ARTIFACTS_DIR: /data/artifacts
+    volumes:
+      - ../api:/app/api
+      - ../core:/app/core
+      - ../latex:/app/latex
+      - artifacts:/data/artifacts
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      target: deps
+    working_dir: /app
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    volumes:
+      - ../web:/app
+      - webnodemodules:/app/node_modules
+    ports:
+      - "3000:3000"
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  artifacts:
+  webnodemodules:

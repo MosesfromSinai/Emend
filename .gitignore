@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Env & secrets
+.env
+.env.local
+.env*.local
+
+# LaTeX / build artifacts
+*.pdf
+*.aux
+*.log
+!latex/tests/fixtures/**/*.pdf
+.tectonic-cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Misc
+drive-download-*.zip

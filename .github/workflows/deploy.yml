@@ -1,0 +1,25 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    concurrency: fly-deploy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # deploy exactly the commit CI validated, not whatever main moved to
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --config infra/fly.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+# The web app deploys via Vercel's native GitHub integration (root directory:
+# web/) — no workflow needed here. See infra/runbook.md.

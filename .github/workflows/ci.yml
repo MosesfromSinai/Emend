@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: ruff (existing python dirs)
+        run: |
+          dirs=""
+          for d in core api latex; do
+            [ -d "$d" ] && dirs="$dirs $d"
+          done
+          uvx ruff@0.15.22 check $dirs
+
+  test-latex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Install Tectonic
+        run: |
+          curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.16.9/tectonic-0.16.9-x86_64-unknown-linux-musl.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin tectonic
+          tectonic --version
+      - name: Run latex tests
+        run: |
+          uv venv --python 3.12
+          uv pip install jinja2 pydantic pytest
+          .venv/bin/python -m pytest latex/tests -q
+
+  test-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Run core tests (if present)
+        run: |
+          if [ -d core/tests ]; then
+            uv venv --python 3.12
+            if [ -f core/requirements.txt ]; then
+              uv pip install -r core/requirements.txt pytest
+            else
+              uv pip install pydantic pytest
+            fi
+            .venv/bin/python -m pytest core/tests -q
+          else
+            echo "core/tests not present yet — skipping"
+          fi
+
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Run api tests (if present)
+        run: |
+          if [ -d api/tests ]; then
+            uv venv --python 3.12
+            uv pip install -r api/requirements.txt pytest
+            .venv/bin/python -m pytest api/tests -q
+          else
+            echo "api/tests not present yet — skipping"
+          fi
+
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build web (if present)
+        run: |
+          if [ -f web/package.json ]; then
+            cd web && npm ci && npm run build
+          else
+            echo "web/ not present yet — skipping"
+          fi
+
+  docker-latex-sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sandbox image
+        run: docker build -f infra/docker/api.Dockerfile --target latex-sandbox -t emend-latex-sandbox .
+      - name: Verify offline compile inside the sandbox
+        run: |
+          docker run --rm --network=none emend-latex-sandbox \
+            python infra/scripts/warm-tectonic-cache.py
+
+  docker-api-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build full api image (if api/ present)
+        run: |
+          if [ -d api ]; then
+            docker build -f infra/docker/api.Dockerfile -t emend-api .
+          else
+            echo "api/ not present yet — skipping"
+          fi
