@@ -28,3 +28,12 @@ def test_validate_grounding_rejects_sourceless_bullet():
 
     with pytest.raises(GroundingError, match="sourceless bullet"):
         validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_unknown_fact_id():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[0].source_fact_ids = ["FAKE-99"]
+
+    with pytest.raises(GroundingError, match="unknown fact ids"):
+        validate_grounding(master, tailored)
