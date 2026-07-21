@@ -2,7 +2,13 @@
 
 import re
 
-from core.schemas import MasterResume, TailoredResume, TailoredSection
+from core.schemas import (
+    BulletVerdict,
+    MasterResume,
+    Report,
+    TailoredResume,
+    TailoredSection,
+)
 
 NUMBER_PATTERN = re.compile(r"\b\d+(?:[.,]\d+)?%?\+?\b")
 WORD_PATTERN = re.compile(r"[a-z0-9]+")
@@ -67,3 +73,25 @@ def validate_grounding(master: MasterResume, tailored: TailoredResume) -> None:
     _validate_sections(tailored.experiences, experience_facts)
     _validate_sections(tailored.projects, project_facts)
     _validate_skills(master.skills, tailored.skills)
+
+
+def build_grounding_report(
+    tailored: TailoredResume, match_score: float, matched: list[str], missing: list[str]
+) -> Report:
+    """Build a deterministic report after grounding validation passes."""
+    bullets = [
+        bullet
+        for section in [*tailored.experiences, *tailored.projects]
+        for bullet in section.bullets
+    ]
+    verdicts = [
+        BulletVerdict(bullet=bullet.text, supported=True, reason="Passed deterministic grounding checks.")
+        for bullet in bullets
+    ]
+    return Report(
+        match_score=match_score,
+        matched_keywords=matched,
+        missing_keywords=missing,
+        grounding_ok=True,
+        verdicts=verdicts,
+    )
