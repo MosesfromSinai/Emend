@@ -43,6 +43,18 @@ class MasterResume(BaseModel):
     projects: list[Project]
     skills: dict[str, list[str]]
 
+    def fact_lookup(self) -> dict[str, Fact]:
+        """Return every confirmed fact keyed by its id."""
+        facts: dict[str, Fact] = {}
+        for section in [*self.experiences, *self.projects]:
+            for fact in section.facts:
+                facts[fact.id] = fact
+        return facts
+
+    def all_fact_ids(self) -> set[str]:
+        """Return all confirmed fact ids for grounding checks."""
+        return set(self.fact_lookup())
+
 
 class JDExtract(BaseModel):
     company: str
