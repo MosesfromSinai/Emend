@@ -39,8 +39,9 @@ def test_mock_tailor_returns_grounded_resume_and_keyword_data():
         keywords=["Python", "Kubernetes"],
     )
 
-    tailored, score, matched, missing = mock_tailor_resume(master, jd)
+    tailored, report = mock_tailor_resume(master, jd)
     validate_grounding(master, tailored)
-    assert score == 0.5
-    assert matched == ["Python"]
-    assert missing == ["Kubernetes"]
+    assert report.match_score == 0.5
+    assert report.matched_keywords == ["Python"]
+    assert report.missing_keywords == ["Kubernetes"]
+    assert report.grounding_ok is True
