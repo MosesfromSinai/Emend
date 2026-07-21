@@ -82,3 +82,11 @@ def test_validate_grounding_rejects_unknown_skill_category():
 
     with pytest.raises(GroundingError, match="unknown skill category"):
         validate_grounding(master, tailored)
+
+
+def test_fact_lookup_rejects_duplicate_fact_ids():
+    master = _load_fixture("sample_master.json", MasterResume)
+    master.experiences[1].facts[0].id = "BAB-01"
+
+    with pytest.raises(ValueError, match="duplicate fact id"):
+        master.fact_lookup()
