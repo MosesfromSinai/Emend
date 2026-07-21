@@ -55,3 +55,12 @@ def test_validate_grounding_rejects_unsupported_numbers():
 
     with pytest.raises(GroundingError, match="unsupported numbers"):
         validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_low_fact_overlap():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[0].text = "Led Kubernetes migrations for payment systems"
+
+    with pytest.raises(GroundingError, match="low fact overlap"):
+        validate_grounding(master, tailored)
