@@ -48,6 +48,8 @@ class MasterResume(BaseModel):
         facts: dict[str, Fact] = {}
         for section in [*self.experiences, *self.projects]:
             for fact in section.facts:
+                if fact.id in facts:
+                    raise ValueError(f"duplicate fact id: {fact.id}")
                 facts[fact.id] = fact
         return facts
 
