@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from core.schemas import MasterResume, TailoredResume
-from core.validation import GroundingError, validate_grounding
+from core.validation import GroundingError, build_grounding_report, validate_grounding
 
 FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
 
@@ -90,3 +90,15 @@ def test_fact_lookup_rejects_duplicate_fact_ids():
 
     with pytest.raises(ValueError, match="duplicate fact id"):
         master.fact_lookup()
+
+
+def test_build_grounding_report_marks_valid_bullets_supported():
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+
+    report = build_grounding_report(tailored, 0.5, ["Python"], ["Kubernetes"])
+
+    assert report.match_score == 0.5
+    assert report.matched_keywords == ["Python"]
+    assert report.missing_keywords == ["Kubernetes"]
+    assert report.grounding_ok is True
+    assert all(verdict.supported for verdict in report.verdicts)
