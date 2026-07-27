@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from core.pipeline import mock_refactor_result, mock_refactor_resume, mock_tailor_resume
+from core.pipeline import mock_refactor_result, mock_refactor_resume, mock_tailor_resume, tailor
 from core.schemas import JDExtract, MasterResume
 from core.validation import validate_grounding
 
@@ -57,3 +57,14 @@ def test_mock_tailor_returns_grounded_resume_and_keyword_data():
     assert report.matched_keywords == ["Python"]
     assert report.missing_keywords == ["Kubernetes"]
     assert report.grounding_ok is True
+
+
+def test_tailor_entrypoint_returns_grounded_resume():
+    master = _master()
+    jd = JDExtract(
+        company="", title="", hard_skills=[], soft_requirements=[], responsibilities=[], keywords=[]
+    )
+
+    tailored = tailor(master, jd)
+
+    validate_grounding(master, tailored)
