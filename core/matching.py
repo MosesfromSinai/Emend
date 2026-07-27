@@ -18,16 +18,21 @@ def _master_text(master: MasterResume) -> str:
     return " ".join([facts, skills, projects])
 
 
+def _unique_keywords(keywords: list[str]) -> list[str]:
+    return list(dict.fromkeys(keyword for keyword in keywords if keyword.strip()))
+
+
 def keyword_match(jd: JDExtract, master: MasterResume) -> tuple[float, list[str], list[str]]:
     """Return normalized keyword overlap without using an LLM."""
     resume_tokens = _tokens(_master_text(master))
     matched: list[str] = []
     missing: list[str] = []
-    for keyword in jd.keywords:
+    keywords = _unique_keywords(jd.keywords)
+    for keyword in keywords:
         keyword_tokens = _tokens(keyword)
         if keyword_tokens and keyword_tokens <= resume_tokens:
             matched.append(keyword)
         else:
             missing.append(keyword)
-    score = len(matched) / len(jd.keywords) if jd.keywords else 0.0
+    score = len(matched) / len(keywords) if keywords else 0.0
     return score, matched, missing
