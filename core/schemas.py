@@ -5,6 +5,13 @@ import re
 from pydantic import BaseModel, field_validator
 
 FACT_ID_PATTERN = re.compile(r"^[A-Z0-9]+-\d{2}$")
+SECTION_ID_PATTERN = re.compile(r"^[A-Z0-9]+$")
+
+
+def _validate_section_id(value: str) -> str:
+    if not SECTION_ID_PATTERN.fullmatch(value):
+        raise ValueError("section id must be uppercase letters or digits")
+    return value
 
 
 class Fact(BaseModel):
@@ -28,12 +35,22 @@ class Experience(BaseModel):
     end: str
     facts: list[Fact]
 
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value: str) -> str:
+        return _validate_section_id(value)
+
 
 class Project(BaseModel):
     id: str
     name: str
     tech: list[str]
     facts: list[Fact]
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value: str) -> str:
+        return _validate_section_id(value)
 
 
 class Education(BaseModel):

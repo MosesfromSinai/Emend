@@ -99,6 +99,14 @@ def test_fact_rejects_invalid_id_format():
         Fact(id="bad-id", text="Not a valid grounded fact id")
 
 
+def test_master_resume_rejects_invalid_section_id():
+    data = json.loads((FIXTURES / "sample_master.json").read_text())
+    data["experiences"][0]["id"] = "bad-id"
+
+    with pytest.raises(ValidationError, match="section id must be uppercase"):
+        MasterResume(**data)
+
+
 def test_build_grounding_report_marks_valid_bullets_supported():
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
 
