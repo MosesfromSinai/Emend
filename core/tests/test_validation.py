@@ -152,11 +152,15 @@ def test_build_grounding_report_marks_valid_bullets_supported():
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
 
     report = build_grounding_report(tailored, 0.5, ["Python"], ["Kubernetes"])
+    bullet_count = sum(
+        len(section.bullets) for section in [*tailored.experiences, *tailored.projects]
+    )
 
     assert report.match_score == 0.5
     assert report.matched_keywords == ["Python"]
     assert report.missing_keywords == ["Kubernetes"]
     assert report.grounding_ok is True
+    assert len(report.verdicts) == bullet_count
     assert all(verdict.supported for verdict in report.verdicts)
 
 
