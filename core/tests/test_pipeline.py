@@ -32,6 +32,13 @@ def test_structure_resume_accepts_master_resume_json():
     assert structured == master
 
 
+def test_structure_resume_accepts_fenced_master_resume_json():
+    master = _master()
+    text = f"```json\n{master.model_dump_json()}\n```"
+
+    assert structure_resume(text) == master
+
+
 def test_structure_resume_rejects_mock_disabled(monkeypatch):
     monkeypatch.setattr(pipeline, "MOCK_ENABLED", False)
 

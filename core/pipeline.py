@@ -27,11 +27,19 @@ def _require_mock() -> None:
         raise RuntimeError("MOCK=0 real LLM pipeline is not implemented yet")
 
 
+def _json_object_text(text: str) -> str:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        return text
+    return text[start : end + 1]
+
+
 def structure_resume(text: str) -> MasterResume:
     """Mock structuring: accept an already structured MasterResume JSON blob."""
     _require_mock()
     try:
-        data = json.loads(text)
+        data = json.loads(_json_object_text(text))
     except json.JSONDecodeError as exc:
         raise ValueError("MOCK structure_resume expects MasterResume JSON") from exc
     return MasterResume(**data)
