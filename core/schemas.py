@@ -87,6 +87,15 @@ class MasterResume(BaseModel):
     projects: list[Project]
     skills: dict[str, list[str]]
 
+    @model_validator(mode="after")
+    def validate_unique_section_ids(self) -> "MasterResume":
+        seen: set[str] = set()
+        for section in [*self.experiences, *self.projects]:
+            if section.id in seen:
+                raise ValueError(f"duplicate section id: {section.id}")
+            seen.add(section.id)
+        return self
+
     def fact_lookup(self) -> dict[str, Fact]:
         """Return every confirmed fact keyed by its id."""
         facts: dict[str, Fact] = {}

@@ -125,6 +125,16 @@ def test_master_resume_rejects_invalid_section_id():
         MasterResume(**data)
 
 
+def test_master_resume_rejects_duplicate_section_ids():
+    data = json.loads((FIXTURES / "sample_master.json").read_text())
+    data["projects"][0]["id"] = "BAB"
+    data["projects"][0]["facts"][0]["id"] = "BAB-04"
+    data["projects"][0]["facts"][1]["id"] = "BAB-05"
+
+    with pytest.raises(ValidationError, match="duplicate section id"):
+        MasterResume(**data)
+
+
 def test_master_resume_rejects_fact_id_outside_section_prefix():
     data = json.loads((FIXTURES / "sample_master.json").read_text())
     data["experiences"][0]["facts"][0]["id"] = "RS-01"
