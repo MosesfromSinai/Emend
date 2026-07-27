@@ -6,6 +6,7 @@ from core.pipeline import (
     mock_refactor_resume,
     mock_tailor_resume,
     parse_jd,
+    refactor,
     structure_resume,
     tailor,
 )
@@ -56,6 +57,12 @@ def test_mock_refactor_preserves_fact_text_and_ids():
 def test_mock_refactor_passes_grounding_validation():
     master = _master()
     validate_grounding(master, mock_refactor_resume(master))
+
+
+def test_refactor_entrypoint_returns_grounded_resume():
+    master = _master()
+
+    validate_grounding(master, refactor(master))
 
 
 def test_mock_refactor_result_returns_grounded_report():

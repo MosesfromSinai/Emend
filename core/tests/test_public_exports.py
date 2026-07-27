@@ -8,7 +8,7 @@ FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
 
 
 def test_core_exports_api_bridge_functions():
-    expected = {"structure_resume", "parse_jd", "keyword_match", "tailor", "validate"}
+    expected = {"structure_resume", "parse_jd", "keyword_match", "refactor", "tailor", "validate"}
 
     assert expected <= set(core.__all__)
     assert all(callable(getattr(core, name)) for name in expected)
