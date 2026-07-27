@@ -30,3 +30,10 @@ def structured_tool(schema: type[BaseModel]) -> dict[str, Any]:
         "description": f"Return a valid {schema.__name__} object.",
         "input_schema": schema.model_json_schema(),
     }
+
+
+def _tool_input(response: Any) -> dict[str, Any]:
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and block.name == STRUCTURED_TOOL_NAME:
+            return block.input
+    raise LLMUnavailableError("Anthropic response did not include structured tool output")
