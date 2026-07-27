@@ -1,5 +1,7 @@
 """Deterministic mock pipeline helpers."""
 
+import json
+
 from core.matching import keyword_match
 from core.schemas import (
     JDExtract,
@@ -12,6 +14,15 @@ from core.schemas import (
     TailoredSection,
 )
 from core.validation import build_grounding_report, validate_grounding
+
+
+def structure_resume(text: str) -> MasterResume:
+    """Mock structuring: accept an already structured MasterResume JSON blob."""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("MOCK structure_resume expects MasterResume JSON") from exc
+    return MasterResume(**data)
 
 
 def _fact_bullets(facts) -> list[TailoredBullet]:
