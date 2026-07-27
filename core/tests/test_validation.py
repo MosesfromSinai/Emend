@@ -55,6 +55,15 @@ def test_validate_grounding_rejects_project_fact_on_experience():
         validate_grounding(master, tailored)
 
 
+def test_validate_grounding_rejects_duplicate_tailored_ref_id():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences.append(tailored.experiences[0].model_copy(deep=True))
+
+    with pytest.raises(GroundingError, match="duplicate section ref_id"):
+        validate_grounding(master, tailored)
+
+
 def test_validate_grounding_rejects_unsupported_numbers():
     master = _load_fixture("sample_master.json", MasterResume)
     tailored = _load_fixture("sample_tailored.json", TailoredResume)

@@ -36,7 +36,11 @@ def _has_fact_word_overlap(bullet_text: str, cited_text: str) -> bool:
 def _validate_sections(
     sections: list[TailoredSection], facts_by_ref: dict[str, dict[str, str]]
 ) -> None:
+    seen_refs: set[str] = set()
     for section in sections:
+        if section.ref_id in seen_refs:
+            raise GroundingError(f"duplicate section ref_id: {section.ref_id}")
+        seen_refs.add(section.ref_id)
         facts = facts_by_ref.get(section.ref_id)
         if facts is None:
             raise GroundingError(f"unknown section ref_id: {section.ref_id}")
