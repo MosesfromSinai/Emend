@@ -1,7 +1,7 @@
 import pytest
 from types import SimpleNamespace
 
-from core.llm import LLMUnavailableError, _tool_input, structured_tool, anthropic_client
+from core.llm import LLMUnavailableError, _tool_input, structured_call, structured_tool, anthropic_client
 from core.schemas import JDExtract
 
 
@@ -32,3 +32,28 @@ def test_tool_input_rejects_missing_structured_payload():
 
     with pytest.raises(LLMUnavailableError, match="structured tool output"):
         _tool_input(response)
+
+
+def test_structured_call_forces_tool_and_validates_schema():
+    payload = {
+        "company": "Acme",
+        "title": "Engineer",
+        "hard_skills": ["Python"],
+        "soft_requirements": [],
+        "responsibilities": [],
+        "keywords": ["Python"],
+    }
+    block = SimpleNamespace(type="tool_use", name="emit_schema", input=payload)
+    calls = []
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(content=[block])
+
+    messages = SimpleNamespace(create=create)
+    client = SimpleNamespace(messages=messages)
+
+    result = structured_call("model", "system", "user", JDExtract, client=client)
+
+    assert result == JDExtract(**payload)
+    assert calls[0]["tool_choice"] == {"type": "tool", "name": "emit_schema"}
