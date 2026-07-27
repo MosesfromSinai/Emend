@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from core.schemas import MasterResume, TailoredResume
-from core.validation import GroundingError, build_grounding_report, validate_grounding
+from core.validation import GroundingError, build_grounding_report, validate, validate_grounding
 
 FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
 
@@ -102,3 +102,25 @@ def test_build_grounding_report_marks_valid_bullets_supported():
     assert report.missing_keywords == ["Kubernetes"]
     assert report.grounding_ok is True
     assert all(verdict.supported for verdict in report.verdicts)
+
+
+def test_validate_bridge_returns_supported_verdicts():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+
+    grounding_ok, verdicts = validate(master, tailored)
+
+    assert grounding_ok is True
+    assert all(verdict.supported for verdict in verdicts)
+
+
+def test_validate_bridge_returns_failure_verdict():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[0].source_fact_ids = []
+
+    grounding_ok, verdicts = validate(master, tailored)
+
+    assert grounding_ok is False
+    assert verdicts[0].supported is False
+    assert "sourceless bullet" in verdicts[0].reason
