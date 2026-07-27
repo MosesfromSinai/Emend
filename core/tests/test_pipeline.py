@@ -54,6 +54,13 @@ def test_parse_jd_accepts_jd_extract_json():
     assert parsed == jd
 
 
+def test_parse_jd_derives_keywords_from_plain_text():
+    parsed = parse_jd("Python backend role using Docker and Python.")
+
+    assert parsed.responsibilities == ["Python backend role using Docker and Python."]
+    assert parsed.keywords == ["Python", "backend", "role", "using", "Docker", "and"]
+
+
 def test_mock_refactor_preserves_fact_text_and_ids():
     master = _master()
     refactored = mock_refactor_resume(master)

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 from core.matching import keyword_match
 from core.schemas import (
@@ -17,6 +18,7 @@ from core.schemas import (
 from core.validation import build_grounding_report, validate_grounding
 
 MOCK_ENABLED = os.getenv("MOCK", "1").lower() not in {"0", "false", "no"}
+JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
 
 
 def _require_mock() -> None:
@@ -35,12 +37,20 @@ def structure_resume(text: str) -> MasterResume:
 
 
 def parse_jd(text: str) -> JDExtract:
-    """Mock JD parsing: accept an already structured JDExtract JSON blob."""
+    """Mock JD parsing: accept JSON or derive keywords from plain JD text."""
     _require_mock()
     try:
         data = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError("MOCK parse_jd expects JDExtract JSON") from exc
+    except json.JSONDecodeError:
+        keywords = list(dict.fromkeys(JD_TOKEN_PATTERN.findall(text)))
+        return JDExtract(
+            company="",
+            title="",
+            hard_skills=[],
+            soft_requirements=[],
+            responsibilities=[text.strip()] if text.strip() else [],
+            keywords=keywords,
+        )
     return JDExtract(**data)
 
 
