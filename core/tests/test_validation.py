@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from core.schemas import MasterResume, TailoredResume
+from pydantic import ValidationError
+
+from core.schemas import Fact, MasterResume, TailoredResume
 from core.validation import GroundingError, build_grounding_report, validate, validate_grounding
 
 FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
@@ -90,6 +92,11 @@ def test_fact_lookup_rejects_duplicate_fact_ids():
 
     with pytest.raises(ValueError, match="duplicate fact id"):
         master.fact_lookup()
+
+
+def test_fact_rejects_invalid_id_format():
+    with pytest.raises(ValidationError, match="fact id must match"):
+        Fact(id="bad-id", text="Not a valid grounded fact id")
 
 
 def test_build_grounding_report_marks_valid_bullets_supported():

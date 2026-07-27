@@ -1,11 +1,22 @@
 """Team-wide data contracts. Change only via a `contract` PR approved by all four."""
 
-from pydantic import BaseModel
+import re
+
+from pydantic import BaseModel, field_validator
+
+FACT_ID_PATTERN = re.compile(r"^[A-Z0-9]+-\d{2}$")
 
 
 class Fact(BaseModel):
     id: str
     text: str
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value: str) -> str:
+        if not FACT_ID_PATTERN.fullmatch(value):
+            raise ValueError("fact id must match <ENTITY>-<NN>")
+        return value
 
 
 class Experience(BaseModel):
