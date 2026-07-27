@@ -75,6 +75,11 @@ def test_parse_jd_accepts_fenced_jd_extract_json():
     assert parse_jd(text) == jd
 
 
+def test_parse_jd_rejects_invalid_fenced_json():
+    with pytest.raises(ValueError, match="invalid JDExtract JSON"):
+        parse_jd("```json\n{\"keywords\": [\"Python\"]\n```")
+
+
 def test_parse_jd_derives_keywords_from_plain_text():
     parsed = parse_jd("Python backend role using Docker and Python.")
 

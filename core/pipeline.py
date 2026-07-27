@@ -49,10 +49,11 @@ def parse_jd(text: str) -> JDExtract:
     """Mock JD parsing: accept JSON or derive keywords from plain JD text."""
     _require_mock()
     json_text = _json_object_text(text)
+    is_json_hint = "```json" in text.lower()
     try:
         data = json.loads(json_text)
     except json.JSONDecodeError:
-        if json_text != text:
+        if is_json_hint or json_text != text:
             raise ValueError("MOCK parse_jd found invalid JDExtract JSON")
         keywords = [
             token
