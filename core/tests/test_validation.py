@@ -68,6 +68,15 @@ def test_validate_grounding_rejects_unsupported_plus_numbers():
         validate_grounding(master, tailored)
 
 
+def test_validate_grounding_accepts_supported_plus_numbers():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[0].text = "Documented the module for 100+ users"
+    tailored.experiences[0].bullets[0].source_fact_ids = ["BAB-03"]
+
+    validate_grounding(master, tailored)
+
+
 def test_validate_grounding_rejects_low_fact_overlap():
     master = _load_fixture("sample_master.json", MasterResume)
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
