@@ -107,6 +107,14 @@ def test_master_resume_rejects_invalid_section_id():
         MasterResume(**data)
 
 
+def test_master_resume_rejects_fact_id_outside_section_prefix():
+    data = json.loads((FIXTURES / "sample_master.json").read_text())
+    data["experiences"][0]["facts"][0]["id"] = "RS-01"
+
+    with pytest.raises(ValidationError, match="fact ids must start with section id"):
+        MasterResume(**data)
+
+
 def test_build_grounding_report_marks_valid_bullets_supported():
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
 

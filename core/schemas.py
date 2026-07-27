@@ -2,7 +2,7 @@
 
 import re
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 FACT_ID_PATTERN = re.compile(r"^[A-Z0-9]+-\d{2}$")
 SECTION_ID_PATTERN = re.compile(r"^[A-Z0-9]+$")
@@ -12,6 +12,12 @@ def _validate_section_id(value: str) -> str:
     if not SECTION_ID_PATTERN.fullmatch(value):
         raise ValueError("section id must be uppercase letters or digits")
     return value
+
+
+def _validate_fact_prefix(section_id: str, facts: list["Fact"]) -> None:
+    bad_ids = [fact.id for fact in facts if not fact.id.startswith(f"{section_id}-")]
+    if bad_ids:
+        raise ValueError(f"fact ids must start with section id: {bad_ids}")
 
 
 class Fact(BaseModel):
@@ -40,6 +46,11 @@ class Experience(BaseModel):
     def validate_id(cls, value: str) -> str:
         return _validate_section_id(value)
 
+    @model_validator(mode="after")
+    def validate_fact_prefixes(self) -> "Experience":
+        _validate_fact_prefix(self.id, self.facts)
+        return self
+
 
 class Project(BaseModel):
     id: str
@@ -51,6 +62,11 @@ class Project(BaseModel):
     @classmethod
     def validate_id(cls, value: str) -> str:
         return _validate_section_id(value)
+
+    @model_validator(mode="after")
+    def validate_fact_prefixes(self) -> "Project":
+        _validate_fact_prefix(self.id, self.facts)
+        return self
 
 
 class Education(BaseModel):
