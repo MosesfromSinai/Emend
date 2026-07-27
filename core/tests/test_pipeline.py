@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 
+import pytest
+
+import core.pipeline as pipeline
 from core.pipeline import (
     mock_refactor_result,
     mock_refactor_resume,
@@ -27,6 +30,13 @@ def test_structure_resume_accepts_master_resume_json():
     structured = structure_resume(master.model_dump_json())
 
     assert structured == master
+
+
+def test_structure_resume_rejects_mock_disabled(monkeypatch):
+    monkeypatch.setattr(pipeline, "MOCK_ENABLED", False)
+
+    with pytest.raises(RuntimeError, match="MOCK=0"):
+        structure_resume(_master().model_dump_json())
 
 
 def test_parse_jd_accepts_jd_extract_json():
