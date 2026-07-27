@@ -58,7 +58,7 @@ def test_parse_jd_derives_keywords_from_plain_text():
     parsed = parse_jd("Python backend role using Docker and Python.")
 
     assert parsed.responsibilities == ["Python backend role using Docker and Python."]
-    assert parsed.keywords == ["Python", "backend", "role", "using", "Docker", "and"]
+    assert parsed.keywords == ["Python", "backend", "role", "Docker"]
 
 
 def test_mock_refactor_preserves_fact_text_and_ids():

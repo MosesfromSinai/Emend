@@ -19,6 +19,7 @@ from core.validation import build_grounding_report, validate_grounding
 
 MOCK_ENABLED = os.getenv("MOCK", "1").lower() not in {"0", "false", "no"}
 JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
+JD_STOP_WORDS = {"and", "for", "the", "to", "using", "with"}
 
 
 def _require_mock() -> None:
@@ -42,7 +43,11 @@ def parse_jd(text: str) -> JDExtract:
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        keywords = list(dict.fromkeys(JD_TOKEN_PATTERN.findall(text)))
+        keywords = [
+            token
+            for token in dict.fromkeys(JD_TOKEN_PATTERN.findall(text))
+            if token.lower() not in JD_STOP_WORDS
+        ]
         return JDExtract(
             company="",
             title="",
