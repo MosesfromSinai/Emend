@@ -1,7 +1,13 @@
 import json
 from pathlib import Path
 
-from core.pipeline import mock_refactor_result, mock_refactor_resume, mock_tailor_resume, tailor
+from core.pipeline import (
+    mock_refactor_result,
+    mock_refactor_resume,
+    mock_tailor_resume,
+    structure_resume,
+    tailor,
+)
 from core.schemas import JDExtract, MasterResume
 from core.validation import validate_grounding
 
@@ -11,6 +17,14 @@ FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
 def _master() -> MasterResume:
     data = json.loads((FIXTURES / "sample_master.json").read_text())
     return MasterResume(**data)
+
+
+def test_structure_resume_accepts_master_resume_json():
+    master = _master()
+
+    structured = structure_resume(master.model_dump_json())
+
+    assert structured == master
 
 
 def test_mock_refactor_preserves_fact_text_and_ids():
