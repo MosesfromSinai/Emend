@@ -1,6 +1,7 @@
 """Deterministic mock pipeline helpers."""
 
 import json
+import os
 
 from core.matching import keyword_match
 from core.schemas import (
@@ -15,9 +16,17 @@ from core.schemas import (
 )
 from core.validation import build_grounding_report, validate_grounding
 
+MOCK_ENABLED = os.getenv("MOCK", "1").lower() not in {"0", "false", "no"}
+
+
+def _require_mock() -> None:
+    if not MOCK_ENABLED:
+        raise RuntimeError("MOCK=0 real LLM pipeline is not implemented yet")
+
 
 def structure_resume(text: str) -> MasterResume:
     """Mock structuring: accept an already structured MasterResume JSON blob."""
+    _require_mock()
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -27,6 +36,7 @@ def structure_resume(text: str) -> MasterResume:
 
 def parse_jd(text: str) -> JDExtract:
     """Mock JD parsing: accept an already structured JDExtract JSON blob."""
+    _require_mock()
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -50,6 +60,7 @@ def project_section(project: Project) -> TailoredSection:
 
 def mock_refactor_resume(master: MasterResume) -> TailoredResume:
     """Return a renderable resume using only confirmed master facts."""
+    _require_mock()
     return TailoredResume(
         summary_of_strategy="Mock refactor: preserve confirmed facts without rewriting.",
         experiences=[experience_section(experience) for experience in master.experiences],
