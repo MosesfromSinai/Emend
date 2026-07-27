@@ -3,6 +3,10 @@
 import os
 from typing import Any
 
+from pydantic import BaseModel
+
+STRUCTURED_TOOL_NAME = "emit_schema"
+
 
 class LLMUnavailableError(RuntimeError):
     """Raised when real LLM mode is requested but not configured."""
@@ -17,3 +21,12 @@ def anthropic_client(api_key: str | None = None) -> Any:
     except ImportError as exc:
         raise LLMUnavailableError("anthropic package is required when MOCK=0") from exc
     return Anthropic(api_key=key)
+
+
+def structured_tool(schema: type[BaseModel]) -> dict[str, Any]:
+    """Build the forced tool schema used by structured LLM calls."""
+    return {
+        "name": STRUCTURED_TOOL_NAME,
+        "description": f"Return a valid {schema.__name__} object.",
+        "input_schema": schema.model_json_schema(),
+    }
