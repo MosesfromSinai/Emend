@@ -25,6 +25,15 @@ def structure_resume(text: str) -> MasterResume:
     return MasterResume(**data)
 
 
+def parse_jd(text: str) -> JDExtract:
+    """Mock JD parsing: accept an already structured JDExtract JSON blob."""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("MOCK parse_jd expects JDExtract JSON") from exc
+    return JDExtract(**data)
+
+
 def _fact_bullets(facts) -> list[TailoredBullet]:
     return [TailoredBullet(text=fact.text, source_fact_ids=[fact.id]) for fact in facts]
 

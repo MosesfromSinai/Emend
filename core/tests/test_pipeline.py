@@ -5,6 +5,7 @@ from core.pipeline import (
     mock_refactor_result,
     mock_refactor_resume,
     mock_tailor_resume,
+    parse_jd,
     structure_resume,
     tailor,
 )
@@ -25,6 +26,21 @@ def test_structure_resume_accepts_master_resume_json():
     structured = structure_resume(master.model_dump_json())
 
     assert structured == master
+
+
+def test_parse_jd_accepts_jd_extract_json():
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Python"],
+    )
+
+    parsed = parse_jd(jd.model_dump_json())
+
+    assert parsed == jd
 
 
 def test_mock_refactor_preserves_fact_text_and_ids():
