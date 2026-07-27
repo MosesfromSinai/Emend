@@ -95,3 +95,13 @@ def build_grounding_report(
         grounding_ok=True,
         verdicts=verdicts,
     )
+
+
+def validate(master: MasterResume, tailored: TailoredResume) -> tuple[bool, list[BulletVerdict]]:
+    """Return API-friendly grounding status and verdicts."""
+    try:
+        validate_grounding(master, tailored)
+    except GroundingError as exc:
+        return False, [BulletVerdict(bullet="", supported=False, reason=str(exc))]
+    report = build_grounding_report(tailored, 0.0, [], [])
+    return True, report.verdicts
