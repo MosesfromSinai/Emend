@@ -77,7 +77,9 @@ def _fact_bullets(facts) -> list[TailoredBullet]:
 
 def experience_section(experience: Experience) -> TailoredSection:
     """Convert confirmed experience facts into grounded bullets."""
-    return TailoredSection(ref_id=experience.id, bullets=_fact_bullets(experience.facts))
+    return TailoredSection(
+        ref_id=experience.id, bullets=_fact_bullets(experience.facts)
+    )
 
 
 def project_section(project: Project) -> TailoredSection:
@@ -90,7 +92,9 @@ def mock_refactor_resume(master: MasterResume) -> TailoredResume:
     _require_mock()
     return TailoredResume(
         summary_of_strategy="Mock refactor: preserve confirmed facts without rewriting.",
-        experiences=[experience_section(experience) for experience in master.experiences],
+        experiences=[
+            experience_section(experience) for experience in master.experiences
+        ],
         projects=[project_section(project) for project in master.projects],
         skills=master.skills,
     )
@@ -109,11 +113,15 @@ def refactor(master: MasterResume) -> TailoredResume:
     return tailored
 
 
-def mock_tailor_resume(master: MasterResume, jd: JDExtract) -> tuple[TailoredResume, Report]:
+def mock_tailor_resume(
+    master: MasterResume, jd: JDExtract
+) -> tuple[TailoredResume, Report]:
     """Return grounded mock tailoring plus its validation report."""
     tailored = mock_refactor_resume(master)
     score, matched, missing = keyword_match(jd, master)
-    tailored.summary_of_strategy = "Mock tailor: preserve facts and report keyword overlap."
+    tailored.summary_of_strategy = (
+        "Mock tailor: preserve facts and report keyword overlap."
+    )
     validate_grounding(master, tailored)
     return tailored, build_grounding_report(tailored, score, matched, missing)
 

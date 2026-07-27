@@ -22,9 +22,15 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def limit_body_size(request: Request, call_next):
         length = request.headers.get("content-length")
-        if length is not None and length.isdigit() and int(length) > settings.max_body_bytes:
+        if (
+            length is not None
+            and length.isdigit()
+            and int(length) > settings.max_body_bytes
+        ):
             return error_response(
-                413, "payload_too_large", f"Request body exceeds {settings.max_body_bytes} bytes"
+                413,
+                "payload_too_large",
+                f"Request body exceeds {settings.max_body_bytes} bytes",
             )
         return await call_next(request)
 

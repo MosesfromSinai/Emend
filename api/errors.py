@@ -29,7 +29,8 @@ class ApiError(HTTPException):
 
 def error_response(status_code: int, code: str, message: str, **extra) -> JSONResponse:
     return JSONResponse(
-        status_code=status_code, content={"error": {"code": code, "message": message, **extra}}
+        status_code=status_code,
+        content={"error": {"code": code, "message": message, **extra}},
     )
 
 

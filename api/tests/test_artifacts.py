@@ -27,7 +27,9 @@ def test_tex_download_verbatim(client, master, pipeline):  # noqa: F811
     assert 'filename="resume.tex"' in r.headers["content-disposition"]
 
 
-def test_artifacts_are_session_scoped(client, other_client, master, pipeline):  # noqa: F811
+def test_artifacts_are_session_scoped(
+    client, other_client, master, pipeline
+):  # noqa: F811
     version = _make_version(client, master)
     for url in (version["pdf_url"], version["tex_url"]):
         assert other_client.get(url).status_code == 404

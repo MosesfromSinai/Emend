@@ -28,14 +28,18 @@ def test_structured_tool_uses_schema_contract():
 
 def test_tool_input_extracts_structured_payload():
     response = SimpleNamespace(
-        content=[SimpleNamespace(type="tool_use", name="emit_schema", input={"ok": True})]
+        content=[
+            SimpleNamespace(type="tool_use", name="emit_schema", input={"ok": True})
+        ]
     )
 
     assert _tool_input(response) == {"ok": True}
 
 
 def test_tool_input_rejects_missing_structured_payload():
-    response = SimpleNamespace(content=[SimpleNamespace(type="text", text="not structured")])
+    response = SimpleNamespace(
+        content=[SimpleNamespace(type="text", text="not structured")]
+    )
 
     with pytest.raises(LLMUnavailableError, match="structured tool output"):
         _tool_input(response)

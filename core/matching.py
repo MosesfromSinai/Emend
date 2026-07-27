@@ -22,7 +22,9 @@ def _unique_keywords(keywords: list[str]) -> list[str]:
     return list(dict.fromkeys(keyword for keyword in keywords if keyword.strip()))
 
 
-def keyword_match(jd: JDExtract, master: MasterResume) -> tuple[float, list[str], list[str]]:
+def keyword_match(
+    jd: JDExtract, master: MasterResume
+) -> tuple[float, list[str], list[str]]:
     """Return normalized keyword overlap without using an LLM."""
     resume_tokens = _tokens(_master_text(master))
     matched: list[str] = []

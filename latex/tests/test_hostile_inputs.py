@@ -17,8 +17,12 @@ def test_shell_escape_payload_is_neutralized_by_escaping(master):
 
 def test_newline_in_fact_id_cannot_break_out_of_comment(master):
     # a % comment runs to end-of-line: a newline smuggled into an id must not
-    # terminate the receipt and leak the rest into the document body
-    master.experiences[0].facts[0] = Fact(
+    # terminate the receipt and leak the rest into the document body.
+    # core/schemas.py's Fact.id validator now rejects this shape outright, so
+    # the render layer's own defense-in-depth is exercised via model_construct
+    # (bypasses validation, the way a future schema relaxation or an
+    # unvalidated data path could still hand render_tex a malformed id).
+    master.experiences[0].facts[0] = Fact.model_construct(
         id="GA-01\n" + SHELL_ESCAPE_PAYLOAD, text="Legit bullet text"
     )
     tex = render_tex(master, None)
@@ -68,9 +72,7 @@ def test_absurdly_long_fact(master, tmp_path):
 
 def test_hundreds_of_entries(master, tmp_path):
     exp = master.experiences[0]
-    master.experiences = [
-        exp.model_copy(update={"id": f"exp{i}"}) for i in range(300)
-    ]
+    master.experiences = [exp.model_copy(update={"id": f"exp{i}"}) for i in range(300)]
     tex = render_tex(master, None)
     pdf_path, log = compile_tex(tex, output_dir=tmp_path, timeout_s=30)
     if pdf_path:

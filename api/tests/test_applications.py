@@ -49,7 +49,8 @@ def pipeline(monkeypatch, tmp_path):
                     ref_id="ACME",
                     bullets=[
                         TailoredBullet(
-                            text="Built a reporting dashboard", source_fact_ids=["ACME-01"]
+                            text="Built a reporting dashboard",
+                            source_fact_ids=["ACME-01"],
                         )
                     ],
                 )
@@ -67,7 +68,9 @@ def pipeline(monkeypatch, tmp_path):
             grounding_ok=True,
             verdicts=[
                 BulletVerdict(
-                    bullet="Built a reporting dashboard", supported=True, reason="cites ACME-01"
+                    bullet="Built a reporting dashboard",
+                    supported=True,
+                    reason="cites ACME-01",
                 )
             ],
         )
@@ -135,7 +138,13 @@ def test_tailor_mode_end_to_end(client, master, pipeline):
     assert got["match_score"] == 0.82
     assert got["matched_keywords"] == ["python", "postgresql"]
     assert got["missing_keywords"] == ["kubernetes"]
-    assert pipeline == ["parse_jd", "keyword_match", "tailor", "validate", "render_and_compile"]
+    assert pipeline == [
+        "parse_jd",
+        "keyword_match",
+        "tailor",
+        "validate",
+        "render_and_compile",
+    ]
 
     report = got["version"]["report"]
     assert report["grounding_ok"] is True
@@ -218,5 +227,7 @@ def test_jd_text_capped(client, master, pipeline):
     from api.config import settings
 
     confirm_master(client, master)
-    r = client.post("/applications", json={"jd_text": "x" * (settings.max_text_chars + 1)})
+    r = client.post(
+        "/applications", json={"jd_text": "x" * (settings.max_text_chars + 1)}
+    )
     assert r.status_code == 422

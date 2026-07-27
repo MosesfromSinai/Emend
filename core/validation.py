@@ -76,8 +76,12 @@ def _validate_skills(
 
 def validate_grounding(master: MasterResume, tailored: TailoredResume) -> None:
     """Reject bullets that do not cite confirmed master-resume facts."""
-    experience_facts = {e.id: {fact.id: fact.text for fact in e.facts} for e in master.experiences}
-    project_facts = {p.id: {fact.id: fact.text for fact in p.facts} for p in master.projects}
+    experience_facts = {
+        e.id: {fact.id: fact.text for fact in e.facts} for e in master.experiences
+    }
+    project_facts = {
+        p.id: {fact.id: fact.text for fact in p.facts} for p in master.projects
+    }
     _validate_sections(tailored.experiences, experience_facts)
     _validate_sections(tailored.projects, project_facts)
     _validate_skills(master.skills, tailored.skills)
@@ -94,7 +98,9 @@ def build_grounding_report(
     ]
     verdicts = [
         BulletVerdict(
-            bullet=bullet.text, supported=True, reason="Passed deterministic grounding checks."
+            bullet=bullet.text,
+            supported=True,
+            reason="Passed deterministic grounding checks.",
         )
         for bullet in bullets
     ]
@@ -107,7 +113,9 @@ def build_grounding_report(
     )
 
 
-def validate(master: MasterResume, tailored: TailoredResume) -> tuple[bool, list[BulletVerdict]]:
+def validate(
+    master: MasterResume, tailored: TailoredResume
+) -> tuple[bool, list[BulletVerdict]]:
     """Return API-friendly grounding status and verdicts."""
     try:
         validate_grounding(master, tailored)

@@ -65,7 +65,10 @@ def sample_master() -> MasterResume:
                 end="Aug 2025",
                 facts=[
                     Fact(id="ACME-01", text="Built an internal reporting dashboard"),
-                    Fact(id="ACME-02", text="Wrote integration tests for the billing service"),
+                    Fact(
+                        id="ACME-02",
+                        text="Wrote integration tests for the billing service",
+                    ),
                 ],
             )
         ],
@@ -74,7 +77,9 @@ def sample_master() -> MasterResume:
                 id="PROJ",
                 name="Course Scheduler",
                 tech=["Python", "PostgreSQL"],
-                facts=[Fact(id="PROJ-01", text="Constraint solver for course timetables")],
+                facts=[
+                    Fact(id="PROJ-01", text="Constraint solver for course timetables")
+                ],
             )
         ],
         skills={"Languages": ["Python", "SQL"], "Tools": ["Docker"]},

@@ -77,7 +77,7 @@ def test_parse_jd_accepts_fenced_jd_extract_json():
 
 def test_parse_jd_rejects_invalid_fenced_json():
     with pytest.raises(ValueError, match="invalid JDExtract JSON"):
-        parse_jd("```json\n{\"keywords\": [\"Python\"]\n```")
+        parse_jd('```json\n{"keywords": ["Python"]\n```')
 
 
 def test_parse_jd_derives_keywords_from_plain_text():
@@ -154,7 +154,12 @@ def test_mock_tailor_returns_grounded_resume_and_keyword_data():
 def test_tailor_entrypoint_returns_grounded_resume():
     master = _master()
     jd = JDExtract(
-        company="", title="", hard_skills=[], soft_requirements=[], responsibilities=[], keywords=[]
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=[],
     )
 
     tailored = tailor(master, jd)

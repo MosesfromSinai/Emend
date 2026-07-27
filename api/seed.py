@@ -22,8 +22,10 @@ def seed() -> None:
         print("Seeded session with a confirmed master resume.")
         print(f"  cookie: {cookie}")
         print("\nRefactor mode:")
-        print(f'  curl -s -X POST localhost:8000/applications -b "{cookie}" '
-              "-H 'content-type: application/json' -d '{}'")
+        print(
+            f'  curl -s -X POST localhost:8000/applications -b "{cookie}" '
+            "-H 'content-type: application/json' -d '{}'"
+        )
         print("\nTailor mode — use this sample posting as jd_text:")
         print(SAMPLE_POSTING)
     finally:

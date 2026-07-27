@@ -48,5 +48,7 @@ def get_master(session: CurrentSession, db: DB) -> MasterResume:
         select(MasterResumeRow).where(MasterResumeRow.session_id == session.id)
     ).first()
     if row is None:
-        raise ApiError(404, "no_master_resume", "No confirmed master resume for this session")
+        raise ApiError(
+            404, "no_master_resume", "No confirmed master resume for this session"
+        )
     return MasterResume.model_validate(row.data)
