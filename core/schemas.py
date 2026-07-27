@@ -124,6 +124,12 @@ class TailoredBullet(BaseModel):
     text: str
     source_fact_ids: list[str]
 
+    @model_validator(mode="after")
+    def validate_unique_source_fact_ids(self) -> "TailoredBullet":
+        if len(self.source_fact_ids) != len(set(self.source_fact_ids)):
+            raise ValueError("source_fact_ids must be unique")
+        return self
+
 
 class TailoredSection(BaseModel):
     ref_id: str

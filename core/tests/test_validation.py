@@ -5,7 +5,7 @@ import pytest
 
 from pydantic import ValidationError
 
-from core.schemas import Fact, MasterResume, TailoredResume
+from core.schemas import Fact, MasterResume, TailoredBullet, TailoredResume
 from core.validation import GroundingError, build_grounding_report, validate, validate_grounding
 
 FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
@@ -39,6 +39,11 @@ def test_validate_grounding_rejects_unknown_fact_id():
 
     with pytest.raises(GroundingError, match="unknown fact ids"):
         validate_grounding(master, tailored)
+
+
+def test_tailored_bullet_rejects_duplicate_source_fact_ids():
+    with pytest.raises(ValidationError, match="source_fact_ids must be unique"):
+        TailoredBullet(text="Repeated receipt", source_fact_ids=["BAB-01", "BAB-01"])
 
 
 def test_validate_grounding_rejects_project_fact_on_experience():
