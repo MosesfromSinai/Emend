@@ -6,8 +6,8 @@ import re
 
 from core.matching import keyword_match
 from core.schemas import (
-    JDExtract,
     Experience,
+    JDExtract,
     MasterResume,
     Project,
     Report,
@@ -52,9 +52,9 @@ def parse_jd(text: str) -> JDExtract:
     is_json_hint = "```json" in text.lower()
     try:
         data = json.loads(json_text)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         if is_json_hint or json_text != text:
-            raise ValueError("MOCK parse_jd found invalid JDExtract JSON")
+            raise ValueError("MOCK parse_jd found invalid JDExtract JSON") from exc
         keywords = [
             token
             for token in dict.fromkeys(JD_TOKEN_PATTERN.findall(text))

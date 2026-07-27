@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from pydantic import ValidationError
 
 from core.schemas import Fact, MasterResume, TailoredBullet, TailoredResume

@@ -1,7 +1,14 @@
-import pytest
 from types import SimpleNamespace
 
-from core.llm import LLMUnavailableError, _tool_input, structured_call, structured_tool, anthropic_client
+import pytest
+
+from core.llm import (
+    LLMUnavailableError,
+    _tool_input,
+    anthropic_client,
+    structured_call,
+    structured_tool,
+)
 from core.schemas import JDExtract
 
 

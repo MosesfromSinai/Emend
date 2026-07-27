@@ -1,11 +1,10 @@
 """Small Anthropic client helpers for real pipeline mode."""
 
 import os
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 
-SchemaT = TypeVar("SchemaT", bound=BaseModel)
 STRUCTURED_TOOL_NAME = "emit_schema"
 DEFAULT_MAX_TOKENS = 4096
 
@@ -41,7 +40,7 @@ def _tool_input(response: Any) -> dict[str, Any]:
     raise LLMUnavailableError("Anthropic response did not include structured tool output")
 
 
-def structured_call(
+def structured_call[SchemaT: BaseModel](
     model: str,
     system: str,
     user: str,

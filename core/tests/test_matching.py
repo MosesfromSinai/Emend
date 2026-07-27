@@ -29,7 +29,14 @@ def test_keyword_match_scores_overlap_deterministically():
 
 
 def test_keyword_match_empty_keywords_scores_zero():
-    jd = JDExtract(company="", title="", hard_skills=[], soft_requirements=[], responsibilities=[], keywords=[])
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=[],
+    )
     assert keyword_match(jd, _master()) == (0.0, [], [])
 
 

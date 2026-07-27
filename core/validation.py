@@ -49,7 +49,9 @@ def _validate_sections(
                 raise GroundingError(f"sourceless bullet: {bullet.text}")
             unknown_ids = set(bullet.source_fact_ids) - set(facts)
             if unknown_ids:
-                raise GroundingError(f"unknown fact ids or outside-section ids: {sorted(unknown_ids)}")
+                raise GroundingError(
+                    f"unknown fact ids or outside-section ids: {sorted(unknown_ids)}"
+                )
             cited_text = " ".join(facts[fact_id] for fact_id in bullet.source_fact_ids)
             new_numbers = set(NUMBER_PATTERN.findall(bullet.text)) - set(
                 NUMBER_PATTERN.findall(cited_text)
@@ -60,7 +62,9 @@ def _validate_sections(
                 raise GroundingError(f"low fact overlap: {bullet.text}")
 
 
-def _validate_skills(master_skills: dict[str, list[str]], tailored_skills: dict[str, list[str]]) -> None:
+def _validate_skills(
+    master_skills: dict[str, list[str]], tailored_skills: dict[str, list[str]]
+) -> None:
     allowed = {skill.lower() for skills in master_skills.values() for skill in skills}
     for category, skills in tailored_skills.items():
         if category not in master_skills:
@@ -89,7 +93,9 @@ def build_grounding_report(
         for bullet in section.bullets
     ]
     verdicts = [
-        BulletVerdict(bullet=bullet.text, supported=True, reason="Passed deterministic grounding checks.")
+        BulletVerdict(
+            bullet=bullet.text, supported=True, reason="Passed deterministic grounding checks."
+        )
         for bullet in bullets
     ]
     return Report(
