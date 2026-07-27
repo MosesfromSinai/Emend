@@ -10,7 +10,7 @@ from core.schemas import (
     TailoredSection,
 )
 
-NUMBER_PATTERN = re.compile(r"\b\d+(?:[.,]\d+)?%?\+?\b")
+NUMBER_PATTERN = re.compile(r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?%?\+?(?![A-Za-z0-9])")
 WORD_PATTERN = re.compile(r"[a-z0-9]+")
 MIN_FACT_WORD_OVERLAP = 0.25
 STOP_WORDS = {"a", "an", "and", "by", "for", "in", "of", "on", "the", "to", "with"}

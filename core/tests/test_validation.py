@@ -59,6 +59,15 @@ def test_validate_grounding_rejects_unsupported_numbers():
         validate_grounding(master, tailored)
 
 
+def test_validate_grounding_rejects_unsupported_plus_numbers():
+    master = _load_fixture("sample_master.json", MasterResume)
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored.experiences[0].bullets[0].text = "Authored the first algorithm for 20+ users"
+
+    with pytest.raises(GroundingError, match="unsupported numbers"):
+        validate_grounding(master, tailored)
+
+
 def test_validate_grounding_rejects_low_fact_overlap():
     master = _load_fixture("sample_master.json", MasterResume)
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
