@@ -103,6 +103,18 @@ def test_refactor_entrypoint_returns_grounded_resume():
     validate_grounding(master, refactor(master))
 
 
+def test_refactor_entrypoint_preserves_all_fact_ids():
+    master = _master()
+    tailored = refactor(master)
+    bullet_ids = {
+        bullet.source_fact_ids[0]
+        for section in [*tailored.experiences, *tailored.projects]
+        for bullet in section.bullets
+    }
+
+    assert bullet_ids == master.all_fact_ids()
+
+
 def test_mock_refactor_result_returns_grounded_report():
     master = _master()
 
