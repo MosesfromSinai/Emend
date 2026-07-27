@@ -61,6 +61,20 @@ def test_parse_jd_accepts_jd_extract_json():
     assert parsed == jd
 
 
+def test_parse_jd_accepts_fenced_jd_extract_json():
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Docker"],
+    )
+    text = f"```json\n{jd.model_dump_json()}\n```"
+
+    assert parse_jd(text) == jd
+
+
 def test_parse_jd_derives_keywords_from_plain_text():
     parsed = parse_jd("Python backend role using Docker and Python.")
 

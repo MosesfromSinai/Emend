@@ -48,9 +48,12 @@ def structure_resume(text: str) -> MasterResume:
 def parse_jd(text: str) -> JDExtract:
     """Mock JD parsing: accept JSON or derive keywords from plain JD text."""
     _require_mock()
+    json_text = _json_object_text(text)
     try:
-        data = json.loads(text)
+        data = json.loads(json_text)
     except json.JSONDecodeError:
+        if json_text != text:
+            raise ValueError("MOCK parse_jd found invalid JDExtract JSON")
         keywords = [
             token
             for token in dict.fromkeys(JD_TOKEN_PATTERN.findall(text))
