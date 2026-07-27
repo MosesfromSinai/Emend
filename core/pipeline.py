@@ -52,3 +52,9 @@ def mock_tailor_resume(master: MasterResume, jd: JDExtract) -> tuple[TailoredRes
     tailored.summary_of_strategy = "Mock tailor: preserve facts and report keyword overlap."
     validate_grounding(master, tailored)
     return tailored, build_grounding_report(tailored, score, matched, missing)
+
+
+def tailor(master: MasterResume, jd: JDExtract) -> TailoredResume:
+    """Public tailor entrypoint; MOCK mode preserves confirmed facts."""
+    tailored, _report = mock_tailor_resume(master, jd)
+    return tailored
