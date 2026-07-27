@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from core.pipeline import mock_refactor_resume, mock_tailor_resume
+from core.pipeline import mock_refactor_result, mock_refactor_resume, mock_tailor_resume
 from core.schemas import JDExtract, MasterResume
 from core.validation import validate_grounding
 
@@ -26,6 +26,18 @@ def test_mock_refactor_preserves_fact_text_and_ids():
 def test_mock_refactor_passes_grounding_validation():
     master = _master()
     validate_grounding(master, mock_refactor_resume(master))
+
+
+def test_mock_refactor_result_returns_grounded_report():
+    master = _master()
+
+    tailored, report = mock_refactor_result(master)
+
+    validate_grounding(master, tailored)
+    assert report.match_score == 0.0
+    assert report.matched_keywords == []
+    assert report.missing_keywords == []
+    assert report.grounding_ok is True
 
 
 def test_mock_tailor_returns_grounded_resume_and_keyword_data():
