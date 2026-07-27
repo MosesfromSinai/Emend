@@ -45,7 +45,9 @@ def parse_jd(text: str) -> JDExtract:
     return _core_fn("parse_jd")(text)
 
 
-def keyword_match(jd: JDExtract, master: MasterResume) -> tuple[float, list[str], list[str]]:
+def keyword_match(
+    jd: JDExtract, master: MasterResume
+) -> tuple[float, list[str], list[str]]:
     return _core_fn("keyword_match")(jd, master)
 
 

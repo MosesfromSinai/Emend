@@ -84,7 +84,9 @@ def test_tailor_bullets_carry_source_fact_ids(master, tailored):
     tex = render_tex(master, tailored)
     lines = [line.strip() for line in tex.splitlines()]
     idx = lines.index("% grounded: BAB-01")
-    assert lines[idx + 1].startswith(r"\resumeItem{Authored the first machine-executable")
+    assert lines[idx + 1].startswith(
+        r"\resumeItem{Authored the first machine-executable"
+    )
     # merged bullets list every contributing fact
     idx = lines.index("% grounded: BERN-01, BERN-02")
     assert lines[idx + 1].startswith(r"\resumeItem{Built a mechanical Bernoulli")

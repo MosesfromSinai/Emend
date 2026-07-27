@@ -25,7 +25,10 @@ def upgrade() -> None:
         "sessions",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
     )
     op.create_table(
@@ -40,7 +43,10 @@ def upgrade() -> None:
         ),
         sa.Column("data", JSONVariant, nullable=False),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
     )
     op.create_table(
@@ -61,7 +67,10 @@ def upgrade() -> None:
         sa.Column("missing_keywords", JSONVariant, nullable=True),
         sa.Column("error", sa.Text(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
     )
     op.create_table(
@@ -78,7 +87,10 @@ def upgrade() -> None:
         sa.Column("pdf_path", sa.String(512), nullable=False),
         sa.Column("report", JSONVariant, nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
         ),
     )
 

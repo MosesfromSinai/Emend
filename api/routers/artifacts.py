@@ -17,7 +17,9 @@ router = APIRouter(prefix="/artifacts", tags=["artifacts"])
 DB = Annotated[Session, Depends(get_db)]
 
 
-def _get_version(version_id: uuid.UUID, session_id: uuid.UUID, db: Session) -> ResumeVersion:
+def _get_version(
+    version_id: uuid.UUID, session_id: uuid.UUID, db: Session
+) -> ResumeVersion:
     version = db.scalars(
         select(ResumeVersion)
         .join(Application, ResumeVersion.application_id == Application.id)

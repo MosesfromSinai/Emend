@@ -38,7 +38,9 @@ def create_application(
     )
     if not has_master:
         raise ApiError(
-            409, "no_master_resume", "Confirm a master resume before creating an application"
+            409,
+            "no_master_resume",
+            "Confirm a master resume before creating an application",
         )
     app_row = Application(
         session_id=session.id,
@@ -74,7 +76,9 @@ def get_application(
     ).first()
     if app_row is None:
         raise ApiError(404, "not_found", "Application not found")
-    version = next(iter(sorted(app_row.versions, key=lambda v: v.created_at, reverse=True)), None)
+    version = next(
+        iter(sorted(app_row.versions, key=lambda v: v.created_at, reverse=True)), None
+    )
     return ApplicationOut(
         id=app_row.id,
         mode=app_row.mode,

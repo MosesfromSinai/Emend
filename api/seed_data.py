@@ -27,8 +27,14 @@ SAMPLE_MASTER = MasterResume(
             start="Jun 2025",
             end="Aug 2025",
             facts=[
-                Fact(id="ACME-01", text="Built an internal reporting dashboard used by 3 teams"),
-                Fact(id="ACME-02", text="Wrote integration tests covering the billing service"),
+                Fact(
+                    id="ACME-01",
+                    text="Built an internal reporting dashboard used by 3 teams",
+                ),
+                Fact(
+                    id="ACME-02",
+                    text="Wrote integration tests covering the billing service",
+                ),
                 Fact(id="ACME-03", text="Migrated two cron jobs to event-driven tasks"),
             ],
         )
@@ -39,8 +45,13 @@ SAMPLE_MASTER = MasterResume(
             name="Course Scheduler",
             tech=["Python", "PostgreSQL", "FastAPI"],
             facts=[
-                Fact(id="SCHED-01", text="Constraint solver that generates course timetables"),
-                Fact(id="SCHED-02", text="REST API with session-scoped saved schedules"),
+                Fact(
+                    id="SCHED-01",
+                    text="Constraint solver that generates course timetables",
+                ),
+                Fact(
+                    id="SCHED-02", text="REST API with session-scoped saved schedules"
+                ),
             ],
         )
     ],

@@ -4,7 +4,13 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from core.schemas import Experience, MasterResume, Project, TailoredResume, TailoredSection
+from core.schemas import (
+    Experience,
+    MasterResume,
+    Project,
+    TailoredResume,
+    TailoredSection,
+)
 
 from .escaping import escape_latex
 
@@ -62,7 +68,9 @@ def _tailored_rows(
     for section in sections:
         source = by_id.get(section.ref_id)
         if source is None:
-            raise ValueError(f"tailored {kind} section references unknown id {section.ref_id!r}")
+            raise ValueError(
+                f"tailored {kind} section references unknown id {section.ref_id!r}"
+            )
         bullets = [_bullet_row(b.text, b.source_fact_ids) for b in section.bullets]
         if isinstance(source, Experience):
             rows.append(_experience_row(source, bullets))
@@ -98,7 +106,9 @@ def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
         ]
         skills = master.skills
     else:
-        exp_by_id: dict[str, Experience | Project] = {e.id: e for e in master.experiences}
+        exp_by_id: dict[str, Experience | Project] = {
+            e.id: e for e in master.experiences
+        }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
         experiences = _tailored_rows(tailored.experiences, exp_by_id, "experience")
         projects = _tailored_rows(tailored.projects, proj_by_id, "project")
@@ -106,7 +116,9 @@ def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
 
     links = [
         {
-            "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
+            "url": (
+                link if link.startswith(("http://", "https://")) else f"https://{link}"
+            ),
             "display": link.removeprefix("https://").removeprefix("http://"),
         }
         for link in master.links

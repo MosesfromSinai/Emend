@@ -23,8 +23,11 @@ def test_render_and_compile_contract(master, tailored):
 
 
 def test_invalid_latex_fails_with_surfaced_log(tmp_path):
-    pdf_path, log = compile_tex(r"\documentclass{article}\begin{document}\undefinedmacro",
-                                output_dir=tmp_path, timeout_s=60)
+    pdf_path, log = compile_tex(
+        r"\documentclass{article}\begin{document}\undefinedmacro",
+        output_dir=tmp_path,
+        timeout_s=60,
+    )
     assert pdf_path == ""
     assert "error" in log.lower() or "undefined" in log.lower()
 
