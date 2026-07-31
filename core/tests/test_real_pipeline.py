@@ -1,0 +1,232 @@
+"""Real-mode (MOCK=0) tests.
+
+No network: a fake client records the outgoing request so we can assert on the
+request shape, which is where the contract with Anthropic actually lives.
+"""
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from core.llm import (
+    FAST_MODEL,
+    TAILOR_MODEL,
+    LLMUnavailableError,
+    structured_call,
+    structured_tool,
+    supports_strict_tool,
+)
+from core.pipeline import parse_jd, real_tailor_result, structure_resume, tailor
+from core.schemas import (
+    BulletVerdict,
+    JDExtract,
+    MasterResume,
+    TailoredResume,
+)
+from core.validation import GroundingError, judge_bullets
+
+FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
+
+
+@pytest.fixture(autouse=True)
+def real_mode(monkeypatch):
+    monkeypatch.setenv("MOCK", "0")
+
+
+def _master() -> MasterResume:
+    return MasterResume(**json.loads((FIXTURES / "sample_master.json").read_text()))
+
+
+def _jd() -> JDExtract:
+    return JDExtract(
+        company="Acme",
+        title="Engineer",
+        hard_skills=["Python"],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Python"],
+    )
+
+
+class FakeClient:
+    """Records requests and replays queued tool-use payloads."""
+
+    def __init__(self, *payloads: dict):
+        self.payloads = list(payloads)
+        self.calls: list[dict] = []
+        self.messages = SimpleNamespace(create=self._create)
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        payload = self.payloads.pop(0) if len(self.payloads) > 1 else self.payloads[0]
+        block = SimpleNamespace(type="tool_use", name="emit_schema", input=payload)
+        usage = SimpleNamespace(
+            input_tokens=10,
+            output_tokens=20,
+            cache_read_input_tokens=5,
+            cache_creation_input_tokens=0,
+        )
+        return SimpleNamespace(content=[block], usage=usage)
+
+
+def _tailored_payload(master: MasterResume) -> dict:
+    return TailoredResume(
+        summary_of_strategy="Lead with Python work.",
+        experiences=[
+            {
+                "ref_id": e.id,
+                "bullets": [
+                    {"text": f.text, "source_fact_ids": [f.id]} for f in e.facts
+                ],
+            }
+            for e in master.experiences
+        ],
+        projects=[
+            {
+                "ref_id": p.id,
+                "bullets": [
+                    {"text": f.text, "source_fact_ids": [f.id]} for f in p.facts
+                ],
+            }
+            for p in master.projects
+        ],
+        skills=master.skills,
+    ).model_dump()
+
+
+# --- request shape -----------------------------------------------------------
+
+
+def test_structure_resume_uses_fast_model_and_caches_system():
+    master = _master()
+    client = FakeClient(master.model_dump())
+
+    assert structure_resume("messy resume text", client=client) == master
+
+    call = client.calls[0]
+    assert call["model"] == FAST_MODEL
+    assert call["system"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert call["tool_choice"] == {"type": "tool", "name": "emit_schema"}
+
+
+def test_parse_jd_uses_fast_model():
+    jd = _jd()
+    client = FakeClient(jd.model_dump())
+
+    assert parse_jd("We need a Python engineer.", client=client) == jd
+    assert client.calls[0]["model"] == FAST_MODEL
+
+
+def test_tailor_uses_sonnet_and_caches_the_master_resume():
+    master = _master()
+    client = FakeClient(_tailored_payload(master))
+
+    tailor(master, _jd(), client=client)
+
+    call = client.calls[0]
+    assert call["model"] == TAILOR_MODEL
+    # master resume rides in the cached prefix so repeat tailoring reuses it
+    assert master.experiences[0].facts[0].text in call["system"][-1]["text"]
+    assert call["system"][-1]["cache_control"] == {"type": "ephemeral"}
+
+
+# --- the guarantee -----------------------------------------------------------
+
+
+def test_tailor_rejects_output_citing_unknown_fact_ids():
+    master = _master()
+    payload = _tailored_payload(master)
+    payload["experiences"][0]["bullets"][0]["source_fact_ids"] = ["ZZ-99"]
+
+    with pytest.raises(GroundingError):
+        tailor(master, _jd(), client=FakeClient(payload))
+
+
+def test_tailor_rejects_output_inventing_numbers():
+    master = _master()
+    payload = _tailored_payload(master)
+    payload["experiences"][0]["bullets"][0]["text"] += " across 47 teams"
+
+    with pytest.raises(GroundingError):
+        tailor(master, _jd(), client=FakeClient(payload))
+
+
+def test_real_tailor_result_reports_judge_verdicts():
+    master = _master()
+    tailored_payload = _tailored_payload(master)
+    unsupported = BulletVerdict(
+        bullet="", supported=False, reason="Claims scope the facts do not support."
+    ).model_dump()
+    client = FakeClient(tailored_payload, unsupported)
+
+    _tailored, report = real_tailor_result(master, _jd(), client=client)
+
+    assert report.grounding_ok is False
+    assert report.verdicts and all(not v.supported for v in report.verdicts)
+    # verdicts carry our bullet text, not the model's echo
+    assert all(v.bullet for v in report.verdicts)
+    assert report.match_score == 1.0
+
+
+def test_judge_runs_once_per_bullet_on_the_fast_model():
+    master = _master()
+    tailored = TailoredResume(**_tailored_payload(master))
+    supported = BulletVerdict(bullet="", supported=True, reason="Traceable.").model_dump()
+    client = FakeClient(supported)
+
+    verdicts = judge_bullets(master, tailored, client=client)
+
+    bullet_count = sum(
+        len(s.bullets) for s in [*tailored.experiences, *tailored.projects]
+    )
+    assert len(verdicts) == bullet_count
+    assert len(client.calls) == bullet_count
+    assert {call["model"] for call in client.calls} == {FAST_MODEL}
+
+
+# --- strict tool use ---------------------------------------------------------
+
+
+def test_strict_is_enabled_for_flat_schemas():
+    assert supports_strict_tool(JDExtract)
+    assert supports_strict_tool(BulletVerdict)
+    tool = structured_tool(JDExtract, strict=True)
+    assert tool["strict"] is True
+    assert tool["input_schema"]["additionalProperties"] is False
+
+
+def test_strict_is_refused_for_schemas_with_open_maps():
+    # skills: dict[str, list[str]] renders additionalProperties as a schema,
+    # which strict tool use rejects.
+    assert not supports_strict_tool(MasterResume)
+    assert not supports_strict_tool(TailoredResume)
+    assert "strict" not in structured_tool(MasterResume)
+
+
+def test_structured_tool_does_not_mutate_the_model_schema():
+    before = JDExtract.model_json_schema()
+    structured_tool(JDExtract, strict=True)
+    assert JDExtract.model_json_schema() == before
+
+
+# --- retry -------------------------------------------------------------------
+
+
+def test_structured_call_retries_once_on_invalid_output():
+    jd = _jd()
+    client = FakeClient({"company": "Acme"}, jd.model_dump())
+
+    assert structured_call("m", "s", "u", JDExtract, client=client) == jd
+    assert len(client.calls) == 2
+    # the retry tells the model what it got wrong
+    assert "failed schema validation" in client.calls[1]["messages"][0]["content"]
+
+
+def test_structured_call_raises_after_exhausting_retries():
+    client = FakeClient({"company": "Acme"})
+
+    with pytest.raises(LLMUnavailableError, match="invalid JDExtract"):
+        structured_call("m", "s", "u", JDExtract, client=client, retries=1)
+    assert len(client.calls) == 2

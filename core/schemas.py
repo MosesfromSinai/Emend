@@ -1,4 +1,19 @@
-"""Team-wide data contracts. Change only via a `contract` PR approved by all four."""
+"""Team-wide data contracts. Change only via a `contract` PR approved by all four.
+
+Fact-id format (`<ENTITY>-<NN>`) is a cross-workflow surface, not an internal
+detail: the ids appear verbatim in Workflow C's `% grounded:` receipts in the
+rendered `.tex` and in Workflow D's fact-tag badges. Keep the charset to
+uppercase letters, digits, and a single hyphen — the render layer escapes and
+whitespace-collapses anything stranger, which would break the receipts.
+
+- Section id (`Experience.id`, `Project.id`): uppercase letters/digits, no
+  hyphen — `GA`, `ACM`, `NASA`. Unique across the master resume.
+- Fact id (`Fact.id`): its section id, a hyphen, then two digits — `GA-01`,
+  `ACM-02`. Numbered from 01 within each section and unique resume-wide.
+- `structure_resume` assigns these and they are stable within a master-resume
+  version. `TailoredBullet.source_fact_ids` may only cite ids belonging to its
+  own section.
+"""
 
 import re
 
