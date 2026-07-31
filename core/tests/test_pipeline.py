@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-import core.pipeline as pipeline
+from core.llm import LLMUnavailableError
 from core.pipeline import (
     mock_refactor_result,
     mock_refactor_resume,
@@ -39,10 +39,11 @@ def test_structure_resume_accepts_fenced_master_resume_json():
     assert structure_resume(text) == master
 
 
-def test_structure_resume_rejects_mock_disabled(monkeypatch):
-    monkeypatch.setattr(pipeline, "MOCK_ENABLED", False)
+def test_structure_resume_requires_api_key_when_mock_disabled(monkeypatch):
+    monkeypatch.setenv("MOCK", "0")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
-    with pytest.raises(RuntimeError, match="MOCK=0"):
+    with pytest.raises(LLMUnavailableError, match="ANTHROPIC_API_KEY"):
         structure_resume(_master().model_dump_json())
 
 

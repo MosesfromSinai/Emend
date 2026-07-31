@@ -1,11 +1,22 @@
-"""Deterministic grounding checks for tailored resumes."""
+"""Two-stage grounding checks for tailored resumes.
+
+Stage one is deterministic and authoritative: `validate_grounding` rejects
+bullets that cite unknown facts, introduce unsupported numbers, or drift from
+the wording of the facts they claim. Stage two is the LLM judge in
+`judge_bullets`, which only runs in real mode and only after stage one passes.
+"""
 
 import re
+from typing import Any
 
+from core.config import mock_enabled
+from core.llm import FAST_MODEL, cacheable_system, structured_call
+from core.prompts import JUDGE_SYSTEM
 from core.schemas import (
     BulletVerdict,
     MasterResume,
     Report,
+    TailoredBullet,
     TailoredResume,
     TailoredSection,
 )
@@ -74,16 +85,18 @@ def _validate_skills(
             raise GroundingError(f"unsupported skills: {sorted(unsupported)}")
 
 
+def _experience_facts(master: MasterResume) -> dict[str, dict[str, str]]:
+    return {e.id: {fact.id: fact.text for fact in e.facts} for e in master.experiences}
+
+
+def _project_facts(master: MasterResume) -> dict[str, dict[str, str]]:
+    return {p.id: {fact.id: fact.text for fact in p.facts} for p in master.projects}
+
+
 def validate_grounding(master: MasterResume, tailored: TailoredResume) -> None:
     """Reject bullets that do not cite confirmed master-resume facts."""
-    experience_facts = {
-        e.id: {fact.id: fact.text for fact in e.facts} for e in master.experiences
-    }
-    project_facts = {
-        p.id: {fact.id: fact.text for fact in p.facts} for p in master.projects
-    }
-    _validate_sections(tailored.experiences, experience_facts)
-    _validate_sections(tailored.projects, project_facts)
+    _validate_sections(tailored.experiences, _experience_facts(master))
+    _validate_sections(tailored.projects, _project_facts(master))
     _validate_skills(master.skills, tailored.skills)
 
 
@@ -113,13 +126,61 @@ def build_grounding_report(
     )
 
 
+def _judge_prompt(bullet: TailoredBullet, facts: dict[str, str]) -> str:
+    cited = "\n".join(f"- {fact_id}: {facts[fact_id]}" for fact_id in bullet.source_fact_ids)
+    return f"Confirmed source facts:\n{cited}\n\nRewritten bullet:\n{bullet.text}"
+
+
+def judge_bullets(
+    master: MasterResume,
+    tailored: TailoredResume,
+    *,
+    client: Any | None = None,
+) -> list[BulletVerdict]:
+    """Run the LLM judge over every tailored bullet (stage two of the guard).
+
+    Assumes `validate_grounding` has already passed, so every cited id exists
+    on its own section.
+    """
+    facts_by_ref = {**_experience_facts(master), **_project_facts(master)}
+    verdicts: list[BulletVerdict] = []
+    for section in [*tailored.experiences, *tailored.projects]:
+        facts = facts_by_ref[section.ref_id]
+        for bullet in section.bullets:
+            verdict = structured_call(
+                FAST_MODEL,
+                cacheable_system(JUDGE_SYSTEM),
+                _judge_prompt(bullet, facts),
+                BulletVerdict,
+                client=client,
+            )
+            # Trust the judgement, not the echo: keep our own bullet text so a
+            # paraphrased echo cannot misattribute a verdict.
+            verdicts.append(
+                BulletVerdict(
+                    bullet=bullet.text,
+                    supported=verdict.supported,
+                    reason=verdict.reason,
+                )
+            )
+    return verdicts
+
+
 def validate(
     master: MasterResume, tailored: TailoredResume
 ) -> tuple[bool, list[BulletVerdict]]:
-    """Return API-friendly grounding status and verdicts."""
+    """Return API-friendly grounding status and verdicts.
+
+    Stage one (deterministic) is authoritative and runs in every mode; a
+    failure short-circuits before spending a judge call. Stage two (the LLM
+    judge) runs only in real mode.
+    """
     try:
         validate_grounding(master, tailored)
     except GroundingError as exc:
         return False, [BulletVerdict(bullet="", supported=False, reason=str(exc))]
-    report = build_grounding_report(tailored, 0.0, [], [])
-    return True, report.verdicts
+    if mock_enabled():
+        report = build_grounding_report(tailored, 0.0, [], [])
+        return True, report.verdicts
+    verdicts = judge_bullets(master, tailored)
+    return all(verdict.supported for verdict in verdicts), verdicts

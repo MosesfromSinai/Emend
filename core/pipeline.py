@@ -1,10 +1,18 @@
-"""Deterministic mock pipeline helpers."""
+"""The core pipeline: deterministic under MOCK=1, real Anthropic calls under MOCK=0.
+
+Both modes return the same Pydantic types and both pass generated content
+through `validate_grounding` before returning it, so the no-invented-claims
+guarantee does not depend on which mode is running.
+"""
 
 import json
-import os
 import re
+from typing import Any
 
+from core.config import mock_enabled
+from core.llm import FAST_MODEL, TAILOR_MODEL, cacheable_system, structured_call
 from core.matching import keyword_match
+from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     Experience,
     JDExtract,
@@ -15,16 +23,10 @@ from core.schemas import (
     TailoredResume,
     TailoredSection,
 )
-from core.validation import build_grounding_report, validate_grounding
+from core.validation import build_grounding_report, judge_bullets, validate_grounding
 
-MOCK_ENABLED = os.getenv("MOCK", "1").lower() not in {"0", "false", "no"}
 JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
 JD_STOP_WORDS = {"and", "for", "the", "to", "using", "with"}
-
-
-def _require_mock() -> None:
-    if not MOCK_ENABLED:
-        raise RuntimeError("MOCK=0 real LLM pipeline is not implemented yet")
 
 
 def _json_object_text(text: str) -> str:
@@ -35,9 +37,8 @@ def _json_object_text(text: str) -> str:
     return text[start : end + 1]
 
 
-def structure_resume(text: str) -> MasterResume:
+def _mock_structure_resume(text: str) -> MasterResume:
     """Mock structuring: accept an already structured MasterResume JSON blob."""
-    _require_mock()
     try:
         data = json.loads(_json_object_text(text))
     except json.JSONDecodeError as exc:
@@ -45,9 +46,29 @@ def structure_resume(text: str) -> MasterResume:
     return MasterResume(**data)
 
 
-def parse_jd(text: str) -> JDExtract:
-    """Mock JD parsing: accept JSON or derive keywords from plain JD text."""
-    _require_mock()
+def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
+    """Turn pasted resume text into a confirmed-fact schema."""
+    if mock_enabled():
+        return _mock_structure_resume(text)
+    return structured_call(
+        FAST_MODEL,
+        cacheable_system(STRUCTURE_SYSTEM),
+        f"Resume text:\n\n{text}",
+        MasterResume,
+        client=client,
+    )
+
+
+def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
+    """Extract structure from a job posting."""
+    if not mock_enabled():
+        return structured_call(
+            FAST_MODEL,
+            cacheable_system(PARSE_JD_SYSTEM),
+            f"Job posting:\n\n{text}",
+            JDExtract,
+            client=client,
+        )
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()
     try:
@@ -88,8 +109,11 @@ def project_section(project: Project) -> TailoredSection:
 
 
 def mock_refactor_resume(master: MasterResume) -> TailoredResume:
-    """Return a renderable resume using only confirmed master facts."""
-    _require_mock()
+    """Return a renderable resume using only confirmed master facts.
+
+    Used by `refactor` in both modes: the no-JD path is a pass-through of
+    already-confirmed facts, so there is nothing for an LLM to add.
+    """
     return TailoredResume(
         summary_of_strategy="Mock refactor: preserve confirmed facts without rewriting.",
         experiences=[
@@ -126,7 +150,51 @@ def mock_tailor_resume(
     return tailored, build_grounding_report(tailored, score, matched, missing)
 
 
-def tailor(master: MasterResume, jd: JDExtract) -> TailoredResume:
-    """Public tailor entrypoint; MOCK mode preserves confirmed facts."""
-    tailored, _report = mock_tailor_resume(master, jd)
+def _tailor_user_prompt(jd: JDExtract) -> str:
+    return (
+        "Tailor the confirmed master resume in the system prompt to this "
+        f"posting:\n\n{jd.model_dump_json(indent=2)}"
+    )
+
+
+def real_tailor_resume(
+    master: MasterResume, jd: JDExtract, *, client: Any | None = None
+) -> TailoredResume:
+    """Tailor with Sonnet, then reject anything the validator will not accept.
+
+    The master resume rides in the cached system block so repeated tailoring
+    for one session reuses the prefix.
+    """
+    tailored = structured_call(
+        TAILOR_MODEL,
+        cacheable_system(TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"),
+        _tailor_user_prompt(jd),
+        TailoredResume,
+        client=client,
+    )
+    # Unvalidated output must never leave the pipeline.
+    validate_grounding(master, tailored)
     return tailored
+
+
+def real_tailor_result(
+    master: MasterResume, jd: JDExtract, *, client: Any | None = None
+) -> tuple[TailoredResume, Report]:
+    """Return real tailored output plus its two-stage validation report."""
+    tailored = real_tailor_resume(master, jd, client=client)
+    score, matched, missing = keyword_match(jd, master)
+    verdicts = judge_bullets(master, tailored, client=client)
+    report = build_grounding_report(tailored, score, matched, missing)
+    report.verdicts = verdicts
+    report.grounding_ok = all(verdict.supported for verdict in verdicts)
+    return tailored, report
+
+
+def tailor(
+    master: MasterResume, jd: JDExtract, *, client: Any | None = None
+) -> TailoredResume:
+    """Public tailor entrypoint; MOCK mode preserves confirmed facts."""
+    if mock_enabled():
+        tailored, _report = mock_tailor_resume(master, jd)
+        return tailored
+    return real_tailor_resume(master, jd, client=client)
