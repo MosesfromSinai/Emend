@@ -45,7 +45,11 @@ FROM latex-sandbox AS runtime
 
 USER root
 COPY api/ api/
-RUN pip install --no-cache-dir -r api/requirements.txt \
+# core/requirements.txt (already copied with core/ above) carries the anthropic
+# SDK the real pipeline needs. fly.toml sets MOCK=0, so without it every
+# request fails with "anthropic package is required when MOCK=0". Installed
+# here rather than in latex-sandbox to keep that stage minimal and offline.
+RUN pip install --no-cache-dir -r api/requirements.txt -r core/requirements.txt \
     && chown -R appuser:appuser /app/api
 USER appuser
 
