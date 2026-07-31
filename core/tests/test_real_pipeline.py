@@ -186,6 +186,51 @@ def test_judge_runs_once_per_bullet_on_the_fast_model():
     assert {call["model"] for call in client.calls} == {FAST_MODEL}
 
 
+def test_exported_validate_judges_in_real_mode(monkeypatch):
+    """api/core_bridge.py resolves `core.validate` — it must reach the judge."""
+    import core
+    import core.validation as validation
+
+    master = _master()
+    tailored = TailoredResume(**_tailored_payload(master))
+    seen: list[str] = []
+
+    def fake_structured_call(model, system, user, schema, **kwargs):
+        seen.append(model)
+        return BulletVerdict(bullet="", supported=True, reason="Traceable.")
+
+    monkeypatch.setattr(validation, "structured_call", fake_structured_call)
+
+    grounding_ok, verdicts = core.validate(master, tailored)
+
+    assert grounding_ok is True
+    assert verdicts and all(v.supported for v in verdicts)
+    assert seen and set(seen) == {FAST_MODEL}
+    # the reason is the judge's, not the deterministic placeholder
+    assert "deterministic" not in verdicts[0].reason.lower()
+
+
+def test_exported_validate_short_circuits_before_spending_judge_calls(monkeypatch):
+    import core
+    import core.validation as validation
+
+    master = _master()
+    payload = _tailored_payload(master)
+    payload["experiences"][0]["bullets"][0]["source_fact_ids"] = ["ZZ-99"]
+    calls: list[str] = []
+    monkeypatch.setattr(
+        validation,
+        "structured_call",
+        lambda *a, **k: calls.append("called"),
+    )
+
+    grounding_ok, verdicts = core.validate(master, TailoredResume(**payload))
+
+    assert grounding_ok is False
+    assert calls == []
+    assert not verdicts[0].supported
+
+
 # --- strict tool use ---------------------------------------------------------
 
 
