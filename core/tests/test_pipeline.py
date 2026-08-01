@@ -39,6 +39,50 @@ def test_structure_resume_accepts_fenced_master_resume_json():
     assert structure_resume(text) == master
 
 
+PASTED_RESUME = """\
+Sam Sample
+(555) 010-1010 | sam@example.com | linkedin.com/in/sam-sample
+
+Software Engineer Intern, Acme Corp (Jun 2025 - Present)
+• Built 25+ integration tests across 5 microservices
+• Automated a 12-step dev setup into one-click scripts
+
+Falcon Tracker
+- Live-demoed an object detection app to 750+ attendees
+"""
+
+
+def test_structure_resume_parses_pasted_text():
+    master = structure_resume(PASTED_RESUME)
+
+    assert master.name == "Sam Sample"
+    assert master.email == "sam@example.com"
+    assert master.links == ["linkedin.com/in/sam-sample"]
+    assert [e.company for e in master.experiences] == [
+        "Software Engineer Intern, Acme Corp (Jun 2025 - Present)",
+        "Falcon Tracker",
+    ]
+    facts = master.fact_lookup()
+    assert len(facts) == 3
+    # bullets are stripped and the schema's id format holds end to end
+    assert all(not fact.text.startswith(("•", "-")) for fact in facts.values())
+
+
+def test_structure_resume_is_deterministic():
+    assert structure_resume(PASTED_RESUME) == structure_resume(PASTED_RESUME)
+
+
+def test_structure_resume_rejects_invalid_fenced_json():
+    with pytest.raises(ValueError, match="invalid MasterResume JSON"):
+        structure_resume("```json\n{not valid}\n```")
+
+
+def test_structure_resume_ignores_incidental_braces():
+    master = structure_resume("Sam Sample\n\nAcme\n• Shipped {feature flags} to prod")
+
+    assert master.experiences[0].facts[0].text == "Shipped {feature flags} to prod"
+
+
 def test_structure_resume_requires_api_key_when_mock_disabled(monkeypatch):
     monkeypatch.setenv("MOCK", "0")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

@@ -9,6 +9,8 @@ import json
 import re
 from typing import Any
 
+from pydantic import ValidationError
+
 from core.config import mock_enabled
 from core.llm import FAST_MODEL, TAILOR_MODEL, cacheable_system, structured_call
 from core.matching import keyword_match
@@ -110,14 +112,20 @@ def _text_master_resume(text: str) -> MasterResume:
 def _mock_structure_resume(text: str) -> MasterResume:
     """Mock structuring: MasterResume JSON fast path, plain-text fallback."""
     json_text = _json_object_text(text)
-    is_json_hint = "```json" in text.lower()
+    looks_like_json = "```json" in text.lower() or json_text == text.strip()
     try:
         data = json.loads(json_text)
     except json.JSONDecodeError as exc:
-        if is_json_hint:
+        if looks_like_json:
             raise ValueError("MOCK structure_resume found invalid MasterResume JSON") from exc
         return _text_master_resume(text)
-    return MasterResume(**data)
+    try:
+        return MasterResume(**data)
+    except ValidationError:
+        if looks_like_json:
+            raise
+        # incidental braces inside prose, not a schema payload
+        return _text_master_resume(text)
 
 
 def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
