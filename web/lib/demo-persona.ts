@@ -149,6 +149,32 @@ export const DEMO_RESUME: DemoSection[] = [
           },
         ],
       },
+      {
+        id: "ts",
+        title: "TrailScout",
+        sub: "Python, YOLOv8, Jetson Nano",
+        dates: "",
+        bullets: [
+          {
+            sources: ["TS-01", "TS-02"],
+            original: "Detects animals on trail cameras using AI.",
+            variants: [
+              "Ran real-time YOLOv8 wildlife detection on a Jetson Nano, forwarding detections and frames to a Flask dashboard in under 3 seconds.",
+              "Built an edge-inference pipeline (YOLOv8 on Jetson Nano) pushing detection alerts to a web dashboard in <3s.",
+              "Deployed YOLOv8 on embedded hardware for real-time detection against simulated trail-camera feeds, with a live Flask dashboard.",
+            ],
+          },
+          {
+            sources: ["TS-03"],
+            original: "Showed the project at a school event.",
+            variants: [
+              "Demoed the system live at the campus engineering showcase.",
+              "Presented a live end-to-end demo at the university engineering showcase.",
+              "Ran a live demonstration of the detection pipeline at the campus showcase.",
+            ],
+          },
+        ],
+      },
     ],
   },
 ];
