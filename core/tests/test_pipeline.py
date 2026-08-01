@@ -83,6 +83,20 @@ def test_structure_resume_ignores_incidental_braces():
     assert master.experiences[0].facts[0].text == "Shipped {feature flags} to prod"
 
 
+def test_structure_resume_rejects_oversized_text(monkeypatch):
+    monkeypatch.setenv("MAX_TEXT_CHARS", "10")
+
+    with pytest.raises(ValueError, match="exceeds 10 characters"):
+        structure_resume("way more than ten characters")
+
+
+def test_parse_jd_rejects_oversized_text(monkeypatch):
+    monkeypatch.setenv("MAX_TEXT_CHARS", "10")
+
+    with pytest.raises(ValueError, match="exceeds 10 characters"):
+        parse_jd("way more than ten characters")
+
+
 def test_structure_resume_requires_api_key_when_mock_disabled(monkeypatch):
     monkeypatch.setenv("MOCK", "0")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
