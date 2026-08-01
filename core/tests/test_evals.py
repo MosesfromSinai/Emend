@@ -4,12 +4,20 @@ RUN_REAL_EVALS=1 so a stray ANTHROPIC_API_KEY in the environment never
 makes a normal `pytest` run spend real money.
 """
 
+import os
 from pathlib import Path
 
-from core.pipeline import structure_resume
+import pytest
+
+from core.pipeline import parse_jd, real_tailor_result, structure_resume
 
 RESUME_FIXTURES = Path(__file__).parent.parent / "fixtures" / "resumes"
 POSTING_FIXTURES = Path(__file__).parent.parent / "fixtures" / "postings"
+
+requires_real_evals = pytest.mark.skipif(
+    os.getenv("RUN_REAL_EVALS") != "1",
+    reason="set RUN_REAL_EVALS=1 (with a live ANTHROPIC_API_KEY) to run real-mode evals",
+)
 
 
 def _resume_files() -> list[Path]:
