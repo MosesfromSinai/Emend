@@ -13,6 +13,14 @@ whitespace-collapses anything stranger, which would break the receipts.
 - `structure_resume` assigns these and they are stable within a master-resume
   version. `TailoredBullet.source_fact_ids` may only cite ids belonging to its
   own section.
+
+Ratified decisions (integration-guide.md §8):
+- `JDExtract.hard_skills` / `soft_requirements` / `responsibilities` and
+  `Report.matched_keywords` / `missing_keywords` are `list[str]`. Accepted as
+  proposed by Workflow C; B and D build against it.
+- `Project` carries no date fields. Accepted: project dates are frequently
+  ambiguous and the fact list already carries any timeframe worth showing.
+  The template's empty project date slot is intentional.
 """
 
 import re
