@@ -35,3 +35,37 @@ export type DemoSection = {
   heading: string;
   blocks: DemoBlock[];
 };
+
+export const DEMO_RESUME: DemoSection[] = [
+  {
+    heading: "EXPERIENCE",
+    blocks: [
+      {
+        id: "hx",
+        title: "Software Engineer Intern",
+        sub: "Helix Dynamics — San Diego, CA",
+        dates: "Jun 2026 – Present",
+        bullets: [
+          {
+            sources: ["HX-01"],
+            original: "Writing integration tests in Python for our microservices.",
+            variants: [
+              "Developed 20+ behave integration tests in Python, validating end-to-end message flow across 5 microservices.",
+              "Built a Gherkin-based integration suite of 20+ scenarios covering cross-service message flow in a Linux environment.",
+              "Authored 20+ Python integration tests verifying end-to-end behavior across a 5-microservice backend.",
+            ],
+          },
+          {
+            sources: ["HX-02", "HX-03"],
+            original: "Made scripts to set up the dev environment faster.",
+            variants: [
+              "Automated a multi-step dev-environment setup into one-command Bash scripts managing VMs and Docker containers, cutting setup from ~45 to under 10 minutes.",
+              "Reduced new-machine setup time by ~80% by scripting VM and container provisioning behind a single Bash entry point.",
+              "Replaced a manual environment checklist with one-command Bash automation for VMs and Docker, saving ~35 minutes per setup.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
