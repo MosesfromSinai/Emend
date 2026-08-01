@@ -1,0 +1,31 @@
+Source: https://builtin.com/job/software-engineer-new-grad-2025-start/3267088
+Fetched: 2026-07-26
+
+Software Engineer - New Grad (2025 Start)
+Databricks — Amsterdam, Netherlands (In-Office)
+
+The Role
+Databricks seeks new graduates to work with the engineering team to build
+infrastructure and products for the Databricks platform. Hiring spans
+backend, full stack, infrastructure, databases, systems, tools, cloud, and
+customer-facing products teams.
+
+Key Responsibilities
+- Collaborate on features and architecture improvements
+- Develop and extend the Databricks product
+- Own complete software development lifecycle: design, development,
+  testing, production operations
+- Build reliable, scalable, secure solutions
+
+Required Qualifications
+- Graduation in December 2024 or Spring 2025 with degree in Computer
+  Science, Engineering, or related field
+- Implementation skills with general-purpose languages (Python, Java, C++)
+- Knowledge of algorithms, data structures, OOP principles
+- Experience managing end-to-end projects
+
+Additional Notes
+Applicants can only submit one application within 30 days. Position offered
+in-office. Company emphasizes commitment to diversity, equal employment
+opportunity, and comprehensive benefits including equity grants, healthcare
+coverage, and generous paid leave.
