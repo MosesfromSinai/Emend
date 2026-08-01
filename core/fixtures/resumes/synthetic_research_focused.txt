@@ -1,0 +1,19 @@
+Elena Rusu
+elena.rusu@example.edu | (555) 810-3345 | scholar.example.com/rusu
+
+Undergraduate Researcher, Computational Biology Lab, Marrow State University (Jan 2024 - Present)
+- Wrote a Python pipeline (Snakemake, pandas) processing 200+ RNA-seq samples for a lab studying gene expression
+- Reduced pipeline runtime from 14 hours to 3 hours by parallelizing across 8 cores
+- Co-authored a poster presented at the regional undergraduate research symposium
+
+Data Structures & Algorithms Grader, Marrow State CS Department (Aug 2023 - Dec 2023)
+- Graded weekly problem sets for a 120-student course, providing written feedback on algorithmic complexity
+
+Research Project: Variant Caller Benchmark
+- Benchmarked 3 open-source variant-calling tools (GATK, DeepVariant, FreeBayes) against a shared reference dataset
+- Wrote the comparison report used by the lab to choose a default tool for new sequencing runs
+
+Education: B.S. Bioinformatics, Marrow State University, expected May 2026
+Coursework: Algorithms, Machine Learning, Molecular Biology, Statistics
+
+Skills: Python, R, Snakemake, pandas, NumPy, scikit-learn, Bash, Linux
