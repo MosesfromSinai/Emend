@@ -13,7 +13,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 // The api serves artifacts session-scoped: withCredentials sends the httpOnly
 // cookie on pdf.js's own fetch, which react-pdf's plain `file={url}` form
-// does not do on its own.
+// does not do on its own. react-pdf docs say to keep this options object
+// stable across renders, hence the module-level constant.
+const PDF_OPTIONS = { withCredentials: true };
+
 export function PdfViewer({ url }: { url: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +24,8 @@ export function PdfViewer({ url }: { url: string }) {
   return (
     <div className="flex justify-center overflow-auto bg-[#eceadf] p-6">
       <Document
-        file={{ url, withCredentials: true }}
+        file={url}
+        options={PDF_OPTIONS}
         onLoadSuccess={({ numPages }) => setNumPages(numPages)}
         onLoadError={() => setError("Couldn't load the PDF.")}
         loading={<p className="text-sm text-ink/60">Loading PDF…</p>}
