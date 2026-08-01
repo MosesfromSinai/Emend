@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from core.config import mock_enabled
-from core.llm import FAST_MODEL, cacheable_system, structured_call
+from core.llm import FAST_MODEL, cacheable_system, structured_call_with_usage
 from core.prompts import JUDGE_SYSTEM
 from core.schemas import (
     BulletVerdict,
@@ -21,6 +21,7 @@ from core.schemas import (
     TailoredResume,
     TailoredSection,
 )
+from core.trace import record_call
 
 NUMBER_PATTERN = re.compile(r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?%?\+?(?![A-Za-z0-9])")
 WORD_PATTERN = re.compile(r"[a-z0-9]+")
@@ -136,13 +137,22 @@ def _judge_prompt(bullet: TailoredBullet, facts: dict[str, str]) -> str:
 
 def _judge_one(args: tuple[TailoredBullet, dict[str, str], Any]) -> BulletVerdict:
     bullet, facts, client = args
-    verdict = structured_call(
+    result = structured_call_with_usage(
         FAST_MODEL,
         cacheable_system(JUDGE_SYSTEM),
         _judge_prompt(bullet, facts),
         BulletVerdict,
         client=client,
     )
+    record_call(
+        label="judge_bullet",
+        model=FAST_MODEL,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        cache_read_input_tokens=result.cache_read_input_tokens,
+        cache_creation_input_tokens=result.cache_creation_input_tokens,
+    )
+    verdict = result.value
     # Trust the judgement, not the echo: keep our own bullet text and fact
     # ids so a paraphrased echo cannot misattribute a verdict.
     return BulletVerdict(

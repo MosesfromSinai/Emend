@@ -12,6 +12,7 @@ from core.llm import (
     FAST_MODEL,
     TAILOR_MODEL,
     LLMUnavailableError,
+    StructuredResult,
     structured_call,
     structured_tool,
     supports_strict_tool,
@@ -188,9 +189,9 @@ def test_exported_validate_judges_in_real_mode(monkeypatch, sample_master):
 
     def fake_structured_call(model, system, user, schema, **kwargs):
         seen.append(model)
-        return BulletVerdict(bullet="", supported=True, reason="Traceable.")
+        return StructuredResult(BulletVerdict(bullet="", supported=True, reason="Traceable."))
 
-    monkeypatch.setattr(validation, "structured_call", fake_structured_call)
+    monkeypatch.setattr(validation, "structured_call_with_usage", fake_structured_call)
 
     grounding_ok, verdicts = core.validate(master, tailored)
 
@@ -211,7 +212,7 @@ def test_exported_validate_short_circuits_before_spending_judge_calls(monkeypatc
     calls: list[str] = []
     monkeypatch.setattr(
         validation,
-        "structured_call",
+        "structured_call_with_usage",
         lambda *a, **k: calls.append("called"),
     )
 
