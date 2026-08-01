@@ -21,14 +21,25 @@ and eval harness, per `context/01-teammate-Moses.md` item 8).
   is set); `structure_resume`, `parse_jd`, `real_tailor_resume`, and
   `judge_bullets` now call `structured_call_with_usage` and record token
   counts per call instead of discarding usage data.
+- **pytest eval harness** — `core/tests/test_evals.py`: schema-validity
+  check runs every `pytest core/tests` across all 6 resume fixtures;
+  grounding-rate/keyword-coverage check tailors the sample master against
+  all 5 real postings, gated behind `RUN_REAL_EVALS=1` so an ambient
+  `ANTHROPIC_API_KEY` never triggers real spend on a normal test run.
+- **Cost-per-run doc** — `docs/evals.md` has the report structure and
+  table; real numbers blocked, see `BLOCKED.md`.
+
+**Blocked:** real-mode eval numbers need a working `ANTHROPIC_API_KEY` —
+the one in this shell 401s against the real Messages API. Logged in
+`BLOCKED.md`, TODO left in `core/tests/test_evals.py`. Skipping this piece
+and moving on rather than guessing at numbers.
 
 ## In progress
 
-- pytest eval harness over the fixtures: grounding pass rate, keyword
-  coverage, schema validity (skips when no `ANTHROPIC_API_KEY`).
+- Real-`MOCK=1` integration test in `api` that exercises the actual core
+  pipeline through the background job (not fully stubbed at `core_bridge`).
 
 ## Next
 
-- Cost-per-run doc from the trace data.
-- Real-`MOCK=1` integration test in `api` that exercises the actual core
-  pipeline through the background job (not fully stubbed at `core_bridge`).
+- Phase 4 (deploy) and anything else from the original roadmap once this
+  branch is reviewed.
