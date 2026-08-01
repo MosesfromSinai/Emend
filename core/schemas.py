@@ -162,6 +162,10 @@ class BulletVerdict(BaseModel):
     bullet: str
     supported: bool
     reason: str
+    # ids the bullet cites, so the provenance panel can show source facts
+    # without parsing `% grounded:` comments out of the tex (default keeps
+    # rows written before this field existed loading cleanly)
+    source_fact_ids: list[str] = []
 
 
 class Report(BaseModel):
