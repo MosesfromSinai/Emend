@@ -112,7 +112,7 @@ def _text_master_resume(text: str) -> MasterResume:
 def _mock_structure_resume(text: str) -> MasterResume:
     """Mock structuring: MasterResume JSON fast path, plain-text fallback."""
     json_text = _json_object_text(text)
-    looks_like_json = "```json" in text.lower() or json_text == text.strip()
+    looks_like_json = "```json" in text.lower() or text.strip().startswith("{")
     try:
         data = json.loads(json_text)
     except json.JSONDecodeError as exc:
