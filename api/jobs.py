@@ -31,6 +31,10 @@ def run_application(application_id: uuid.UUID) -> None:
             _run(session, app_row)
         except Exception as e:
             logger.exception("application %s failed", application_id)
+            # a mid-run DB error leaves the transaction aborted; committing
+            # the failure status without clearing it first would raise again
+            # and strand the row at status=running forever.
+            session.rollback()
             app_row.status = "failed"
             app_row.error = f"{type(e).__name__}: {e}"
             session.commit()

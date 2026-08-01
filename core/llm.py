@@ -30,15 +30,28 @@ class StructuredResult[SchemaT: BaseModel]:
     cache_creation_input_tokens: int = 0
 
 
+_client_cache: dict[str, Any] = {}
+
+
 def anthropic_client(api_key: str | None = None) -> Any:
+    """Return a cached client for this key, building one on first use.
+
+    Real mode makes many calls per application (a tailor call plus one judge
+    call per bullet); reusing one client reuses its connection pool instead
+    of opening a fresh one per call. Keyed by the resolved key, not cached
+    globally, so a missing key still raises every time instead of serving a
+    stale client from an earlier, differently-configured call.
+    """
     key = api_key or os.getenv("ANTHROPIC_API_KEY")
     if not key:
         raise LLMUnavailableError("ANTHROPIC_API_KEY is required when MOCK=0")
-    try:
-        from anthropic import Anthropic
-    except ImportError as exc:
-        raise LLMUnavailableError("anthropic package is required when MOCK=0") from exc
-    return Anthropic(api_key=key)
+    if key not in _client_cache:
+        try:
+            from anthropic import Anthropic
+        except ImportError as exc:
+            raise LLMUnavailableError("anthropic package is required when MOCK=0") from exc
+        _client_cache[key] = Anthropic(api_key=key)
+    return _client_cache[key]
 
 
 def _forbid_extra_properties(node: Any) -> None:

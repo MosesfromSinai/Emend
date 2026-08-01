@@ -1,0 +1,39 @@
+Source: https://www.builtinnyc.com/job/software-engineer-new-grad/9972404
+Fetched: 2026-07-26
+
+Software Engineer, New Grad
+Palantir Technologies — New York, NY, USA (Hybrid)
+
+About the Role
+Palantir seeks new graduates to build software at scale to transform how
+organizations around the world use data. Engineers contribute to Gotham,
+Apollo, or Foundry products deployed across public and private sectors.
+
+Core Responsibilities
+- Contribute throughout the product lifecycle from conception to deployment
+- Collaborate with technical and non-technical teams
+- Meet customers to understand their mission and challenges
+- Build and ship production-quality features with mentor support
+- Demonstrate ownership, collaboration, and trustworthiness
+
+Requirements
+- Engineering background in Computer Science, Mathematics, Software
+  Engineering, or Physics
+- Familiarity with data structures, storage systems, cloud infrastructure,
+  and front-end frameworks
+- Experience coding in Java, C++, Python, JavaScript, or similar languages
+- Active US Security clearance or eligibility/willingness to obtain one
+
+Preferred Qualifications
+- Ability to communicate across diverse audiences
+- Independence in learning and decision-making
+- Effective question-asking skills
+
+Technologies
+Java, Go (backend); TypeScript (frontend); Cassandra, Spark, Elasticsearch,
+React, Redux, Gradle, GitHub
+
+Compensation & Benefits
+Salary: $145,000-$155,000 annually, plus RSUs, sign-on bonus. Benefits:
+medical/dental/vision, life insurance, commuter benefits, relocation
+assistance, unlimited PTO, parental leave, 401(k).

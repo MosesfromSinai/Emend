@@ -11,8 +11,13 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from core.config import mock_enabled
-from core.llm import FAST_MODEL, TAILOR_MODEL, cacheable_system, structured_call
+from core.config import max_input_chars, mock_enabled
+from core.llm import (
+    FAST_MODEL,
+    TAILOR_MODEL,
+    cacheable_system,
+    structured_call_with_usage,
+)
 from core.matching import keyword_match
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
@@ -26,6 +31,7 @@ from core.schemas import (
     TailoredResume,
     TailoredSection,
 )
+from core.trace import record_call
 from core.validation import build_grounding_report, judge_bullets, validate_grounding
 
 JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
@@ -128,29 +134,55 @@ def _mock_structure_resume(text: str) -> MasterResume:
         return _text_master_resume(text)
 
 
+def _check_input_size(text: str, label: str) -> None:
+    limit = max_input_chars()
+    if len(text) > limit:
+        raise ValueError(f"{label} exceeds {limit} characters")
+
+
 def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     """Turn pasted resume text into a confirmed-fact schema."""
+    _check_input_size(text, "resume text")
     if mock_enabled():
         return _mock_structure_resume(text)
-    return structured_call(
+    result = structured_call_with_usage(
         FAST_MODEL,
         cacheable_system(STRUCTURE_SYSTEM),
         f"Resume text:\n\n{text}",
         MasterResume,
         client=client,
     )
+    record_call(
+        label="structure_resume",
+        model=FAST_MODEL,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        cache_read_input_tokens=result.cache_read_input_tokens,
+        cache_creation_input_tokens=result.cache_creation_input_tokens,
+    )
+    return result.value
 
 
 def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     """Extract structure from a job posting."""
+    _check_input_size(text, "job posting text")
     if not mock_enabled():
-        return structured_call(
+        result = structured_call_with_usage(
             FAST_MODEL,
             cacheable_system(PARSE_JD_SYSTEM),
             f"Job posting:\n\n{text}",
             JDExtract,
             client=client,
         )
+        record_call(
+            label="parse_jd",
+            model=FAST_MODEL,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            cache_read_input_tokens=result.cache_read_input_tokens,
+            cache_creation_input_tokens=result.cache_creation_input_tokens,
+        )
+        return result.value
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()
     try:
@@ -247,13 +279,22 @@ def real_tailor_resume(
     The master resume rides in the cached system block so repeated tailoring
     for one session reuses the prefix.
     """
-    tailored = structured_call(
+    result = structured_call_with_usage(
         TAILOR_MODEL,
         cacheable_system(TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"),
         _tailor_user_prompt(jd),
         TailoredResume,
         client=client,
     )
+    record_call(
+        label="tailor",
+        model=TAILOR_MODEL,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        cache_read_input_tokens=result.cache_read_input_tokens,
+        cache_creation_input_tokens=result.cache_creation_input_tokens,
+    )
+    tailored = result.value
     # Unvalidated output must never leave the pipeline.
     validate_grounding(master, tailored)
     return tailored

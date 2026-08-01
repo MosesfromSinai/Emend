@@ -1,0 +1,32 @@
+Source: https://builtin.com/job/full-stack-software-engineer-product-new-grad-2026-2027/10212028
+Fetched: 2026-07-26
+
+Full-Stack Software Engineer (Product) - New Grad - 2026-2027
+Netic — San Francisco, CA, USA (In-Office, Entry level)
+
+About the Role
+Netic describes itself as "the AI revenue engine for essential service
+industries" and seeks multiple new graduate engineers for its core software
+product team. The company has secured $43M in funding from prominent
+investors including Founders Fund and Greylock.
+
+Responsibilities
+- Designing, coding, and shipping full-stack features for Netic's AI platform
+- Collaborating with customers to understand workflows and gather feedback
+- Managing end-to-end project delivery from specification through
+  production, including data models, APIs, front-end development, testing,
+  and post-launch optimization
+- Building and monitoring features in production to ensure reliability
+
+Required Skills & Qualifications
+- Experience delivering user-facing software at scale through multiple
+  release cycles
+- Proficiency with React, TypeScript, and Python
+- Database and cloud infrastructure experience
+- Ability to translate stakeholder goals into technical specifications
+- Strong ownership mentality and capability to operate amid ambiguity
+- Excellent cross-functional communication skills
+- Availability to start between winter 2026 and summer 2027
+
+Preferred Skills
+- Hands-on experience with LLM APIs, embeddings, or RAG patterns

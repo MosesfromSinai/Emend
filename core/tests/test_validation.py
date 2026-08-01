@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from core.schemas import Fact, MasterResume, TailoredBullet, TailoredResume
+from core.schemas import Fact, MasterResume, TailoredBullet
 from core.validation import (
     GroundingError,
     build_grounding_report,
@@ -12,33 +12,25 @@ from core.validation import (
     validate_grounding,
 )
 
-FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def _load_fixture(filename: str, schema):
-    data = json.loads((FIXTURES / filename).read_text())
-    return schema(**data)
-
-
-def test_validate_grounding_accepts_known_fact_ids():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_accepts_known_fact_ids(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
 
     validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_sourceless_bullet():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_sourceless_bullet(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[0].source_fact_ids = []
 
     with pytest.raises(GroundingError, match="sourceless bullet"):
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_unknown_fact_id():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_unknown_fact_id(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[0].source_fact_ids = ["FAKE-99"]
 
     with pytest.raises(GroundingError, match="unknown fact ids"):
@@ -50,36 +42,32 @@ def test_tailored_bullet_rejects_duplicate_source_fact_ids():
         TailoredBullet(text="Repeated receipt", source_fact_ids=["BAB-01", "BAB-01"])
 
 
-def test_validate_grounding_rejects_project_fact_on_experience():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_project_fact_on_experience(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[0].source_fact_ids = ["BERN-01"]
 
     with pytest.raises(GroundingError, match="outside-section ids"):
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_duplicate_tailored_ref_id():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_duplicate_tailored_ref_id(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences.append(tailored.experiences[0].model_copy(deep=True))
 
     with pytest.raises(GroundingError, match="duplicate section ref_id"):
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_unsupported_numbers():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_unsupported_numbers(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[1].text = "Boosted processing throughput 95%"
 
     with pytest.raises(GroundingError, match="unsupported numbers"):
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_unsupported_plus_numbers():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_unsupported_plus_numbers(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[
         0
     ].text = "Authored the first algorithm for 20+ users"
@@ -88,18 +76,16 @@ def test_validate_grounding_rejects_unsupported_plus_numbers():
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_accepts_supported_plus_numbers():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_accepts_supported_plus_numbers(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[0].text = "Documented the module for 100+ users"
     tailored.experiences[0].bullets[0].source_fact_ids = ["BAB-03"]
 
     validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_low_fact_overlap():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_low_fact_overlap(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[
         0
     ].text = "Led Kubernetes migrations for payment systems"
@@ -108,26 +94,24 @@ def test_validate_grounding_rejects_low_fact_overlap():
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_unsupported_skill():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_unsupported_skill(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.skills["Tools"].append("Kubernetes")
 
     with pytest.raises(GroundingError, match="unsupported skills"):
         validate_grounding(master, tailored)
 
 
-def test_validate_grounding_rejects_unknown_skill_category():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_grounding_rejects_unknown_skill_category(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.skills["Cloud"] = ["AWS"]
 
     with pytest.raises(GroundingError, match="unknown skill category"):
         validate_grounding(master, tailored)
 
 
-def test_fact_lookup_rejects_duplicate_fact_ids():
-    master = _load_fixture("sample_master.json", MasterResume)
+def test_fact_lookup_rejects_duplicate_fact_ids(sample_master):
+    master = sample_master
     master.experiences[1].facts[0].id = "BAB-01"
 
     with pytest.raises(ValueError, match="duplicate fact id"):
@@ -165,8 +149,8 @@ def test_master_resume_rejects_fact_id_outside_section_prefix():
         MasterResume(**data)
 
 
-def test_build_grounding_report_marks_valid_bullets_supported():
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_build_grounding_report_marks_valid_bullets_supported(sample_tailored):
+    tailored = sample_tailored
 
     report = build_grounding_report(tailored, 0.5, ["Python"], ["Kubernetes"])
     bullet_count = sum(
@@ -181,10 +165,10 @@ def test_build_grounding_report_marks_valid_bullets_supported():
     assert all(verdict.supported for verdict in report.verdicts)
 
 
-def test_verdicts_carry_source_fact_ids():
+def test_verdicts_carry_source_fact_ids(sample_tailored):
     # the provenance panel reads these; without them it would have to parse
     # `% grounded:` comments out of the rendered tex
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+    tailored = sample_tailored
 
     report = build_grounding_report(tailored, 0.0, [], [])
     cited = [
@@ -197,9 +181,8 @@ def test_verdicts_carry_source_fact_ids():
     assert all(verdict.source_fact_ids for verdict in report.verdicts)
 
 
-def test_validate_bridge_returns_supported_verdicts():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_bridge_returns_supported_verdicts(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
 
     grounding_ok, verdicts = validate(master, tailored)
 
@@ -208,9 +191,8 @@ def test_validate_bridge_returns_supported_verdicts():
     assert all(verdict.source_fact_ids for verdict in verdicts)
 
 
-def test_validate_bridge_returns_failure_verdict():
-    master = _load_fixture("sample_master.json", MasterResume)
-    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+def test_validate_bridge_returns_failure_verdict(sample_master, sample_tailored):
+    master, tailored = sample_master, sample_tailored
     tailored.experiences[0].bullets[0].source_fact_ids = []
 
     grounding_ok, verdicts = validate(master, tailored)

@@ -19,6 +19,14 @@ def test_anthropic_client_requires_api_key(monkeypatch):
         anthropic_client()
 
 
+def test_anthropic_client_reuses_instance_for_same_key():
+    assert anthropic_client("test-key-a") is anthropic_client("test-key-a")
+
+
+def test_anthropic_client_builds_separately_per_key():
+    assert anthropic_client("test-key-b") is not anthropic_client("test-key-c")
+
+
 def test_structured_tool_uses_schema_contract():
     tool = structured_tool(JDExtract)
 

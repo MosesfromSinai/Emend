@@ -1,0 +1,34 @@
+Source: https://builtin.com/job/new-grad-software-engineer-backend-2026/7720484
+Fetched: 2026-07-26
+
+New Grad Software Engineer, Backend 2026
+Circle — Remote, United States of America
+Salary: $100,000 - $140,000 Annually
+
+About the Role
+Circle is a fintech company operating at the intersection of traditional
+finance and digital assets. The role contributes to designing and
+delivering systems powering global financial infrastructure, with emphasis
+on scalable backend services and secure data flows.
+
+Responsibilities
+- Design, build, and maintain backend systems and APIs that are reliable,
+  secure, and performant
+- Participate in architecture discussions and code reviews
+- Develop production-grade software supporting Circle's mission
+- Engage in testing, deployment, and monitoring processes
+- Troubleshoot issues and drive technical excellence
+
+Requirements
+- Bachelor's degree in Computer Science, Software Engineering, or related field
+- 1+ years professional or internship experience using object-oriented
+  languages (Java, Go, or similar)
+- Familiarity with RESTful API design principles
+- Understanding of cloud platforms (AWS, Google Cloud, Microsoft Azure)
+- Experience with SQL databases and data modeling
+- Strong communication skills for distributed team collaboration
+- Self-starter mindset focused on learning and continuous improvement
+
+Preferred Qualifications
+Exposure to distributed systems, microservice architecture, or payment
+systems experience is advantageous.

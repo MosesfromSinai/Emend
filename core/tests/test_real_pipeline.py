@@ -4,8 +4,6 @@ No network: a fake client records the outgoing request so we can assert on the
 request shape, which is where the contract with Anthropic actually lives.
 """
 
-import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -14,6 +12,7 @@ from core.llm import (
     FAST_MODEL,
     TAILOR_MODEL,
     LLMUnavailableError,
+    StructuredResult,
     structured_call,
     structured_tool,
     supports_strict_tool,
@@ -27,16 +26,10 @@ from core.schemas import (
 )
 from core.validation import GroundingError, judge_bullets
 
-FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
-
 
 @pytest.fixture(autouse=True)
 def real_mode(monkeypatch):
     monkeypatch.setenv("MOCK", "0")
-
-
-def _master() -> MasterResume:
-    return MasterResume(**json.loads((FIXTURES / "sample_master.json").read_text()))
 
 
 def _jd() -> JDExtract:
@@ -99,8 +92,8 @@ def _tailored_payload(master: MasterResume) -> dict:
 # --- request shape -----------------------------------------------------------
 
 
-def test_structure_resume_uses_fast_model_and_caches_system():
-    master = _master()
+def test_structure_resume_uses_fast_model_and_caches_system(sample_master):
+    master = sample_master
     client = FakeClient(master.model_dump())
 
     assert structure_resume("messy resume text", client=client) == master
@@ -119,8 +112,8 @@ def test_parse_jd_uses_fast_model():
     assert client.calls[0]["model"] == FAST_MODEL
 
 
-def test_tailor_uses_sonnet_and_caches_the_master_resume():
-    master = _master()
+def test_tailor_uses_sonnet_and_caches_the_master_resume(sample_master):
+    master = sample_master
     client = FakeClient(_tailored_payload(master))
 
     tailor(master, _jd(), client=client)
@@ -135,8 +128,8 @@ def test_tailor_uses_sonnet_and_caches_the_master_resume():
 # --- the guarantee -----------------------------------------------------------
 
 
-def test_tailor_rejects_output_citing_unknown_fact_ids():
-    master = _master()
+def test_tailor_rejects_output_citing_unknown_fact_ids(sample_master):
+    master = sample_master
     payload = _tailored_payload(master)
     payload["experiences"][0]["bullets"][0]["source_fact_ids"] = ["ZZ-99"]
 
@@ -144,8 +137,8 @@ def test_tailor_rejects_output_citing_unknown_fact_ids():
         tailor(master, _jd(), client=FakeClient(payload))
 
 
-def test_tailor_rejects_output_inventing_numbers():
-    master = _master()
+def test_tailor_rejects_output_inventing_numbers(sample_master):
+    master = sample_master
     payload = _tailored_payload(master)
     payload["experiences"][0]["bullets"][0]["text"] += " across 47 teams"
 
@@ -153,8 +146,8 @@ def test_tailor_rejects_output_inventing_numbers():
         tailor(master, _jd(), client=FakeClient(payload))
 
 
-def test_real_tailor_result_reports_judge_verdicts():
-    master = _master()
+def test_real_tailor_result_reports_judge_verdicts(sample_master):
+    master = sample_master
     tailored_payload = _tailored_payload(master)
     unsupported = BulletVerdict(
         bullet="", supported=False, reason="Claims scope the facts do not support."
@@ -170,8 +163,8 @@ def test_real_tailor_result_reports_judge_verdicts():
     assert report.match_score == 1.0
 
 
-def test_judge_runs_once_per_bullet_on_the_fast_model():
-    master = _master()
+def test_judge_runs_once_per_bullet_on_the_fast_model(sample_master):
+    master = sample_master
     tailored = TailoredResume(**_tailored_payload(master))
     supported = BulletVerdict(bullet="", supported=True, reason="Traceable.").model_dump()
     client = FakeClient(supported)
@@ -186,20 +179,20 @@ def test_judge_runs_once_per_bullet_on_the_fast_model():
     assert {call["model"] for call in client.calls} == {FAST_MODEL}
 
 
-def test_exported_validate_judges_in_real_mode(monkeypatch):
+def test_exported_validate_judges_in_real_mode(monkeypatch, sample_master):
     """api/core_bridge.py resolves `core.validate` — it must reach the judge."""
     import core
     import core.validation as validation
 
-    master = _master()
+    master = sample_master
     tailored = TailoredResume(**_tailored_payload(master))
     seen: list[str] = []
 
     def fake_structured_call(model, system, user, schema, **kwargs):
         seen.append(model)
-        return BulletVerdict(bullet="", supported=True, reason="Traceable.")
+        return StructuredResult(BulletVerdict(bullet="", supported=True, reason="Traceable."))
 
-    monkeypatch.setattr(validation, "structured_call", fake_structured_call)
+    monkeypatch.setattr(validation, "structured_call_with_usage", fake_structured_call)
 
     grounding_ok, verdicts = core.validate(master, tailored)
 
@@ -210,17 +203,17 @@ def test_exported_validate_judges_in_real_mode(monkeypatch):
     assert "deterministic" not in verdicts[0].reason.lower()
 
 
-def test_exported_validate_short_circuits_before_spending_judge_calls(monkeypatch):
+def test_exported_validate_short_circuits_before_spending_judge_calls(monkeypatch, sample_master):
     import core
     import core.validation as validation
 
-    master = _master()
+    master = sample_master
     payload = _tailored_payload(master)
     payload["experiences"][0]["bullets"][0]["source_fact_ids"] = ["ZZ-99"]
     calls: list[str] = []
     monkeypatch.setattr(
         validation,
-        "structured_call",
+        "structured_call_with_usage",
         lambda *a, **k: calls.append("called"),
     )
 
