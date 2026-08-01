@@ -35,3 +35,30 @@ def test_every_resume_fixture_structures_to_a_valid_schema():
         # a valid MasterResume is achievement enough for the ugly fixtures;
         # schema validity, not extraction quality, is what this asserts
         master.fact_lookup()
+
+
+def _posting_files() -> list[Path]:
+    return sorted(POSTING_FIXTURES.glob("*.txt"))
+
+
+@requires_real_evals
+def test_real_mode_grounding_and_keyword_coverage(sample_master, monkeypatch):
+    monkeypatch.setenv("MOCK", "0")
+    reports = [
+        real_tailor_result(sample_master, parse_jd(path.read_text()))[1]
+        for path in _posting_files()
+    ]
+
+    verdicts = [v for r in reports for v in r.verdicts]
+    grounding_rate = sum(v.supported for v in verdicts) / len(verdicts)
+    coverage = [
+        len(r.matched_keywords) / max(1, len(r.matched_keywords) + len(r.missing_keywords))
+        for r in reports
+    ]
+
+    print(
+        f"postings={len(reports)} grounding_pass_rate={grounding_rate:.2f} "
+        f"avg_keyword_coverage={sum(coverage) / len(coverage):.2f}"
+    )
+    # the two-stage guard (deterministic + judge) must reject anything short of this
+    assert grounding_rate == 1.0
