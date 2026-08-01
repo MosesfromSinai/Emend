@@ -66,6 +66,58 @@ export const DEMO_RESUME: DemoSection[] = [
           },
         ],
       },
+      {
+        id: "ncs",
+        title: "Web Developer",
+        sub: "Northgate CS Society — Riverside, CA",
+        dates: "Jan – Mar 2025",
+        bullets: [
+          {
+            sources: ["NCS-01", "NCS-02"],
+            original: "Worked on the club website using React.",
+            variants: [
+              "Built and deployed the society's website with Next.js, TypeScript, and Tailwind, creating 15+ reusable components across 4 feature areas.",
+              "Developed 15+ reusable React components across 4 feature areas for the society's Next.js/TypeScript site.",
+              "Shipped the club's production website (Next.js, TypeScript, Tailwind) built on a 15-component design system.",
+            ],
+          },
+          {
+            sources: ["NCS-03", "NCS-04"],
+            original: "Improved site performance and helped with deploys.",
+            variants: [
+              "Raised the Lighthouse performance score from 62 to 89 and automated build-and-deploy on merge with GitHub Actions.",
+              "Improved Lighthouse performance 62 → 89 while maintaining CI/CD pipelines (GitHub Actions) through PR-reviewed merges.",
+              "Lifted the site's Lighthouse score 27 points (62 → 89) and set up merge-triggered CI/CD with GitHub Actions.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "lab",
+        title: "Undergraduate Research Assistant",
+        sub: "University Robotics Lab",
+        dates: "Jun – Aug 2024",
+        bullets: [
+          {
+            sources: ["LAB-01", "LAB-02"],
+            original: "Programmed sensors for a water monitoring project.",
+            variants: [
+              "Wrote Arduino/C++ firmware integrating 4 water-quality sensors (pH, temperature, turbidity, TDS) with serial telemetry every 2 seconds.",
+              "Built C++ firmware for a 4-sensor water-monitoring buoy, streaming readings over serial at 2-second intervals.",
+              "Integrated pH, temperature, turbidity, and TDS sensors into Arduino firmware with 2-second telemetry.",
+            ],
+          },
+          {
+            sources: ["LAB-03"],
+            original: "Wrote code to detect when the water readings looked wrong.",
+            variants: [
+              "Implemented a composite anomaly score weighting each sensor reading against its safe range to flag water-quality issues.",
+              "Designed a weighted anomaly-scoring algorithm that evaluates all 4 sensor readings against safe thresholds.",
+              "Built the anomaly-detection logic: a composite score across sensor channels, each weighted against its safe range.",
+            ],
+          },
+        ],
+      },
     ],
   },
 ];
