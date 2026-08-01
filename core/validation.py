@@ -7,6 +7,7 @@ the wording of the facts they claim. Stage two is the LLM judge in
 """
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from core.config import mock_enabled
@@ -25,6 +26,7 @@ NUMBER_PATTERN = re.compile(r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?%?\+?(?![A-Za-z0-9]
 WORD_PATTERN = re.compile(r"[a-z0-9]+")
 MIN_FACT_WORD_OVERLAP = 0.25
 STOP_WORDS = {"a", "an", "and", "by", "for", "in", "of", "on", "the", "to", "with"}
+JUDGE_MAX_WORKERS = 4
 
 
 class GroundingError(ValueError):
@@ -132,6 +134,25 @@ def _judge_prompt(bullet: TailoredBullet, facts: dict[str, str]) -> str:
     return f"Confirmed source facts:\n{cited}\n\nRewritten bullet:\n{bullet.text}"
 
 
+def _judge_one(args: tuple[TailoredBullet, dict[str, str], Any]) -> BulletVerdict:
+    bullet, facts, client = args
+    verdict = structured_call(
+        FAST_MODEL,
+        cacheable_system(JUDGE_SYSTEM),
+        _judge_prompt(bullet, facts),
+        BulletVerdict,
+        client=client,
+    )
+    # Trust the judgement, not the echo: keep our own bullet text and fact
+    # ids so a paraphrased echo cannot misattribute a verdict.
+    return BulletVerdict(
+        bullet=bullet.text,
+        supported=verdict.supported,
+        reason=verdict.reason,
+        source_fact_ids=bullet.source_fact_ids,
+    )
+
+
 def judge_bullets(
     master: MasterResume,
     tailored: TailoredResume,
@@ -141,31 +162,21 @@ def judge_bullets(
     """Run the LLM judge over every tailored bullet (stage two of the guard).
 
     Assumes `validate_grounding` has already passed, so every cited id exists
-    on its own section.
+    on its own section. Bullets are judged concurrently, bounded so a long
+    resume can't fan out into an unbounded burst of API calls; `.map` returns
+    results in submission order regardless of completion order, so verdicts
+    still line up with the bullets they judge.
     """
     facts_by_ref = {**_experience_facts(master), **_project_facts(master)}
-    verdicts: list[BulletVerdict] = []
-    for section in [*tailored.experiences, *tailored.projects]:
-        facts = facts_by_ref[section.ref_id]
-        for bullet in section.bullets:
-            verdict = structured_call(
-                FAST_MODEL,
-                cacheable_system(JUDGE_SYSTEM),
-                _judge_prompt(bullet, facts),
-                BulletVerdict,
-                client=client,
-            )
-            # Trust the judgement, not the echo: keep our own bullet text and
-            # fact ids so a paraphrased echo cannot misattribute a verdict.
-            verdicts.append(
-                BulletVerdict(
-                    bullet=bullet.text,
-                    supported=verdict.supported,
-                    reason=verdict.reason,
-                    source_fact_ids=bullet.source_fact_ids,
-                )
-            )
-    return verdicts
+    jobs = [
+        (bullet, facts_by_ref[section.ref_id], client)
+        for section in [*tailored.experiences, *tailored.projects]
+        for bullet in section.bullets
+    ]
+    if not jobs:
+        return []
+    with ThreadPoolExecutor(max_workers=min(JUDGE_MAX_WORKERS, len(jobs))) as pool:
+        return list(pool.map(_judge_one, jobs))
 
 
 def validate(
