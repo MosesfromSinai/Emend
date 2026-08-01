@@ -26,6 +26,12 @@ def import_resume(body: ImportRequest, session: CurrentSession) -> MasterResume:
         return core_bridge.structure_resume(body.text)
     except CoreUnavailableError as e:
         raise ApiError(503, "core_unavailable", str(e)) from e
+    except ValueError as e:
+        # core rejected the text (e.g. invalid fenced JSON) — caller's input
+        raise ApiError(422, "unstructurable_resume", str(e)) from e
+    except RuntimeError as e:
+        # real mode without a key/package must not surface as a bare 500
+        raise ApiError(503, "pipeline_unavailable", str(e)) from e
 
 
 @router.put("/master", response_model=MasterResume)
