@@ -3,7 +3,7 @@ import Link from "next/link";
 export function LandingNav() {
   return (
     <div className="sticky top-0 z-50 border-b border-em-softb/60 bg-paper/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1080px] items-center justify-between px-8 py-3.5">
+      <div className="mx-auto flex max-w-270 items-center justify-between px-8 py-3.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-[26px] w-[26px] items-center justify-center rounded-[5px] bg-ink font-serif text-sm font-bold text-paper">
             E

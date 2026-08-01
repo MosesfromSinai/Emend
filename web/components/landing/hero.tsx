@@ -5,7 +5,7 @@ import { Reveal } from "@/components/landing/reveal";
 
 export function Hero() {
   return (
-    <div className="mx-auto grid max-w-[1080px] grid-cols-1 gap-14 px-8 py-19 md:grid-cols-2 md:items-center md:py-22">
+    <div className="mx-auto grid max-w-270 grid-cols-1 gap-14 px-8 py-19 md:grid-cols-2 md:items-center md:py-22">
       <Reveal>
         <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-em-softb bg-em-soft px-3.5 py-1.5 font-mono text-[11px] text-em-accent">
           structured generation · no hallucination by design

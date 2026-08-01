@@ -1,3 +1,8 @@
+import {
+  DualViewVisual,
+  GroundedRewriteVisual,
+  MatchScoreVisual,
+} from "@/components/landing/how-it-works-visuals";
 import { Reveal } from "@/components/landing/reveal";
 
 const STEPS = [
@@ -24,7 +29,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <div id="how" className="border-y border-em-softb bg-white">
-      <div className="mx-auto max-w-[1080px] px-8 py-19">
+      <div className="mx-auto max-w-270 px-8 py-19">
         <Reveal>
           <div className="mb-2.5 font-mono text-[11px] tracking-[.12em] text-em-accent">
             WORKFLOW
@@ -45,7 +50,7 @@ export function HowItWorks() {
               <div className="mb-1 font-serif text-[44px] font-semibold text-em-softb">
                 {step.n}
               </div>
-              <div className="mb-2 font-mono text-[11px] tracking-[.1em] text-em-accent">
+              <div className="mb-2 font-mono text-[11px] tracking-widest text-em-accent">
                 {step.kicker}
               </div>
               <h3 className="mb-2.5 text-[21px] font-semibold text-ink sm:text-[26px]">
