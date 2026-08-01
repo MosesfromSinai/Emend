@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from core.config import mock_enabled
+from core.config import max_input_chars, mock_enabled
 from core.llm import FAST_MODEL, TAILOR_MODEL, cacheable_system, structured_call
 from core.matching import keyword_match
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
@@ -128,8 +128,15 @@ def _mock_structure_resume(text: str) -> MasterResume:
         return _text_master_resume(text)
 
 
+def _check_input_size(text: str, label: str) -> None:
+    limit = max_input_chars()
+    if len(text) > limit:
+        raise ValueError(f"{label} exceeds {limit} characters")
+
+
 def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     """Turn pasted resume text into a confirmed-fact schema."""
+    _check_input_size(text, "resume text")
     if mock_enabled():
         return _mock_structure_resume(text)
     return structured_call(
@@ -143,6 +150,7 @@ def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
 
 def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     """Extract structure from a job posting."""
+    _check_input_size(text, "job posting text")
     if not mock_enabled():
         return structured_call(
             FAST_MODEL,
