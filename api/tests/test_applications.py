@@ -189,6 +189,41 @@ def test_unexpected_error_never_leaves_running(client, master, pipeline, monkeyp
     assert "RuntimeError" in got["error"]
 
 
+def test_run_application_rolls_back_before_marking_failed(
+    client, master, pipeline, monkeypatch
+):
+    """A mid-run failure must clear the aborted transaction before the
+    failure commit, or that commit raises too and strands status=running."""
+    from api import db as db_module
+
+    calls = []
+    original_factory = db_module.SessionLocal
+
+    def spying_factory():
+        session = original_factory()
+        real_rollback = session.rollback
+
+        def spy_rollback():
+            calls.append("rollback")
+            real_rollback()
+
+        session.rollback = spy_rollback
+        return session
+
+    monkeypatch.setattr(db_module, "SessionLocal", spying_factory)
+
+    def exploding_parse(text):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(core_bridge, "parse_jd", exploding_parse)
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_text": "a posting"})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+
+    assert got["status"] == "failed"
+    assert calls == ["rollback"]
+
+
 def test_core_unavailable_fails_the_job(client, master, pipeline, monkeypatch):
     def unavailable(text):
         raise CoreUnavailableError("core.parse_jd is not available yet")
