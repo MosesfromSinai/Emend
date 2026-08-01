@@ -1,0 +1,17 @@
+Jordan Alvarez
+(555) 233-8890 | jordan.alvarez.dev@example.com | linkedin.com/in/jordan-alvarez-dev
+
+Retail Operations Manager, Meridian Outfitters (Mar 2021 - Aug 2025)
+- Led a team of 12 associates across scheduling, inventory, and daily sales operations
+- Built a Python + pandas script replacing a manual spreadsheet audit, cutting monthly close time from 6 hours to 45 minutes
+- Migrated the store's internal request tracker from paper forms to a small Flask app used by 3 locations
+
+Full-Stack Web Development Certificate, Ironclad Coding Bootcamp (Sep 2024 - Feb 2025)
+- Built and deployed a group capstone project (Node.js, Express, PostgreSQL) as the team's backend lead
+- Completed 400+ hours of coursework covering JavaScript, React, SQL, and REST API design
+
+ShiftSwap
+- Built a React + Node.js app letting retail workers trade shifts, with email notifications on approval
+- Deployed the app to Render with a PostgreSQL database and basic auth
+
+Skills: Python, JavaScript, SQL, React, Node.js, Flask, Git
