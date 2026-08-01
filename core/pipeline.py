@@ -15,6 +15,7 @@ from core.matching import keyword_match
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     Experience,
+    Fact,
     JDExtract,
     MasterResume,
     Project,
