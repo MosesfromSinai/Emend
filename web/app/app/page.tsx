@@ -6,7 +6,7 @@ import { useState } from "react";
 import { MasterResumeEditor } from "@/components/master-resume-editor";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, importResume, saveMaster } from "@/lib/api";
+import { ApiError, MAX_TEXT_CHARS, importResume, saveMaster } from "@/lib/api";
 import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
@@ -82,13 +82,20 @@ export default function OnboardingPage() {
       {error && <p className="text-sm text-red-700">{error}</p>}
       <Textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
         rows={14}
         placeholder="Paste your resume here…"
       />
-      <Button onClick={extractFacts} disabled={busy || text.trim().length === 0}>
-        {busy ? "Extracting…" : "Extract my facts →"}
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button onClick={extractFacts} disabled={busy || text.trim().length === 0}>
+          {busy ? "Extracting…" : "Extract my facts →"}
+        </Button>
+        {text.length > MAX_TEXT_CHARS * 0.9 && (
+          <span className="font-mono text-xs text-ink/50">
+            {text.length.toLocaleString()} / {MAX_TEXT_CHARS.toLocaleString()}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

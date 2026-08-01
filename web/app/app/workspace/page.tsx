@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, createApplication } from "@/lib/api";
+import { ApiError, MAX_TEXT_CHARS, createApplication } from "@/lib/api";
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function WorkspacePage() {
         </p>
         <Textarea
           value={jdText}
-          onChange={(e) => setJdText(e.target.value)}
+          onChange={(e) => setJdText(e.target.value.slice(0, MAX_TEXT_CHARS))}
           rows={10}
           placeholder="Paste the job description here…"
           className="mb-3"

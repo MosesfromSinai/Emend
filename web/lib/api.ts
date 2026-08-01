@@ -8,6 +8,10 @@ import type {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// mirrors api/config.py's MAX_TEXT_CHARS default — keeps us from bothering
+// the server with a paste we already know it'll 422 on
+export const MAX_TEXT_CHARS = 50000;
+
 export class ApiError extends Error {
   status: number;
   code: string;
