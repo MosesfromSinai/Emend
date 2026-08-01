@@ -279,13 +279,22 @@ def real_tailor_resume(
     The master resume rides in the cached system block so repeated tailoring
     for one session reuses the prefix.
     """
-    tailored = structured_call(
+    result = structured_call_with_usage(
         TAILOR_MODEL,
         cacheable_system(TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"),
         _tailor_user_prompt(jd),
         TailoredResume,
         client=client,
     )
+    record_call(
+        label="tailor",
+        model=TAILOR_MODEL,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        cache_read_input_tokens=result.cache_read_input_tokens,
+        cache_creation_input_tokens=result.cache_creation_input_tokens,
+    )
+    tailored = result.value
     # Unvalidated output must never leave the pipeline.
     validate_grounding(master, tailored)
     return tailored
