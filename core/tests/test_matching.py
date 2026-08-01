@@ -1,18 +1,8 @@
-import json
-from pathlib import Path
-
 from core.matching import keyword_match
-from core.schemas import JDExtract, MasterResume
-
-FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
+from core.schemas import JDExtract
 
 
-def _master() -> MasterResume:
-    data = json.loads((FIXTURES / "sample_master.json").read_text())
-    return MasterResume(**data)
-
-
-def test_keyword_match_scores_overlap_deterministically():
+def test_keyword_match_scores_overlap_deterministically(sample_master):
     jd = JDExtract(
         company="Analytical Jobs",
         title="Backend Engineer",
@@ -22,13 +12,13 @@ def test_keyword_match_scores_overlap_deterministically():
         keywords=["Python", "Docker", "Kubernetes", "Bernoulli numbers"],
     )
 
-    score, matched, missing = keyword_match(jd, _master())
+    score, matched, missing = keyword_match(jd, sample_master)
     assert score == 0.75
     assert matched == ["Python", "Docker", "Bernoulli numbers"]
     assert missing == ["Kubernetes"]
 
 
-def test_keyword_match_empty_keywords_scores_zero():
+def test_keyword_match_empty_keywords_scores_zero(sample_master):
     jd = JDExtract(
         company="",
         title="",
@@ -37,10 +27,10 @@ def test_keyword_match_empty_keywords_scores_zero():
         responsibilities=[],
         keywords=[],
     )
-    assert keyword_match(jd, _master()) == (0.0, [], [])
+    assert keyword_match(jd, sample_master) == (0.0, [], [])
 
 
-def test_keyword_match_counts_project_tech():
+def test_keyword_match_counts_project_tech(sample_master):
     # tech the candidate listed on a project is a real claim, not a company name
     jd = JDExtract(
         company="",
@@ -51,10 +41,10 @@ def test_keyword_match_counts_project_tech():
         keywords=["Punch Cards"],
     )
 
-    assert keyword_match(jd, _master()) == (1.0, ["Punch Cards"], [])
+    assert keyword_match(jd, sample_master) == (1.0, ["Punch Cards"], [])
 
 
-def test_keyword_match_excludes_employer_names():
+def test_keyword_match_excludes_employer_names(sample_master):
     jd = JDExtract(
         company="",
         title="",
@@ -64,12 +54,12 @@ def test_keyword_match_excludes_employer_names():
         keywords=["Babbage"],
     )
 
-    score, matched, missing = keyword_match(jd, _master())
+    score, matched, missing = keyword_match(jd, sample_master)
     assert (score, matched) == (0.0, [])
     assert missing == ["Babbage"]
 
 
-def test_keyword_match_ignores_duplicate_and_blank_keywords():
+def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):
     jd = JDExtract(
         company="",
         title="",
@@ -79,4 +69,4 @@ def test_keyword_match_ignores_duplicate_and_blank_keywords():
         keywords=["Python", "", "Python"],
     )
 
-    assert keyword_match(jd, _master()) == (1.0, ["Python"], [])
+    assert keyword_match(jd, sample_master) == (1.0, ["Python"], [])
