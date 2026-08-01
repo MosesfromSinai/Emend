@@ -41,6 +41,10 @@ def _posting_files() -> list[Path]:
     return sorted(POSTING_FIXTURES.glob("*.txt"))
 
 
+# TODO(BLOCKED.md#real-mode-eval-numbers-need-a-working-anthropic_api_key):
+# the ambient ANTHROPIC_API_KEY in this environment 401s against the real
+# Messages API, so this has not been run for real yet -- run it once a
+# working key is available and copy the numbers into docs/evals.md.
 @requires_real_evals
 def test_real_mode_grounding_and_keyword_coverage(sample_master, monkeypatch):
     monkeypatch.setenv("MOCK", "0")
