@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f0eee9;font-family:system-ui,sans-serif}a{color:#2a78d6}a:hover{color:#1b5fae}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}.dv-step{font:600 10px ui-monospace,Menlo,monospace;color:rgba(0,0,0,.45);margin:6px 0 -4px}</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Resume Tailor — full flow (paste → confirm facts → dual view), 3 brand directions on a shadcn base</span></div>
+<div class="dv-opts">
+
+<!-- ============ 1a INK & PAPER ============ -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Ink &amp; Paper — LaTeX-inspired, warm off-white, serif display, amber accent</div>
+
+<div class="dv-step">1 · PASTE</div>
+<div class="dv-card" style="width:640px;background:#faf8f4">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #e8e3d8">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:24px;background:#1c1b18;color:#faf8f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font:700 13px 'Source Serif 4',serif">R</div><span style="font:600 16px 'Source Serif 4',serif;color:#1c1b18">Resume Tailor</span></div>
+    <div style="display:flex;gap:18px;font:500 12.5px system-ui;color:#6b6558"><span>History</span><span>Docs</span><div style="width:26px;height:26px;border-radius:50%;background:#e8e3d8;display:flex;align-items:center;justify-content:center;font:600 11px system-ui;color:#1c1b18">MA</div></div>
+  </div>
+  <div style="padding:36px 48px 40px">
+    <h1 style="margin:0 0 6px;font:600 30px/1.15 'Source Serif 4',serif;color:#1c1b18">Let's get your resume in.</h1>
+    <p style="margin:0 0 24px;font:400 14px/1.5 system-ui;color:#6b6558">Paste it as plain text — we'll pull out the facts and typeset it beautifully in LaTeX.</p>
+    <div style="border:1.5px solid #d8d1c2;border-radius:8px;background:#fff;padding:16px 18px;height:150px;overflow:hidden;position:relative">
+      <div style="font:400 12px/1.65 'JetBrains Mono',monospace;color:#3a372f;white-space:pre-wrap">Moses Avila
+(760)-490-6863 | mavil072@ucr.edu | linkedin.com/in/moses-avila
+Education
+University of California, Riverside — B.S. Computer Science, June 2027
+Experience
+Software Engineer Intern, General Atomics (Jun 2026 – Present)
+• Developing 25+ integration tests on the Advanced C2 Systems team…</div>
+      <div style="position:absolute;inset:auto 0 0 0;height:48px;background:linear-gradient(transparent,#fff)"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0 0">
+      <button style="border:none;background:#1c1b18;color:#faf8f4;font:600 13.5px system-ui;padding:11px 22px;border-radius:7px;cursor:pointer">Extract my facts →</button>
+      <span style="font:400 12px system-ui;color:#9a927f">or <span style="text-decoration:underline;color:#8a6d1f">upload a PDF</span></span>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">2 · CONFIRM FACTS</div>
+<div class="dv-card" style="width:640px;background:#faf8f4">
+  <div style="padding:30px 48px 36px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px">
+      <h2 style="margin:0;font:600 24px 'Source Serif 4',serif;color:#1c1b18">Did we get this right?</h2>
+      <span style="font:500 11px 'JetBrains Mono',monospace;color:#8a6d1f;background:#f3ecd9;padding:3px 9px;border-radius:20px">14 facts found</span>
+    </div>
+    <p style="margin:0 0 22px;font:400 13.5px/1.5 system-ui;color:#6b6558">These facts are the only material we'll ever write from. Fix anything that's off.</p>
+    <div style="font:600 11px system-ui;letter-spacing:.08em;color:#9a927f;margin:0 0 8px">EXPERIENCE — GENERAL ATOMICS</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin:0 0 20px">
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #e8e3d8;border-radius:7px;padding:12px 14px">
+        <span style="color:#7a8a4a;font:600 13px system-ui;margin-top:1px">✓</span>
+        <span style="font:400 13px/1.5 system-ui;color:#3a372f">Developed <strong>25+ integration tests</strong> validating message flow across <strong>5+ microservices</strong> (Linux)</span>
+        <span style="margin-left:auto;font:500 11px system-ui;color:#9a927f;cursor:pointer;flex:none">Edit</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #e8e3d8;border-radius:7px;padding:12px 14px">
+        <span style="color:#7a8a4a;font:600 13px system-ui;margin-top:1px">✓</span>
+        <span style="font:400 13px/1.5 system-ui;color:#3a372f">Automated 12-step dev setup into one-click Bash scripts — <strong>80% faster startup</strong></span>
+        <span style="margin-left:auto;font:500 11px system-ui;color:#9a927f;cursor:pointer;flex:none">Edit</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#fdf6e8;border:1px solid #e3cf96;border-radius:7px;padding:12px 14px">
+        <span style="color:#8a6d1f;font:600 13px system-ui;margin-top:1px">?</span>
+        <span style="font:400 13px/1.5 system-ui;color:#3a372f">Authored <strong>3 Confluence pages</strong> on environment setup — <em style="color:#8a6d1f">is "streamlining onboarding" an outcome you can stand behind?</em></span>
+        <span style="margin-left:auto;font:500 11px system-ui;color:#8a6d1f;cursor:pointer;flex:none">Confirm</span>
+      </div>
+    </div>
+    <div style="font:600 11px system-ui;letter-spacing:.08em;color:#9a927f;margin:0 0 8px">PROJECTS — THREATSENSE</div>
+    <div style="display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #e8e3d8;border-radius:7px;padding:12px 14px;margin:0 0 24px">
+      <span style="color:#7a8a4a;font:600 13px system-ui;margin-top:1px">✓</span>
+      <span style="font:400 13px/1.5 system-ui;color:#3a372f">Live-demoed a YOLOv8 computer-vision security system to <strong>750+ attendees</strong> on Jetson Orin Nano</span>
+      <span style="margin-left:auto;font:500 11px system-ui;color:#9a927f;cursor:pointer;flex:none">Edit</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button style="border:none;background:#1c1b18;color:#faf8f4;font:600 13.5px system-ui;padding:11px 22px;border-radius:7px;cursor:pointer">Looks right — typeset it ✓</button>
+      <span style="font:400 12px system-ui;color:#9a927f">You can edit facts anytime.</span>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">3 · DUAL VIEW — PDF + .TEX</div>
+<div class="dv-card" style="width:980px;background:#faf8f4">
+  <div style="display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid #e8e3d8">
+    <span style="font:600 14px 'Source Serif 4',serif;color:#1c1b18">moses-avila — SWE New Grad</span>
+    <div style="display:flex;align-items:center;gap:7px;background:#f0ead9;border:1px solid #e3cf96;border-radius:20px;padding:4px 12px 4px 8px">
+      <div style="width:26px;height:26px;border-radius:50%;background:conic-gradient(#8a6d1f 0 82%,#e8e3d8 82% 100%);display:flex;align-items:center;justify-content:center"><div style="width:19px;height:19px;border-radius:50%;background:#f0ead9;display:flex;align-items:center;justify-content:center;font:700 8.5px system-ui;color:#1c1b18">82</div></div>
+      <span style="font:600 11.5px system-ui;color:#5c4a17">Strong match</span>
+    </div>
+    <div style="display:flex;gap:6px;font:500 11px 'JetBrains Mono',monospace">
+      <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:3px 8px">python ✓</span>
+      <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:3px 8px">ci/cd ✓</span>
+      <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:3px 8px">aws ✓</span>
+      <span style="background:#f4e6e2;color:#9a4a34;border-radius:4px;padding:3px 8px;text-decoration:line-through">kubernetes</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span style="font:600 11px system-ui;color:#5a6a34;background:#eef0e2;border-radius:20px;padding:4px 11px;cursor:pointer">✓ Every line grounded · report</span>
+      <button style="border:1px solid #d8d1c2;background:#fff;color:#1c1b18;font:600 12px system-ui;padding:7px 14px;border-radius:6px;cursor:pointer">Copy .tex</button>
+      <button style="border:none;background:#1c1b18;color:#faf8f4;font:600 12px system-ui;padding:7px 14px;border-radius:6px;cursor:pointer">Download PDF</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;height:460px">
+    <div style="background:#eceadf;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:hidden">
+      <div style="width:340px;background:#fff;box-shadow:0 2px 12px rgba(28,27,24,.14);padding:26px 30px;flex:none">
+        <div style="text-align:center;font:700 15px 'Source Serif 4',serif;color:#111">Moses Avila</div>
+        <div style="text-align:center;font:400 6.5px 'JetBrains Mono',monospace;color:#555;margin:3px 0 10px">(760)-490-6863 · mavil072@ucr.edu · linkedin.com/in/moses-avila</div>
+        <div style="font:700 8px 'Source Serif 4',serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:8px 0 5px">EDUCATION</div>
+        <div style="font:600 7px system-ui;color:#222">University of California, Riverside <span style="float:right;font-weight:400">Expected June 2027</span></div>
+        <div style="font:400 6.5px system-ui;color:#444;font-style:italic">B.S. Computer Science</div>
+        <div style="font:700 8px 'Source Serif 4',serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:9px 0 5px">EXPERIENCE</div>
+        <div style="font:600 7px system-ui;color:#222">Software Engineer Intern — General Atomics <span style="float:right;font-weight:400">Jun 2026 – Present</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Developing 25+ integration tests validating end-to-end message flow across 5+ microservices<br>• Automated a 12-step dev environment setup into one-click Bash scripts, cutting startup 80%</div>
+        <div style="background:#fdf3d7;font:600 7px system-ui;color:#222;margin-top:4px">Software Engineer Intern — ACM @ UCR <span style="float:right;font-weight:400">Jan – Mar 2025</span></div>
+        <div style="background:#fdf3d7;font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Built 20+ reusable React components; improved Lighthouse performance 35% with CI/CD pipelines</div>
+        <div style="font:700 8px 'Source Serif 4',serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:9px 0 5px">PROJECTS</div>
+        <div style="font:600 7px system-ui;color:#222">ThreatSense <span style="font-weight:400;font-style:italic">— Python, Flask, OpenCV, YOLOv8, AWS EC2</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Built and live-demoed a CV security system to 750+ attendees on a Jetson Orin Nano</div>
+      </div>
+    </div>
+    <div style="background:#211f1a;padding:18px 22px;overflow:hidden;position:relative">
+      <div style="display:flex;gap:14px;font:500 10.5px 'JetBrains Mono',monospace;color:#8f887a;margin:0 0 12px"><span style="color:#f0ead9;border-bottom:1.5px solid #c9a648;padding-bottom:4px">resume.tex</span><span>preamble.sty</span></div>
+      <div style="margin:0;font:400 11px/1.75 'JetBrains Mono',monospace;color:#c9c4b6"><div style="color:#8f887a">% grounded: fact #3 (General Atomics)</div><div><span style="color:#c9a648">\resumeItem</span>{Developing <span style="color:#e0d7bd">25+ integration tests</span> on the</div><div>&nbsp;&nbsp;Advanced C2 Systems team validating end-to-end</div><div>&nbsp;&nbsp;message flow across 5+ microservices}</div><div><span style="color:#c9a648">\resumeItem</span>{Automated a 12-step dev environment</div><div>&nbsp;&nbsp;setup into one-click Bash scripts, cutting</div><div>&nbsp;&nbsp;startup time by <span style="color:#e0d7bd">80\%</span>}</div><div style="background:#3a3423;border-left:2px solid #c9a648;padding-left:8px;margin-left:-10px"><span style="color:#c9a648">\resumeSubheading</span>{ACM @ UCR}{Jan -- Mar 2025}</div></div>
+      <div style="position:absolute;right:14px;bottom:12px;font:500 10px 'JetBrains Mono',monospace;color:#8f887a">synced scroll ⇅</div>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">MOBILE · 390 — DUAL VIEW</div>
+<div class="dv-card" style="width:390px;background:#faf8f4">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e8e3d8">
+    <span style="font:600 14px 'Source Serif 4',serif;color:#1c1b18">moses-avila</span>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#8a6d1f 0 82%,#e8e3d8 82% 100%);display:flex;align-items:center;justify-content:center"><div style="width:17px;height:17px;border-radius:50%;background:#faf8f4;display:flex;align-items:center;justify-content:center;font:700 8px system-ui;color:#1c1b18">82</div></div><span style="font:600 10.5px system-ui;color:#5a6a34;background:#eef0e2;border-radius:20px;padding:3px 9px">✓ grounded</span></div>
+  </div>
+  <div style="display:flex;gap:0;border-bottom:1px solid #e8e3d8">
+    <div style="flex:1;text-align:center;font:600 12.5px system-ui;color:#1c1b18;padding:11px 0;border-bottom:2px solid #1c1b18">Preview</div>
+    <div style="flex:1;text-align:center;font:500 12.5px system-ui;color:#9a927f;padding:11px 0">.tex</div>
+  </div>
+  <div style="background:#eceadf;display:flex;justify-content:center;padding:18px;height:300px;overflow:hidden">
+    <div style="width:250px;background:#fff;box-shadow:0 2px 10px rgba(28,27,24,.14);padding:20px 22px;flex:none">
+      <div style="text-align:center;font:700 11px 'Source Serif 4',serif;color:#111">Moses Avila</div>
+      <div style="text-align:center;font:400 5px 'JetBrains Mono',monospace;color:#555;margin:2px 0 8px">(760)-490-6863 · mavil072@ucr.edu</div>
+      <div style="font:700 6px 'Source Serif 4',serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:6px 0 3px">EXPERIENCE</div>
+      <div style="font:600 5.5px system-ui;color:#222">Software Engineer Intern — General Atomics</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• Developing 25+ integration tests validating message flow across 5+ microservices<br>• Automated 12-step dev setup into one-click Bash scripts, cutting startup 80%</div>
+      <div style="font:700 6px 'Source Serif 4',serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:6px 0 3px">PROJECTS</div>
+      <div style="font:600 5.5px system-ui;color:#222">ThreatSense — Python, YOLOv8, AWS</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• Live-demoed CV security system to 750+ attendees</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;padding:14px 16px">
+    <button style="flex:1;border:1px solid #d8d1c2;background:#fff;color:#1c1b18;font:600 12.5px system-ui;padding:12px 0;border-radius:7px;cursor:pointer;min-height:44px">Copy .tex</button>
+    <button style="flex:1;border:none;background:#1c1b18;color:#faf8f4;font:600 12.5px system-ui;padding:12px 0;border-radius:7px;cursor:pointer;min-height:44px">Download PDF</button>
+  </div>
+</div>
+</div>
+
+<!-- ============ 1b TEAL DEV-TOOL ============ -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Terminal Teal — cool developer-tool, mono accents, dark code-first workspace</div>
+
+<div class="dv-step">1 · PASTE</div>
+<div class="dv-card" style="width:640px;background:#fbfcfd">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #e4e9ec">
+    <div style="display:flex;align-items:center;gap:9px"><span style="font:600 14px 'JetBrains Mono',monospace;color:#10282e">resume<span style="color:oklch(0.55 0.11 200)">_tailor</span></span></div>
+    <div style="display:flex;gap:18px;align-items:center;font:500 12.5px system-ui;color:#5b6c72"><span>History</span><span style="font:500 11px 'JetBrains Mono',monospace;background:#eef3f4;border-radius:4px;padding:3px 8px">⌘K</span><div style="width:26px;height:26px;border-radius:50%;background:#d7e4e7;display:flex;align-items:center;justify-content:center;font:600 11px system-ui;color:#10282e">MA</div></div>
+  </div>
+  <div style="padding:36px 48px 40px">
+    <div style="font:500 11px 'JetBrains Mono',monospace;color:oklch(0.55 0.11 200);margin:0 0 8px">$ step 1 of 3 — input</div>
+    <h1 style="margin:0 0 6px;font:700 26px/1.2 system-ui;color:#10282e;letter-spacing:-.02em">Paste your resume. We'll take it from here.</h1>
+    <p style="margin:0 0 22px;font:400 14px/1.5 system-ui;color:#5b6c72">Plain text in → confirmed facts → a typeset PDF and its LaTeX source out.</p>
+    <div style="border:1px solid #d3dde0;border-radius:10px;background:#fff;overflow:hidden">
+      <div style="display:flex;gap:6px;align-items:center;background:#f4f7f8;border-bottom:1px solid #e4e9ec;padding:8px 14px;font:500 11px 'JetBrains Mono',monospace;color:#5b6c72"><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.55 0.11 200)"></span>resume.txt · 3,031 chars</div>
+      <div style="padding:14px 18px;height:120px;overflow:hidden;position:relative">
+        <div style="font:400 12px/1.65 'JetBrains Mono',monospace;color:#33454b;white-space:pre-wrap">Moses Avila
+(760)-490-6863 | mavil072@ucr.edu
+Experience
+Software Engineer Intern — General Atomics (Jun 2026 – Present)
+• Developing 25+ integration tests on the Advanced C2 Systems team…</div>
+        <div style="position:absolute;inset:auto 0 0 0;height:44px;background:linear-gradient(transparent,#fff)"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0 0">
+      <button style="border:none;background:oklch(0.45 0.09 200);color:#fff;font:600 13.5px system-ui;padding:11px 22px;border-radius:8px;cursor:pointer">Extract facts</button>
+      <span style="font:500 11.5px 'JetBrains Mono',monospace;color:#8298a0">→ 14 facts detected in preview</span>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">2 · CONFIRM FACTS</div>
+<div class="dv-card" style="width:640px;background:#fbfcfd">
+  <div style="padding:30px 48px 36px">
+    <div style="font:500 11px 'JetBrains Mono',monospace;color:oklch(0.55 0.11 200);margin:0 0 8px">$ step 2 of 3 — verify</div>
+    <h2 style="margin:0 0 6px;font:700 22px system-ui;color:#10282e;letter-spacing:-.02em">Confirm your facts</h2>
+    <p style="margin:0 0 20px;font:400 13.5px/1.5 system-ui;color:#5b6c72">Everything we generate is grounded in these — nothing invented, ever.</p>
+    <div style="border:1px solid #e4e9ec;border-radius:10px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:28px 1fr 90px;gap:10px;align-items:start;padding:12px 16px;background:#fff;border-bottom:1px solid #eef3f4">
+        <input type="checkbox" checked style="accent-color:oklch(0.45 0.09 200);margin-top:2px">
+        <span style="font:400 13px/1.5 system-ui;color:#33454b"><span style="font:600 10.5px 'JetBrains Mono',monospace;color:#8298a0">GA-01 </span>25+ integration tests · end-to-end message flow · 5+ microservices · Linux</span>
+        <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#4a8a5f;text-align:right">verified</span>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 1fr 90px;gap:10px;align-items:start;padding:12px 16px;background:#fff;border-bottom:1px solid #eef3f4">
+        <input type="checkbox" checked style="accent-color:oklch(0.45 0.09 200);margin-top:2px">
+        <span style="font:400 13px/1.5 system-ui;color:#33454b"><span style="font:600 10.5px 'JetBrains Mono',monospace;color:#8298a0">GA-02 </span>12-step env setup → one-click Bash scripts · RHEL 8 VMs · Podman · −80% startup</span>
+        <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#4a8a5f;text-align:right">verified</span>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 1fr 90px;gap:10px;align-items:start;padding:12px 16px;background:#fffdf2;border-bottom:1px solid #eef3f4">
+        <input type="checkbox" style="accent-color:oklch(0.45 0.09 200);margin-top:2px">
+        <span style="font:400 13px/1.5 system-ui;color:#33454b"><span style="font:600 10.5px 'JetBrains Mono',monospace;color:#b08a2e">GA-03 </span>3 Confluence pages · onboarding docs — <em>outcome claim needs your sign-off</em></span>
+        <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#b08a2e;text-align:right">review</span>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 1fr 90px;gap:10px;align-items:start;padding:12px 16px;background:#fff">
+        <input type="checkbox" checked style="accent-color:oklch(0.45 0.09 200);margin-top:2px">
+        <span style="font:400 13px/1.5 system-ui;color:#33454b"><span style="font:600 10.5px 'JetBrains Mono',monospace;color:#8298a0">TS-01 </span>ThreatSense demoed to 750+ attendees · YOLOv8 · Jetson Orin Nano</span>
+        <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#4a8a5f;text-align:right">verified</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 0">
+      <button style="border:none;background:oklch(0.45 0.09 200);color:#fff;font:600 13.5px system-ui;padding:11px 22px;border-radius:8px;cursor:pointer">Confirm 13 of 14 →</button>
+      <span style="font:400 12px system-ui;color:#8298a0">1 fact held back until you review it</span>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">3 · DUAL VIEW — PDF + .TEX</div>
+<div class="dv-card" style="width:980px;background:#0f1e22">
+  <div style="display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid #1e3239">
+    <span style="font:600 12.5px 'JetBrains Mono',monospace;color:#e6eef0">moses-avila.tex</span>
+    <span style="font:500 11px 'JetBrains Mono',monospace;color:#7fa3ac;background:#16292f;border:1px solid #24404a;border-radius:6px;padding:4px 10px">match <span style="color:oklch(0.78 0.11 200);font-weight:600">82/100</span></span>
+    <div style="display:flex;gap:5px;font:500 10.5px 'JetBrains Mono',monospace">
+      <span style="background:#14332b;color:#6fc296;border-radius:4px;padding:3px 8px">python</span>
+      <span style="background:#14332b;color:#6fc296;border-radius:4px;padding:3px 8px">docker</span>
+      <span style="background:#14332b;color:#6fc296;border-radius:4px;padding:3px 8px">ci/cd</span>
+      <span style="background:#3a2226;color:#d98a7e;border-radius:4px;padding:3px 8px">−kubernetes</span>
+      <span style="background:#3a2226;color:#d98a7e;border-radius:4px;padding:3px 8px">−graphql</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#6fc296;border:1px solid #24504a;border-radius:6px;padding:4px 10px;cursor:pointer">✓ grounded 18/18 · report</span>
+      <button style="border:1px solid #2a4a54;background:transparent;color:#cfe0e4;font:600 11.5px system-ui;padding:6px 13px;border-radius:6px;cursor:pointer">Copy .tex</button>
+      <button style="border:none;background:oklch(0.65 0.11 200);color:#0f1e22;font:700 11.5px system-ui;padding:6px 13px;border-radius:6px;cursor:pointer">Download PDF</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.05fr 1fr;height:460px">
+    <div style="background:#16292f;display:flex;align-items:flex-start;justify-content:center;padding:22px;overflow:hidden">
+      <div style="width:340px;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.4);padding:26px 30px;flex:none">
+        <div style="text-align:center;font:700 15px Georgia,serif;color:#111">Moses Avila</div>
+        <div style="text-align:center;font:400 6.5px 'JetBrains Mono',monospace;color:#555;margin:3px 0 10px">(760)-490-6863 · mavil072@ucr.edu · github.com/MosesfromSinai</div>
+        <div style="font:700 8px Georgia,serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:8px 0 5px">EXPERIENCE</div>
+        <div style="font:600 7px system-ui;color:#222">Software Engineer Intern — General Atomics <span style="float:right;font-weight:400">Jun 2026 – Present</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Developing 25+ integration tests validating end-to-end message flow across 5+ microservices<br>• Automated a 12-step dev environment setup into one-click Bash scripts, cutting startup 80%</div>
+        <div style="outline:1.5px solid oklch(0.65 0.11 200);outline-offset:2px;font:600 7px system-ui;color:#222;margin-top:5px">Software Engineer Intern — ACM @ UCR <span style="float:right;font-weight:400">Jan – Mar 2025</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:3px 0 0 8px">• Built 20+ reusable React components; improved Lighthouse performance 35%</div>
+        <div style="font:700 8px Georgia,serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:9px 0 5px">PROJECTS</div>
+        <div style="font:600 7px system-ui;color:#222">ThreatSense <span style="font-weight:400;font-style:italic">— Python, Flask, YOLOv8, AWS EC2</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Built and live-demoed a CV security system to 750+ attendees; 3-tier edge-fog-cloud pipeline</div>
+        <div style="font:600 7px system-ui;color:#222;margin-top:4px">TermIt <span style="font-weight:400;font-style:italic">— C++, CMake, GoogleTest</span></div>
+        <div style="font:400 6.5px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• C++ CLI task manager; 30 GoogleTest unit tests across 4 suites</div>
+      </div>
+    </div>
+    <div style="background:#0f1e22;padding:16px 20px;overflow:hidden;border-left:1px solid #1e3239;position:relative">
+      <div style="display:flex;gap:12px;font:500 10.5px 'JetBrains Mono',monospace;color:#5f7d86;margin:0 0 12px"><span style="color:#e6eef0;border-bottom:1.5px solid oklch(0.65 0.11 200);padding-bottom:4px">resume.tex</span><span>facts.json</span><span style="margin-left:auto;color:#4a8a5f">● compiled 2s ago</span></div>
+      <div style="margin:0;font:400 11px/1.75 'JetBrains Mono',monospace;color:#b8ccd2"><div style="color:#5f7d86">% ← selected in preview</div><div style="background:#1b3a42;border-left:2px solid oklch(0.65 0.11 200);padding-left:8px;margin-left:-10px"><span style="color:oklch(0.75 0.1 200)">\resumeSubheading</span>{ACM @ UCR}{Jan -- Mar 2025}</div><div><span style="color:oklch(0.75 0.1 200)">\resumeItem</span>{Built <span style="color:#e8f2d8">20+ reusable React</span></div><div>&nbsp;&nbsp;<span style="color:#e8f2d8">components</span> across 5 feature areas} <span style="color:#5f7d86">% fact ACM-02</span></div><div><span style="color:oklch(0.75 0.1 200)">\resumeItem</span>{Improved Lighthouse performance</div><div>&nbsp;&nbsp;score by <span style="color:#e8f2d8">35\%</span>} <span style="color:#5f7d86">% fact ACM-03</span></div></div>
+      <div style="position:absolute;right:14px;bottom:12px;font:500 10px 'JetBrains Mono',monospace;color:#5f7d86">click a line ↔ highlights its source fact</div>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">MOBILE · 390 — DUAL VIEW</div>
+<div class="dv-card" style="width:390px;background:#0f1e22">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1e3239">
+    <span style="font:600 12px 'JetBrains Mono',monospace;color:#e6eef0">moses-avila.tex</span>
+    <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#7fa3ac;background:#16292f;border:1px solid #24404a;border-radius:6px;padding:3px 9px">82/100 · <span style="color:#6fc296">✓ 18/18</span></span>
+  </div>
+  <div style="display:flex;border-bottom:1px solid #1e3239">
+    <div style="flex:1;text-align:center;font:600 12px 'JetBrains Mono',monospace;color:#e6eef0;padding:11px 0;border-bottom:2px solid oklch(0.65 0.11 200)">preview</div>
+    <div style="flex:1;text-align:center;font:500 12px 'JetBrains Mono',monospace;color:#5f7d86;padding:11px 0">.tex</div>
+    <div style="flex:1;text-align:center;font:500 12px 'JetBrains Mono',monospace;color:#5f7d86;padding:11px 0">facts</div>
+  </div>
+  <div style="background:#16292f;display:flex;justify-content:center;padding:18px;height:300px;overflow:hidden">
+    <div style="width:250px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.4);padding:20px 22px;flex:none">
+      <div style="text-align:center;font:700 11px Georgia,serif;color:#111">Moses Avila</div>
+      <div style="text-align:center;font:400 5px 'JetBrains Mono',monospace;color:#555;margin:2px 0 8px">mavil072@ucr.edu · github.com/MosesfromSinai</div>
+      <div style="font:700 6px Georgia,serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:6px 0 3px">EXPERIENCE</div>
+      <div style="font:600 5.5px system-ui;color:#222">Software Engineer Intern — General Atomics</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• Developing 25+ integration tests across 5+ microservices<br>• One-click Bash setup scripts, −80% startup time</div>
+      <div style="font:700 6px Georgia,serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:6px 0 3px">PROJECTS</div>
+      <div style="font:600 5.5px system-ui;color:#222">ThreatSense — Python, YOLOv8, AWS</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• Live-demoed CV security system to 750+ attendees</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;padding:14px 16px">
+    <button style="flex:1;border:1px solid #2a4a54;background:transparent;color:#cfe0e4;font:600 12.5px system-ui;padding:12px 0;border-radius:7px;cursor:pointer;min-height:44px">Copy .tex</button>
+    <button style="flex:1;border:none;background:oklch(0.65 0.11 200);color:#0f1e22;font:700 12.5px system-ui;padding:12px 0;border-radius:7px;cursor:pointer;min-height:44px">Download PDF</button>
+  </div>
+</div>
+</div>
+
+<!-- ============ 1c CORAL FRIENDLY ============ -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Warm Coral — rounded, encouraging, progress-forward; grounding as a hero trust story</div>
+
+<div class="dv-step">1 · PASTE</div>
+<div class="dv-card" style="width:640px;background:#fffdfb;border-radius:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f3e8e2">
+    <div style="display:flex;align-items:center;gap:9px"><div style="width:26px;height:26px;border-radius:9px;background:oklch(0.68 0.14 30);display:flex;align-items:center;justify-content:center;font:800 13px Nunito,sans-serif;color:#fff">R</div><span style="font:800 15px Nunito,sans-serif;color:#33231c">ResumeTailor</span></div>
+    <div style="display:flex;gap:16px;align-items:center;font:600 12.5px Nunito,sans-serif;color:#8a7368"><span>My resumes</span><div style="width:26px;height:26px;border-radius:50%;background:#f6e3da;display:flex;align-items:center;justify-content:center;font:700 11px Nunito,sans-serif;color:#33231c">MA</div></div>
+  </div>
+  <div style="padding:34px 48px 40px">
+    <div style="display:flex;gap:8px;margin:0 0 18px;align-items:center">
+      <div style="display:flex;align-items:center;gap:6px;font:700 11.5px Nunito,sans-serif;color:oklch(0.55 0.14 30)"><span style="width:22px;height:22px;border-radius:50%;background:oklch(0.68 0.14 30);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px">1</span>Paste</div>
+      <div style="width:36px;height:2px;background:#f3e8e2;border-radius:2px"></div>
+      <div style="display:flex;align-items:center;gap:6px;font:700 11.5px Nunito,sans-serif;color:#c4b3a9"><span style="width:22px;height:22px;border-radius:50%;background:#f6e3da;color:#a58c7e;display:flex;align-items:center;justify-content:center;font-size:11px">2</span>Confirm</div>
+      <div style="width:36px;height:2px;background:#f3e8e2;border-radius:2px"></div>
+      <div style="display:flex;align-items:center;gap:6px;font:700 11.5px Nunito,sans-serif;color:#c4b3a9"><span style="width:22px;height:22px;border-radius:50%;background:#f6e3da;color:#a58c7e;display:flex;align-items:center;justify-content:center;font-size:11px">3</span>Tailor</div>
+    </div>
+    <h1 style="margin:0 0 6px;font:800 28px/1.2 Nunito,sans-serif;color:#33231c">You've done the work.<br>Let's make it shine. ✨</h1>
+    <p style="margin:0 0 22px;font:400 14px/1.55 system-ui;color:#8a7368">Paste your resume — we'll never invent anything. Every word comes from what you actually did.</p>
+    <div style="border:2px dashed #ecd5c9;border-radius:14px;background:#fff;padding:16px 18px;height:130px;overflow:hidden;position:relative">
+      <div style="font:400 12px/1.65 'JetBrains Mono',monospace;color:#4a3c33;white-space:pre-wrap">Moses Avila
+mavil072@ucr.edu | linkedin.com/in/moses-avila
+Software Engineer Intern — General Atomics (Jun 2026 – Present)
+• Developing 25+ integration tests on the Advanced C2 Systems team…</div>
+      <div style="position:absolute;inset:auto 0 0 0;height:44px;background:linear-gradient(transparent,#fff)"></div>
+    </div>
+    <button style="border:none;background:oklch(0.68 0.14 30);color:#fff;font:800 14px Nunito,sans-serif;padding:13px 26px;border-radius:26px;cursor:pointer;margin:18px 0 0;box-shadow:0 3px 10px oklch(0.68 0.14 30 / .3)">Find my facts →</button>
+  </div>
+</div>
+
+<div class="dv-step">2 · CONFIRM FACTS</div>
+<div class="dv-card" style="width:640px;background:#fffdfb;border-radius:14px">
+  <div style="padding:32px 48px 38px">
+    <h2 style="margin:0 0 6px;font:800 24px Nunito,sans-serif;color:#33231c">Nice — we found 14 things to brag about 🎉</h2>
+    <p style="margin:0 0 20px;font:400 13.5px/1.55 system-ui;color:#8a7368">Give each one a quick look. These are your receipts — everything we write traces back here.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin:0 0 22px">
+      <div style="display:flex;gap:12px;align-items:center;background:#fff;border:1.5px solid #f3e8e2;border-radius:12px;padding:13px 16px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#e8f2e4;color:#4a7a4a;display:flex;align-items:center;justify-content:center;font:700 13px Nunito,sans-serif;flex:none">✓</div>
+        <div style="min-width:0"><div style="font:700 13px Nunito,sans-serif;color:#33231c">25+ integration tests at General Atomics</div><div style="font:400 12px system-ui;color:#8a7368">End-to-end message flow · 5+ microservices · Linux</div></div>
+        <span style="margin-left:auto;font:700 11.5px Nunito,sans-serif;color:oklch(0.55 0.14 30);cursor:pointer;flex:none">Edit</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;background:#fff;border:1.5px solid #f3e8e2;border-radius:12px;padding:13px 16px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#e8f2e4;color:#4a7a4a;display:flex;align-items:center;justify-content:center;font:700 13px Nunito,sans-serif;flex:none">✓</div>
+        <div style="min-width:0"><div style="font:700 13px Nunito,sans-serif;color:#33231c">Cut dev-environment startup by 80%</div><div style="font:400 12px system-ui;color:#8a7368">12-step setup → one-click Bash scripts · RHEL 8 · Podman</div></div>
+        <span style="margin-left:auto;font:700 11.5px Nunito,sans-serif;color:oklch(0.55 0.14 30);cursor:pointer;flex:none">Edit</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;background:#fff8ef;border:1.5px solid #efd9b4;border-radius:12px;padding:13px 16px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#f7e9c9;color:#a3782a;display:flex;align-items:center;justify-content:center;font:700 13px Nunito,sans-serif;flex:none">?</div>
+        <div style="min-width:0"><div style="font:700 13px Nunito,sans-serif;color:#33231c">Demoed ThreatSense to 750+ attendees</div><div style="font:400 12px system-ui;color:#a3782a">Big number! Double-check it — you'll want to stand behind it in interviews.</div></div>
+        <span style="margin-left:auto;font:700 11.5px Nunito,sans-serif;color:#a3782a;cursor:pointer;flex:none">It's right ✓</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button style="border:none;background:oklch(0.68 0.14 30);color:#fff;font:800 14px Nunito,sans-serif;padding:13px 26px;border-radius:26px;cursor:pointer;box-shadow:0 3px 10px oklch(0.68 0.14 30 / .3)">All true — tailor it! →</button>
+      <div style="flex:1;height:8px;background:#f6e3da;border-radius:4px;overflow:hidden"><div style="width:86%;height:100%;background:oklch(0.68 0.14 30);border-radius:4px"></div></div>
+      <span style="font:700 11.5px Nunito,sans-serif;color:#8a7368;flex:none">12/14 checked</span>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">3 · DUAL VIEW — PDF + .TEX</div>
+<div class="dv-card" style="width:980px;background:#fffdfb;border-radius:14px">
+  <div style="display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid #f3e8e2">
+    <span style="font:800 14px Nunito,sans-serif;color:#33231c">Moses — SWE New Grad @ Stripe</span>
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #f3e8e2;border-radius:24px;padding:5px 14px 5px 6px">
+      <div style="width:30px;height:30px;border-radius:50%;background:conic-gradient(oklch(0.68 0.14 30) 0 82%,#f6e3da 82% 100%);display:flex;align-items:center;justify-content:center"><div style="width:22px;height:22px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:800 9.5px Nunito,sans-serif;color:#33231c">82</div></div>
+      <div><div style="font:800 11.5px Nunito,sans-serif;color:#33231c">Strong match!</div><div style="font:400 10px system-ui;color:#8a7368">2 keywords to go</div></div>
+    </div>
+    <div style="display:flex;gap:6px;font:700 11px Nunito,sans-serif">
+      <span style="background:#e8f2e4;color:#4a7a4a;border-radius:14px;padding:4px 11px">Python ✓</span>
+      <span style="background:#e8f2e4;color:#4a7a4a;border-radius:14px;padding:4px 11px">AWS ✓</span>
+      <span style="background:#fdeeea;color:#b05a44;border-radius:14px;padding:4px 11px;border:1px dashed #e5b3a4">Kubernetes?</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <button style="border:1.5px solid #f0ddd3;background:#fff;color:#33231c;font:800 12px Nunito,sans-serif;padding:8px 16px;border-radius:22px;cursor:pointer">Copy .tex</button>
+      <button style="border:none;background:oklch(0.68 0.14 30);color:#fff;font:800 12px Nunito,sans-serif;padding:8px 16px;border-radius:22px;cursor:pointer">Download PDF</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;height:430px">
+    <div style="background:#f8efe9;display:flex;align-items:flex-start;justify-content:center;padding:22px;overflow:hidden">
+      <div style="width:330px;background:#fff;box-shadow:0 3px 14px rgba(51,35,28,.12);border-radius:3px;padding:24px 28px;flex:none">
+        <div style="text-align:center;font:700 14px Georgia,serif;color:#111">Moses Avila</div>
+        <div style="text-align:center;font:400 6.5px 'JetBrains Mono',monospace;color:#555;margin:3px 0 9px">(760)-490-6863 · mavil072@ucr.edu · linkedin.com/in/moses-avila</div>
+        <div style="font:700 7.5px Georgia,serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:7px 0 4px">EXPERIENCE</div>
+        <div style="font:600 6.5px system-ui;color:#222">Software Engineer Intern — General Atomics <span style="float:right;font-weight:400">Jun 2026 – Present</span></div>
+        <div style="font:400 6px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Developing 25+ integration tests validating message flow across 5+ microservices<br>• Automated 12-step dev setup into one-click Bash scripts, −80% startup time</div>
+        <div style="font:700 7.5px Georgia,serif;color:#111;border-bottom:.8px solid #111;padding-bottom:2px;margin:8px 0 4px">PROJECTS</div>
+        <div style="background:#fdeadf;border-radius:2px;font:600 6.5px system-ui;color:#222">ThreatSense <span style="font-weight:400;font-style:italic">— Python, Flask, YOLOv8, AWS EC2</span></div>
+        <div style="background:#fdeadf;border-radius:2px;font:400 6px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• Built and live-demoed a CV security system to 750+ attendees in real time</div>
+        <div style="font:600 6.5px system-ui;color:#222;margin-top:3px">TermIt <span style="font-weight:400;font-style:italic">— C++, CMake, GoogleTest</span></div>
+        <div style="font:400 6px/1.55 system-ui;color:#444;margin:2px 0 0 8px">• CLI task manager; 30 unit tests across 4 suites</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;border-left:1px solid #f3e8e2">
+      <div style="background:#33231c;flex:1;padding:16px 20px;overflow:hidden">
+        <div style="font:500 10.5px 'JetBrains Mono',monospace;color:#a58c7e;margin:0 0 10px">resume.tex</div>
+        <div style="margin:0;font:400 10.5px/1.7 'JetBrains Mono',monospace;color:#e0d2c8"><div style="background:#4a3226;border-left:2px solid oklch(0.68 0.14 30);padding-left:8px;margin-left:-10px"><span style="color:oklch(0.78 0.12 40)">\resumeProject</span>{ThreatSense}{Python, YOLOv8, AWS}</div><div><span style="color:oklch(0.78 0.12 40)">\resumeItem</span>{Built and live-demoed a computer</div><div>&nbsp;&nbsp;vision security system to 750+ attendees}</div></div>
+      </div>
+      <div style="background:#fff;border-top:1.5px solid #f3e8e2;padding:12px 18px">
+        <div style="display:flex;align-items:center;gap:8px;font:800 12px Nunito,sans-serif;color:#33231c"><span style="width:20px;height:20px;border-radius:50%;background:#e8f2e4;color:#4a7a4a;display:flex;align-items:center;justify-content:center;font-size:11px">✓</span>This line comes from your fact <span style="font:600 10.5px 'JetBrains Mono',monospace;background:#f6e3da;border-radius:4px;padding:2px 7px;color:#33231c">TS-01</span></div>
+        <div style="font:400 11.5px/1.5 system-ui;color:#8a7368;margin:5px 0 0 28px">"Live-demoed to 750+ attendees, YOLOv8 on Jetson Orin Nano" — confirmed by you 2 min ago. Nothing here was made up.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dv-step">MOBILE · 390 — DUAL VIEW</div>
+<div class="dv-card" style="width:390px;background:#fffdfb;border-radius:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f3e8e2">
+    <span style="font:800 13.5px Nunito,sans-serif;color:#33231c">Moses @ Stripe</span>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:26px;height:26px;border-radius:50%;background:conic-gradient(oklch(0.68 0.14 30) 0 82%,#f6e3da 82% 100%);display:flex;align-items:center;justify-content:center"><div style="width:19px;height:19px;border-radius:50%;background:#fffdfb;display:flex;align-items:center;justify-content:center;font:800 8.5px Nunito,sans-serif;color:#33231c">82</div></div><span style="font:800 10.5px Nunito,sans-serif;color:#4a7a4a;background:#e8f2e4;border-radius:14px;padding:4px 10px">All grounded ✓</span></div>
+  </div>
+  <div style="display:flex;gap:8px;padding:12px 16px 0">
+    <div style="flex:1;text-align:center;font:800 12px Nunito,sans-serif;color:#fff;background:oklch(0.68 0.14 30);padding:9px 0;border-radius:20px">Preview</div>
+    <div style="flex:1;text-align:center;font:700 12px Nunito,sans-serif;color:#8a7368;background:#f6ede7;padding:9px 0;border-radius:20px">.tex</div>
+    <div style="flex:1;text-align:center;font:700 12px Nunito,sans-serif;color:#8a7368;background:#f6ede7;padding:9px 0;border-radius:20px">Facts</div>
+  </div>
+  <div style="background:#f8efe9;display:flex;justify-content:center;padding:16px;margin:12px 16px;border-radius:12px;height:280px;overflow:hidden">
+    <div style="width:240px;background:#fff;box-shadow:0 2px 10px rgba(51,35,28,.12);border-radius:2px;padding:18px 20px;flex:none">
+      <div style="text-align:center;font:700 10.5px Georgia,serif;color:#111">Moses Avila</div>
+      <div style="text-align:center;font:400 5px 'JetBrains Mono',monospace;color:#555;margin:2px 0 7px">mavil072@ucr.edu · linkedin.com/in/moses-avila</div>
+      <div style="font:700 6px Georgia,serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:5px 0 3px">EXPERIENCE</div>
+      <div style="font:600 5.5px system-ui;color:#222">Software Engineer Intern — General Atomics</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• 25+ integration tests across 5+ microservices<br>• One-click Bash setup, −80% startup time</div>
+      <div style="font:700 6px Georgia,serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:5px 0 3px">PROJECTS</div>
+      <div style="font:600 5.5px system-ui;color:#222">ThreatSense — Python, YOLOv8, AWS</div>
+      <div style="font:400 5px/1.5 system-ui;color:#444;margin:1px 0 0 6px">• Live-demoed to 750+ attendees in real time</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;padding:0 16px 16px">
+    <button style="flex:1;border:1.5px solid #f0ddd3;background:#fff;color:#33231c;font:800 12.5px Nunito,sans-serif;padding:12px 0;border-radius:24px;cursor:pointer;min-height:44px">Copy .tex</button>
+    <button style="flex:1;border:none;background:oklch(0.68 0.14 30);color:#fff;font:800 12.5px Nunito,sans-serif;padding:12px 0;border-radius:24px;cursor:pointer;min-height:44px">Download PDF</button>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "go deeper on <a class="dv-oid" href="#1b">1b</a> — build the full clickable prototype" · "mix <a class="dv-oid" href="#1a">1a</a>'s typesetting look with <a class="dv-oid" href="#1c">1c</a>'s friendly copy" · "show the grounding report expanded"</p>
+</section>
+</x-dc>
+</body>
+</html>
