@@ -120,4 +120,35 @@ export const DEMO_RESUME: DemoSection[] = [
       },
     ],
   },
+  {
+    heading: "PROJECTS",
+    blocks: [
+      {
+        id: "log",
+        title: "LayoverLog",
+        sub: "Flask, PostgreSQL, Docker",
+        dates: "",
+        bullets: [
+          {
+            sources: ["LOG-01", "LOG-02"],
+            original: "A website I made to keep track of my flights.",
+            variants: [
+              "Built a Flask + PostgreSQL flight-logging app on a normalized 5-table schema with Alembic migrations.",
+              "Designed a 5-table relational schema (PostgreSQL, Alembic) powering a Flask app with a flight-stats dashboard.",
+              "Developed a full-stack flight logger — Flask API, PostgreSQL with versioned migrations, and a stats dashboard.",
+            ],
+          },
+          {
+            sources: ["LOG-03"],
+            original: "Put the app in Docker and got it running online.",
+            variants: [
+              "Containerized the app with Docker Compose and deployed it to production.",
+              "Packaged the full stack into Docker Compose services and shipped a deployed instance.",
+              "Deployed the application via a Docker Compose setup covering app and database.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
