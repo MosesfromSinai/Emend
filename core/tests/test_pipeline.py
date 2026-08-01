@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 import pytest
 
 from core.llm import LLMUnavailableError
@@ -13,30 +10,20 @@ from core.pipeline import (
     structure_resume,
     tailor,
 )
-from core.schemas import JDExtract, MasterResume
+from core.schemas import JDExtract
 from core.validation import validate_grounding
 
-FIXTURES = Path(__file__).resolve().parents[2] / "latex/tests/fixtures"
+
+def test_structure_resume_accepts_master_resume_json(sample_master):
+    structured = structure_resume(sample_master.model_dump_json())
+
+    assert structured == sample_master
 
 
-def _master() -> MasterResume:
-    data = json.loads((FIXTURES / "sample_master.json").read_text())
-    return MasterResume(**data)
+def test_structure_resume_accepts_fenced_master_resume_json(sample_master):
+    text = f"```json\n{sample_master.model_dump_json()}\n```"
 
-
-def test_structure_resume_accepts_master_resume_json():
-    master = _master()
-
-    structured = structure_resume(master.model_dump_json())
-
-    assert structured == master
-
-
-def test_structure_resume_accepts_fenced_master_resume_json():
-    master = _master()
-    text = f"```json\n{master.model_dump_json()}\n```"
-
-    assert structure_resume(text) == master
+    assert structure_resume(text) == sample_master
 
 
 PASTED_RESUME = """\
@@ -97,12 +84,12 @@ def test_parse_jd_rejects_oversized_text(monkeypatch):
         parse_jd("way more than ten characters")
 
 
-def test_structure_resume_requires_api_key_when_mock_disabled(monkeypatch):
+def test_structure_resume_requires_api_key_when_mock_disabled(monkeypatch, sample_master):
     monkeypatch.setenv("MOCK", "0")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     with pytest.raises(LLMUnavailableError, match="ANTHROPIC_API_KEY"):
-        structure_resume(_master().model_dump_json())
+        structure_resume(sample_master.model_dump_json())
 
 
 def test_parse_jd_accepts_jd_extract_json():
@@ -146,8 +133,8 @@ def test_parse_jd_derives_keywords_from_plain_text():
     assert parsed.keywords == ["Python", "backend", "role", "Docker"]
 
 
-def test_mock_refactor_preserves_fact_text_and_ids():
-    master = _master()
+def test_mock_refactor_preserves_fact_text_and_ids(sample_master):
+    master = sample_master
     refactored = mock_refactor_resume(master)
 
     bullet = refactored.experiences[0].bullets[0]
@@ -156,19 +143,19 @@ def test_mock_refactor_preserves_fact_text_and_ids():
     assert bullet.source_fact_ids == [fact.id]
 
 
-def test_mock_refactor_passes_grounding_validation():
-    master = _master()
+def test_mock_refactor_passes_grounding_validation(sample_master):
+    master = sample_master
     validate_grounding(master, mock_refactor_resume(master))
 
 
-def test_refactor_entrypoint_returns_grounded_resume():
-    master = _master()
+def test_refactor_entrypoint_returns_grounded_resume(sample_master):
+    master = sample_master
 
     validate_grounding(master, refactor(master))
 
 
-def test_refactor_entrypoint_preserves_all_fact_ids():
-    master = _master()
+def test_refactor_entrypoint_preserves_all_fact_ids(sample_master):
+    master = sample_master
     tailored = refactor(master)
     bullet_ids = {
         bullet.source_fact_ids[0]
@@ -179,8 +166,8 @@ def test_refactor_entrypoint_preserves_all_fact_ids():
     assert bullet_ids == master.all_fact_ids()
 
 
-def test_mock_refactor_result_returns_grounded_report():
-    master = _master()
+def test_mock_refactor_result_returns_grounded_report(sample_master):
+    master = sample_master
 
     tailored, report = mock_refactor_result(master)
 
@@ -191,8 +178,8 @@ def test_mock_refactor_result_returns_grounded_report():
     assert report.grounding_ok is True
 
 
-def test_mock_tailor_returns_grounded_resume_and_keyword_data():
-    master = _master()
+def test_mock_tailor_returns_grounded_resume_and_keyword_data(sample_master):
+    master = sample_master
     jd = JDExtract(
         company="",
         title="",
@@ -210,8 +197,8 @@ def test_mock_tailor_returns_grounded_resume_and_keyword_data():
     assert report.grounding_ok is True
 
 
-def test_tailor_entrypoint_returns_grounded_resume():
-    master = _master()
+def test_tailor_entrypoint_returns_grounded_resume(sample_master):
+    master = sample_master
     jd = JDExtract(
         company="",
         title="",
