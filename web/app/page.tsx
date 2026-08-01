@@ -1,20 +1,23 @@
-import Link from "next/link";
+import { LandingNav } from "@/components/landing/nav";
+import { Hero } from "@/components/landing/hero";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { SentenceDemo } from "@/components/landing/sentence-demo";
+import { WhatItIs } from "@/components/landing/what-it-is";
+import { Faq } from "@/components/landing/faq";
+import { CtaBand } from "@/components/landing/cta-band";
+import { Footer } from "@/components/landing/footer";
 
-// Placeholder root — the marketing landing page (Emend Landing v2) lands in
-// the next phase. The product itself lives under /app.
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="font-serif text-4xl font-semibold">Emend</h1>
-      <p className="max-w-md text-ink/70">
-        A tailored resume that can&apos;t lie about you.
-      </p>
-      <Link
-        href="/app"
-        className="rounded-lg bg-ink px-6 py-3 font-medium text-paper hover:bg-em-deep"
-      >
-        Get started
-      </Link>
+    <main>
+      <LandingNav />
+      <Hero />
+      <HowItWorks />
+      <SentenceDemo />
+      <WhatItIs />
+      <Faq />
+      <CtaBand />
+      <Footer />
     </main>
   );
 }
