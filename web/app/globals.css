@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/*
+ * Ink & Paper design tokens (context/00-project-brief.md "Design system").
+ * --em-* vars carry the amber-default fallback so any element using
+ * var(--em-accent, #8a6d1f) works before a color scheme is applied.
+ * Color scheme classes below override them; see lib/color-scheme.ts.
+ */
+@theme {
+  --color-paper: #faf8f4;
+  --color-ink: #1c1b18;
+  --color-code-pane: #211f1a;
+
+  --color-em-accent: var(--em-accent, #8a6d1f);
+  --color-em-soft: var(--em-soft, #f3ecd9);
+  --color-em-softb: var(--em-softb, #e3cf96);
+  --color-em-bright: var(--em-bright, #c9a648);
+  --color-em-deep: var(--em-deep, #5c4a17);
+
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --em-accent: #8a6d1f;
+  --em-soft: #f3ecd9;
+  --em-softb: #e3cf96;
+  --em-bright: #c9a648;
+  --em-deep: #5c4a17;
+}
+
+/* data-scheme is set on <html> by lib/color-scheme.ts; Amber uses the
+   defaults above and needs no override. */
+:root[data-scheme="teal"] {
+  --em-accent: #2e6e7a;
+  --em-soft: #e0ecee;
+  --em-softb: #b5d2d8;
+  --em-bright: #7fb8c2;
+  --em-deep: #1e4a53;
+}
+
+:root[data-scheme="oxblood"] {
+  --em-accent: #8a3a30;
+  --em-soft: #f6e4e0;
+  --em-softb: #e0b8ae;
+  --em-bright: #d99483;
+  --em-deep: #5c2620;
+}
+
+:root[data-scheme="forest"] {
+  --em-accent: #54703c;
+  --em-soft: #e7eedd;
+  --em-softb: #c5d6a9;
+  --em-bright: #a9c47c;
+  --em-deep: #3a4f28;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
