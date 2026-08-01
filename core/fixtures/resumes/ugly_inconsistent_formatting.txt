@@ -1,0 +1,20 @@
+   R. OKONKWO-diallo
+	 email : rokonkwo.diallo [at] example dot com    phone: 555.774.0021
+
+
+~~~ WORK ~~~
+
+	>> Junior Dev @ GRIDLINE SYSTEMS//// (no end date given, ongoing i guess)
+		-- rewrote the auth module, killed 30% of the login bugs
+		-fixed CSS on like every page tbh
+	  ->also did some devops stuff w/ docker & k8s when needed
+
+>>>PROJECT<<<
+"NoteTangle" (react + firebase)
+		•	realtime note sync between devices
+	•built it in a weekend for a hackathon, won 2nd place
+
+
+
+EDU:
+   Somewhere Community College -- Assoc. Programming '22
