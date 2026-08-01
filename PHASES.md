@@ -34,12 +34,19 @@ the one in this shell 401s against the real Messages API. Logged in
 `BLOCKED.md`, TODO left in `core/tests/test_evals.py`. Skipping this piece
 and moving on rather than guessing at numbers.
 
-## In progress
+- **Real-`MOCK=1` integration test** — `api/tests/test_applications.py::
+  test_tailor_mode_runs_real_core_pipeline_under_mock`: only
+  `render_and_compile` is stubbed (a different workflow's concern); the
+  real `parse_jd`/`tailor`/`validate` pipeline runs through the actual
+  background job and DB layer, not the `pipeline` fixture's hardcoded
+  fakes. `pytest api/tests core/tests`: 108 passed, 1 skipped (blocked).
 
-- Real-`MOCK=1` integration test in `api` that exercises the actual core
-  pipeline through the background job (not fully stubbed at `core_bridge`).
+Phase 3 (Workflow A real-mode hardening + eval harness) is otherwise
+complete. Remaining open item is the blocked real-mode eval numbers above.
 
 ## Next
 
-- Phase 4 (deploy) and anything else from the original roadmap once this
+- Get a working `ANTHROPIC_API_KEY` (see `BLOCKED.md`) and fill in
+  `docs/evals.md`'s real numbers.
+- Phase 4 (deploy) and anything else from the original roadmap, once this
   branch is reviewed.
