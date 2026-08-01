@@ -26,6 +26,7 @@ from core.schemas import (
 )
 from core.validation import GroundingError, judge_bullets
 
+
 @pytest.fixture(autouse=True)
 def real_mode(monkeypatch):
     monkeypatch.setenv("MOCK", "0")
