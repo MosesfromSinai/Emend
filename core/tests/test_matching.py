@@ -61,12 +61,12 @@ def test_keyword_match_excludes_employer_names():
         hard_skills=[],
         soft_requirements=[],
         responsibilities=[],
-        keywords=["Analytical Society"],
+        keywords=["Babbage"],
     )
 
     score, matched, missing = keyword_match(jd, _master())
     assert (score, matched) == (0.0, [])
-    assert missing == ["Analytical Society"]
+    assert missing == ["Babbage"]
 
 
 def test_keyword_match_ignores_duplicate_and_blank_keywords():
