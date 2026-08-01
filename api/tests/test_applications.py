@@ -189,6 +189,38 @@ def test_unexpected_error_never_leaves_running(client, master, pipeline, monkeyp
     assert "RuntimeError" in got["error"]
 
 
+def test_tailor_mode_runs_real_core_pipeline_under_mock(
+    client, master, monkeypatch, tmp_path
+):
+    """No core_bridge stubs except render_and_compile (a different
+    workflow's concern, already covered by latex's own tests) -- this
+    exercises the real MOCK=1 parse_jd/tailor/validate pipeline through the
+    actual background job, not the `pipeline` fixture's hardcoded fakes."""
+
+    def fake_render(master_, tailored):
+        pdf = tmp_path / "out.pdf"
+        pdf.write_bytes(b"%PDF-1.4 fake")
+        return "\\documentclass{article}\n% grounded: ACME-01\n", str(pdf), "compile ok"
+
+    monkeypatch.setattr(core_bridge, "render_and_compile", fake_render)
+    confirm_master(client, master)
+
+    r = client.post(
+        "/applications",
+        json={"jd_text": "Looking for a Python engineer with PostgreSQL and Docker."},
+    )
+    assert r.status_code == 202
+    got = client.get(f"/applications/{r.json()['id']}").json()
+
+    assert got["status"] == "done"
+    assert got["mode"] == "tailor"
+    assert got["match_score"] is not None
+    report = got["version"]["report"]
+    assert report["grounding_ok"] is True
+    assert all(v["supported"] for v in report["verdicts"])
+    assert all(v["source_fact_ids"] for v in report["verdicts"])
+
+
 def test_run_application_rolls_back_before_marking_failed(
     client, master, pipeline, monkeypatch
 ):
