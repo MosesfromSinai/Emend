@@ -13,17 +13,18 @@ and eval harness, per `context/01-teammate-Moses.md` item 8).
 - **Eval posting fixtures** — 5 real, publicly posted new-grad SWE job
   descriptions fetched verbatim into `core/fixtures/postings/` (Nominal,
   Circle, Netic, Palantir, Databricks), each with source URL + fetch date.
+- **Eval resume fixtures** — `core/fixtures/resumes/`: 4 synthetic (clearly
+  labeled, not real people) resumes covering varied shapes/formatting, plus
+  2 deliberately malformed ones. Verified all 6 parse without crashing
+  through `structure_resume`'s mock-mode fallback.
 
 ## In progress
 
-- **Eval resume fixtures** — `core/fixtures/resumes/`: synthetic (clearly
-  labeled, not real people) resumes covering varied shapes/formatting, plus
-  2 deliberately malformed ones to stress `structure_resume`.
+- **JSONL trace writer** — wire `structured_call_with_usage` into a
+  trace-logging wrapper (token counts per real-mode call).
 
 ## Next
 
-- Wire `structured_call_with_usage` into a JSONL trace writer (token counts
-  per real-mode call).
 - pytest eval harness over the fixtures: grounding pass rate, keyword
   coverage, schema validity (skips when no `ANTHROPIC_API_KEY`).
 - Cost-per-run doc from the trace data.
