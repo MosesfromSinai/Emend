@@ -49,9 +49,16 @@ COPY api/ api/
 # SDK the real pipeline needs. fly.toml sets MOCK=0, so without it every
 # request fails with "anthropic package is required when MOCK=0". Installed
 # here rather than in latex-sandbox to keep that stage minimal and offline.
-RUN pip install --no-cache-dir -r api/requirements.txt -r core/requirements.txt \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r api/requirements.txt -r core/requirements.txt \
     && chown -R appuser:appuser /app/api
-USER appuser
+
+# stays root so the entrypoint can chown the mounted volume, then drops to appuser
+COPY infra/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8000
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

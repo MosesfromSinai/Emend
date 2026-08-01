@@ -40,6 +40,35 @@ def test_keyword_match_empty_keywords_scores_zero():
     assert keyword_match(jd, _master()) == (0.0, [], [])
 
 
+def test_keyword_match_counts_project_tech():
+    # tech the candidate listed on a project is a real claim, not a company name
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Punch Cards"],
+    )
+
+    assert keyword_match(jd, _master()) == (1.0, ["Punch Cards"], [])
+
+
+def test_keyword_match_excludes_employer_names():
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Babbage"],
+    )
+
+    score, matched, missing = keyword_match(jd, _master())
+    assert (score, matched) == (0.0, [])
+    assert missing == ["Babbage"]
+
+
 def test_keyword_match_ignores_duplicate_and_blank_keywords():
     jd = JDExtract(
         company="",

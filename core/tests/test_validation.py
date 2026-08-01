@@ -181,6 +181,22 @@ def test_build_grounding_report_marks_valid_bullets_supported():
     assert all(verdict.supported for verdict in report.verdicts)
 
 
+def test_verdicts_carry_source_fact_ids():
+    # the provenance panel reads these; without them it would have to parse
+    # `% grounded:` comments out of the rendered tex
+    tailored = _load_fixture("sample_tailored.json", TailoredResume)
+
+    report = build_grounding_report(tailored, 0.0, [], [])
+    cited = [
+        bullet.source_fact_ids
+        for section in [*tailored.experiences, *tailored.projects]
+        for bullet in section.bullets
+    ]
+
+    assert [verdict.source_fact_ids for verdict in report.verdicts] == cited
+    assert all(verdict.source_fact_ids for verdict in report.verdicts)
+
+
 def test_validate_bridge_returns_supported_verdicts():
     master = _load_fixture("sample_master.json", MasterResume)
     tailored = _load_fixture("sample_tailored.json", TailoredResume)
@@ -189,6 +205,7 @@ def test_validate_bridge_returns_supported_verdicts():
 
     assert grounding_ok is True
     assert all(verdict.supported for verdict in verdicts)
+    assert all(verdict.source_fact_ids for verdict in verdicts)
 
 
 def test_validate_bridge_returns_failure_verdict():

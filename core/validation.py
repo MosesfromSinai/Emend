@@ -114,6 +114,7 @@ def build_grounding_report(
             bullet=bullet.text,
             supported=True,
             reason="Passed deterministic grounding checks.",
+            source_fact_ids=bullet.source_fact_ids,
         )
         for bullet in bullets
     ]
@@ -154,13 +155,14 @@ def judge_bullets(
                 BulletVerdict,
                 client=client,
             )
-            # Trust the judgement, not the echo: keep our own bullet text so a
-            # paraphrased echo cannot misattribute a verdict.
+            # Trust the judgement, not the echo: keep our own bullet text and
+            # fact ids so a paraphrased echo cannot misattribute a verdict.
             verdicts.append(
                 BulletVerdict(
                     bullet=bullet.text,
                     supported=verdict.supported,
                     reason=verdict.reason,
+                    source_fact_ids=bullet.source_fact_ids,
                 )
             )
     return verdicts

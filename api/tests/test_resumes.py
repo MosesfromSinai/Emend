@@ -42,6 +42,24 @@ def test_import_text_required_and_capped(client, stub_structure):
     assert r.json()["error"]["code"] == "validation_error"
 
 
+def test_import_parses_pasted_text_via_real_core(client, monkeypatch):
+    # no stubs: the real MOCK=1 pipeline must structure ordinary pasted text
+    monkeypatch.setenv("MOCK", "1")
+    text = "Sam Sample\nsam@example.com\n\nAcme Corp\n• Built 25+ integration tests"
+    r = client.post("/resumes/import", json={"text": text})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Sam Sample"
+    assert body["experiences"][0]["facts"][0]["id"] == "ACME-01"
+
+
+def test_import_422_for_invalid_fenced_json(client, monkeypatch):
+    monkeypatch.setenv("MOCK", "1")
+    r = client.post("/resumes/import", json={"text": "```json\n{not valid}\n```"})
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "unstructurable_resume"
+
+
 def test_master_round_trip_and_upsert(client, master):
     assert client.put("/resumes/master", json=master.model_dump()).status_code == 200
     got = client.get("/resumes/master")

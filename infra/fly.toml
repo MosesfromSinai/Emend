@@ -8,9 +8,18 @@ primary_region = "sjc"
 [build]
   dockerfile = "docker/api.Dockerfile"
 
+[deploy]
+  release_command = "alembic -c api/alembic.ini upgrade head"
+
 [env]
   ARTIFACTS_DIR = "/data/artifacts"
-  MOCK = "0"
+  # First deploy runs mock mode; flip to "0" once the eval suite passes with a key.
+  MOCK = "1"
+  # Vercel (web) and Fly (api) are cross-site: the session cookie needs these.
+  SESSION_COOKIE_SAMESITE = "none"
+  SESSION_COOKIE_SECURE = "1"
+  # Set to the deployed web origin(s), comma-separated, at Vercel setup time.
+  CORS_ORIGINS = "http://localhost:3000"
   # DATABASE_URL and ANTHROPIC_API_KEY are secrets: `fly secrets set ...`
 
 [[mounts]]

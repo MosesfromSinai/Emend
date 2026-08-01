@@ -9,12 +9,15 @@ import json
 import re
 from typing import Any
 
+from pydantic import ValidationError
+
 from core.config import mock_enabled
 from core.llm import FAST_MODEL, TAILOR_MODEL, cacheable_system, structured_call
 from core.matching import keyword_match
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     Experience,
+    Fact,
     JDExtract,
     MasterResume,
     Project,
@@ -27,6 +30,11 @@ from core.validation import build_grounding_report, judge_bullets, validate_grou
 
 JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
 JD_STOP_WORDS = {"and", "for", "the", "to", "using", "with"}
+EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+PHONE_PATTERN = re.compile(r"\(?\+?\d[\d\s().-]{7,}\d")
+LINK_PATTERN = re.compile(r"(?:https?://|www\.|linkedin\.com/|github\.com/)\S+")
+BULLET_PATTERN = re.compile(r"^[•\-*·]+\s*")
+MAX_FACTS_PER_SECTION = 99  # fact ids carry a two-digit suffix
 
 
 def _json_object_text(text: str) -> str:
@@ -37,13 +45,87 @@ def _json_object_text(text: str) -> str:
     return text[start : end + 1]
 
 
+def _section_id(title: str, used: set[str]) -> str:
+    base = re.sub(r"[^A-Za-z0-9]", "", title).upper()[:4] or "SEC"
+    section_id = base
+    suffix = 2
+    while section_id in used:
+        section_id = f"{base}{suffix}"
+        suffix += 1
+    used.add(section_id)
+    return section_id
+
+
+def _text_master_resume(text: str) -> MasterResume:
+    """Deterministic fallback: turn pasted plain text into one fact per line.
+
+    Each blank-line-separated block becomes an experience whose first line is
+    the heading; the remaining lines become atomic facts. Not smart, but valid
+    and stable, so the confirmation screen and the rest of the pipeline work
+    without an API key.
+    """
+    lines = [line.strip() for line in text.splitlines()]
+    name = next((line for line in lines if line), "Unknown")
+    email = match.group(0) if (match := EMAIL_PATTERN.search(text)) else ""
+    phone = match.group(0).strip() if (match := PHONE_PATTERN.search(text)) else ""
+    links = list(dict.fromkeys(link.rstrip(".,;|") for link in LINK_PATTERN.findall(text)))
+
+    contact_lines = {name}
+    experiences = []
+    used_ids: set[str] = set()
+    for block in re.split(r"\n\s*\n", text.strip()):
+        block_lines = [line.strip() for line in block.splitlines() if line.strip()]
+        facts = [
+            BULLET_PATTERN.sub("", line)
+            for line in block_lines[1:]
+            if line not in contact_lines and not EMAIL_PATTERN.search(line)
+        ][:MAX_FACTS_PER_SECTION]
+        if not facts:
+            continue
+        section_id = _section_id(block_lines[0], used_ids)
+        experiences.append(
+            Experience(
+                id=section_id,
+                company=block_lines[0],
+                title="",
+                location="",
+                start="",
+                end="",
+                facts=[
+                    Fact(id=f"{section_id}-{index:02d}", text=fact)
+                    for index, fact in enumerate(facts, 1)
+                ],
+            )
+        )
+    return MasterResume(
+        name=name,
+        email=email,
+        phone=phone,
+        links=links,
+        education=[],
+        experiences=experiences,
+        projects=[],
+        skills={},
+    )
+
+
 def _mock_structure_resume(text: str) -> MasterResume:
-    """Mock structuring: accept an already structured MasterResume JSON blob."""
+    """Mock structuring: MasterResume JSON fast path, plain-text fallback."""
+    json_text = _json_object_text(text)
+    looks_like_json = "```json" in text.lower() or text.strip().startswith("{")
     try:
-        data = json.loads(_json_object_text(text))
+        data = json.loads(json_text)
     except json.JSONDecodeError as exc:
-        raise ValueError("MOCK structure_resume expects MasterResume JSON") from exc
-    return MasterResume(**data)
+        if looks_like_json:
+            raise ValueError("MOCK structure_resume found invalid MasterResume JSON") from exc
+        return _text_master_resume(text)
+    try:
+        return MasterResume(**data)
+    except ValidationError:
+        if looks_like_json:
+            raise
+        # incidental braces inside prose, not a schema payload
+        return _text_master_resume(text)
 
 
 def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>html{scroll-behavior:smooth}html,body{overflow-x:hidden}body{margin:0;background:#faf8f4;font-family:system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}a{color:var(--em-accent,#8a6d1f);text-decoration:none}a:hover{color:var(--em-deep,#5c4a17)}@keyframes emend-blink{0%,49%{opacity:1}50%,100%{opacity:0}}@keyframes emend-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}[data-reveal]{opacity:0;transform:translateY(var(--em-ry,30px));transition:opacity var(--em-rd,.85s) cubic-bezier(.2,.7,.3,1),transform var(--em-rd,.85s) cubic-bezier(.2,.7,.3,1)}[data-reveal="in"]{opacity:1;transform:none}
+@media(max-width:960px){.em-2col{grid-template-columns:1fr !important;gap:36px !important}.em-ord{order:0 !important}.em-tgrid{grid-template-columns:1fr !important}.em-pipe{grid-template-columns:1fr !important}.em-arrow{transform:rotate(90deg);justify-self:center}.em-foot{grid-template-columns:1fr 1fr !important}}
+@media(max-width:680px){h1{font-size:34px !important}h2{font-size:27px !important}h3{font-size:21px !important}.em-navlink{display:none !important}.em-sec{padding-left:20px !important;padding-right:20px !important}.em-resume{padding:26px 16px 24px !important}.em-stats{flex-direction:column !important}.em-row{flex-direction:column !important}.em-ctarow{flex-direction:column !important;gap:12px !important}.em-float{display:none !important}.em-foot{grid-template-columns:1fr !important}}</style>
+</helmet>
+
+<!-- NAV -->
+<div style="position:sticky;top:0;z-index:50;background:rgba(250,248,244,.92);backdrop-filter:blur(8px);border-bottom:1px solid #e8e3d8">
+  <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 32px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:26px;height:26px;background:#1c1b18;color:#faf8f4;border-radius:5px;display:flex;align-items:center;justify-content:center;font:700 14px 'Source Serif 4',serif">E</div><span style="font:600 18px 'Source Serif 4',serif;color:#1c1b18">Emend</span></div>
+    <div style="display:flex;align-items:center;gap:26px">
+      <a href="#how" class="em-navlink" style="font:500 13.5px system-ui;color:#6b6558" style-hover="color:#1c1b18">How it works</a>
+      <a href="#rewrite" class="em-navlink" style="font:500 13.5px system-ui;color:#6b6558" style-hover="color:#1c1b18">Your words</a>
+      <a href="#what" class="em-navlink" style="font:500 13.5px system-ui;color:#6b6558" style-hover="color:#1c1b18">What it is</a>
+      <a href="#" style="display:inline-block;background:#1c1b18;color:#faf8f4;font:600 13.5px system-ui;padding:9px 18px;border-radius:7px" style-hover="background:#3a372f;color:#faf8f4">Get started</a>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="em-2col em-sec" style="max-width:1080px;margin:0 auto;padding:76px 32px 88px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">
+  <div data-reveal>
+    <div style="display:inline-flex;align-items:center;gap:7px;font:500 11px 'JetBrains Mono',monospace;color:var(--em-accent,#8a6d1f);background:var(--em-soft,#f3ecd9);border:1px solid var(--em-softb,#e3cf96);border-radius:20px;padding:5px 13px;margin:0 0 20px">structured generation · no hallucination by design</div>
+    <h1 style="margin:0 0 16px;font:600 52px/1.08 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.015em;text-wrap:balance">A tailored resume that can't lie about you.</h1>
+    <p style="margin:0 0 28px;font:400 17px/1.55 system-ui;color:#6b6558;text-wrap:pretty">Paste a job description. Emend rewrites your resume around it — constrained to facts you confirm, typeset in LaTeX, with a receipt for every line.</p>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 22px">
+      <a href="#" style="display:inline-block;white-space:nowrap;background:#1c1b18;color:#faf8f4;font:600 15px system-ui;padding:13px 26px;border-radius:8px;box-shadow:0 2px 8px rgba(28,27,24,.18)" style-hover="background:#3a372f;color:#faf8f4">Tailor my resume →</a>
+      <a href="#" style="display:inline-block;white-space:nowrap;background:#fff;border:1.5px solid #d8d1c2;color:#1c1b18;font:600 15px system-ui;padding:12px 22px;border-radius:8px" style-hover="border-color:#1c1b18;color:#1c1b18">Upload existing resume</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 18px;font:500 12.5px system-ui;color:#8f8874"><span style="white-space:nowrap">✓ JD keyword matching</span><span style="white-space:nowrap">✓ LaTeX-quality PDF</span><span style="white-space:nowrap">✓ Nothing made up</span></div>
+  </div>
+  <!-- hero product mock -->
+  <div data-reveal style="transition-delay:.15s">
+  <div style="position:relative">
+    <div style="background:#fff;border:1px solid #e8e3d8;border-radius:12px;box-shadow:0 8px 32px rgba(28,27,24,.1);overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#f4f0e6;border-bottom:1px solid #e8e3d8;padding:10px 16px">
+        <span style="font:600 12px 'Source Serif 4',serif;color:#1c1b18">Emend — JD Match</span>
+        <span style="display:flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#ddd5c2"></span><span style="width:8px;height:8px;border-radius:50%;background:#ddd5c2"></span><span style="width:8px;height:8px;border-radius:50%;background:#ddd5c2"></span></span>
+      </div>
+      <div style="padding:20px 22px">
+        <div style="font:600 10.5px system-ui;letter-spacing:.07em;color:#9a927f;margin:0 0 7px">JOB DESCRIPTION</div>
+        <div style="border:1px solid #e8e3d8;border-radius:8px;background:#faf8f4;padding:12px 14px;font:400 12px/1.6 'JetBrains Mono',monospace;color:#6b6558">"New-grad SWE. Python, React, CI/CD, AWS, distributed systems…"<span style="display:inline-block;width:7px;height:13px;background:var(--em-accent,#8a6d1f);vertical-align:text-bottom;margin-left:2px;animation:emend-blink 1.1s infinite"></span></div>
+        <div style="display:flex;align-items:center;gap:8px;border:1.5px dashed #ddd5c2;border-radius:8px;background:#fff;padding:9px 13px;margin:8px 0 0;cursor:text" style-hover="border-color:var(--em-accent,#8a6d1f)"><span style="font:400 12px system-ui;color:#9a927f">Have a link to the posting? Paste it here instead</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px;font:500 11px 'JetBrains Mono',monospace">
+          <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:4px 9px">python ✓</span>
+          <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:4px 9px">react ✓</span>
+          <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:4px 9px">ci/cd ✓</span>
+          <span style="background:#eef0e2;color:#5a6a34;border-radius:4px;padding:4px 9px">aws ✓</span>
+          <span style="background:#f4e6e2;color:#9a4a34;border-radius:4px;padding:4px 9px">distributed systems</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #efe9dc;padding-top:14px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:38px;height:38px;border-radius:50%;background:conic-gradient(var(--em-accent,#8a6d1f) 0 82%,#efe9dc 82% 100%);display:flex;align-items:center;justify-content:center"><div style="width:29px;height:29px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;color:#1c1b18">82</div></div>
+            <div><div style="font:600 12.5px system-ui;color:#1c1b18">Strong match</div><div style="font:400 11px system-ui;color:#9a927f">1 keyword to address</div></div>
+          </div>
+          <span style="font:600 11px system-ui;color:#5a6a34;background:#eef0e2;border-radius:20px;padding:5px 12px">✓ grounded 18/18</span>
+        </div>
+      </div>
+    </div>
+    <div class="em-float" style="position:absolute;top:-16px;right:-14px;white-space:nowrap;background:#211f1a;color:#c9c4b6;border-radius:8px;padding:9px 13px;font:500 10.5px 'JetBrains Mono',monospace;box-shadow:0 6px 20px rgba(28,27,24,.25);animation:emend-float 5s ease-in-out infinite"><span style="color:#8f887a">% grounded:</span> <span style="color:var(--em-bright,#c9a648)">fact GA-02</span></div>
+    <div class="em-float" style="position:absolute;bottom:-14px;left:-18px;background:#fff;border:1px solid #e8e3d8;border-radius:8px;padding:8px 13px;font:600 11px system-ui;color:#5a6a34;box-shadow:0 6px 20px rgba(28,27,24,.12);animation:emend-float 6s ease-in-out .8s infinite">✓ every line has a source</div>
+  </div>
+  </div>
+</div>
+
+<!-- PROOF STRIP -->
+<div style="border-top:1px solid #e8e3d8">
+  <div data-reveal style="max-width:1080px;margin:0 auto;padding:26px 32px;display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:14px 56px">
+    <div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 26px 'Source Serif 4',serif;color:#1c1b18">1,200+</span><span style="font:400 13px system-ui;color:#8f8874">resumes tailored</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 26px 'Source Serif 4',serif;color:#1c1b18">0</span><span style="font:400 13px system-ui;color:#8f8874">invented claims — by design</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 26px 'Source Serif 4',serif;color:#1c1b18">82%</span><span style="font:400 13px system-ui;color:#8f8874">avg. keyword match after tailoring</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 26px 'Source Serif 4',serif;color:#1c1b18">&lt; 60s</span><span style="font:400 13px system-ui;color:#8f8874">posting → typeset PDF</span></div>
+  </div>
+</div>
+
+<!-- WORKFLOW -->
+<div id="how" style="background:#fff;border-top:1px solid #e8e3d8;border-bottom:1px solid #e8e3d8">
+  <div class="em-sec" style="max-width:1080px;margin:0 auto;padding:76px 32px 84px">
+    <div data-reveal>
+      <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-accent,#8a6d1f);margin:0 0 10px">WORKFLOW</div>
+      <h2 style="margin:0 0 8px;font:600 38px 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.01em">How it works.</h2>
+      <p style="margin:0 0 52px;font:400 16px system-ui;color:#6b6558">From job posting to typeset resume in under a minute.</p>
+    </div>
+
+    <div data-reveal class="em-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;margin:0 0 72px">
+      <div>
+        <div style="font:600 44px 'Source Serif 4',serif;color:#e8e3d8;margin:0 0 4px">01</div>
+        <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--em-accent,#8a6d1f);margin:0 0 8px">10-SECOND ANALYSIS</div>
+        <h3 style="margin:0 0 10px;font:600 26px 'Source Serif 4',serif;color:#1c1b18">Paste any job description.</h3>
+        <p style="margin:0;font:400 14.5px/1.6 system-ui;color:#6b6558;text-wrap:pretty">Copy a job posting and paste it in. Emend pulls out the keywords, skills, and experience the employer is scanning for — and scores your resume against them.</p>
+      </div>
+      <div style="background:#faf8f4;border:1px solid #e8e3d8;border-radius:12px;padding:22px 24px">
+        <div style="font:600 10.5px system-ui;letter-spacing:.07em;color:#9a927f;margin:0 0 8px">JOB DESCRIPTION</div>
+        <div style="font:400 12.5px/1.6 'JetBrains Mono',monospace;color:#3a372f;background:#fff;border:1px solid #e8e3d8;border-radius:8px;padding:12px 14px;margin:0 0 12px">"New-grad software engineer with Python, React, CI/CD pipelines, AWS…"</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;font:500 11px 'JetBrains Mono',monospace">
+          <span style="background:var(--em-soft,#f3ecd9);color:var(--em-deep,#5c4a17);border-radius:4px;padding:4px 9px">Python</span>
+          <span style="background:var(--em-soft,#f3ecd9);color:var(--em-deep,#5c4a17);border-radius:4px;padding:4px 9px">React</span>
+          <span style="background:var(--em-soft,#f3ecd9);color:var(--em-deep,#5c4a17);border-radius:4px;padding:4px 9px">CI/CD</span>
+          <span style="background:var(--em-soft,#f3ecd9);color:var(--em-deep,#5c4a17);border-radius:4px;padding:4px 9px">AWS</span>
+          <span style="background:var(--em-soft,#f3ecd9);color:var(--em-deep,#5c4a17);border-radius:4px;padding:4px 9px">Docker</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #efe9dc;padding-top:12px">
+          <span style="font:600 12.5px system-ui;color:#1c1b18">Match score</span>
+          <div style="display:flex;align-items:center;gap:10px;flex:1;margin:0 0 0 16px"><div style="flex:1;height:7px;background:#efe9dc;border-radius:4px;overflow:hidden"><div style="width:82%;height:100%;background:var(--em-accent,#8a6d1f);border-radius:4px"></div></div><span style="font:700 14px 'Source Serif 4',serif;color:var(--em-accent,#8a6d1f)">82%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-reveal class="em-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;margin:0 0 72px">
+      <div class="em-ord" style="order:2">
+        <div style="font:600 44px 'Source Serif 4',serif;color:#e8e3d8;margin:0 0 4px">02</div>
+        <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--em-accent,#8a6d1f);margin:0 0 8px">GROUNDED REWRITE</div>
+        <h3 style="margin:0 0 10px;font:600 26px 'Source Serif 4',serif;color:#1c1b18">Confirm your facts. We write from those — only those.</h3>
+        <p style="margin:0;font:400 14.5px/1.6 system-ui;color:#6b6558;text-wrap:pretty">Emend extracts every claim from your resume into facts you sign off on. The writer is structurally constrained to that list — every line it produces carries a reference to the fact it came from. Nothing invented, ever.</p>
+      </div>
+      <div style="order:1;background:#faf8f4;border:1px solid #e8e3d8;border-radius:12px;padding:22px 24px">
+        <div style="display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid #e8e3d8;border-radius:8px;padding:11px 13px;margin:0 0 8px">
+          <span style="color:#7a8a4a;font:600 13px system-ui">✓</span>
+          <div><div style="font:600 10px system-ui;letter-spacing:.06em;color:#9a927f;margin:0 0 2px">FACT GA-02 · CONFIRMED BY YOU</div><div style="font:400 12.5px/1.5 system-ui;color:#3a372f">12-step dev setup → one-click Bash scripts · −80% startup</div></div>
+        </div>
+        <div style="text-align:center;font:500 12px system-ui;color:var(--em-accent,#8a6d1f);margin:0 0 8px">↓ becomes</div>
+        <div style="background:#211f1a;border-radius:8px;padding:13px 15px;font:400 11.5px/1.7 'JetBrains Mono',monospace;color:#c9c4b6">
+          <div style="color:#8f887a">% grounded: fact GA-02</div>
+          <div><span style="color:var(--em-bright,#c9a648)">\resumeItem</span>{Automated a 12-step dev environment</div>
+          <div>&nbsp;&nbsp;setup into one-click Bash scripts, cutting</div>
+          <div>&nbsp;&nbsp;startup time by <span style="color:#e0d7bd">80\%</span>}</div>
+        </div>
+      </div>
+    </div>
+
+    <div data-reveal class="em-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center">
+      <div>
+        <div style="font:600 44px 'Source Serif 4',serif;color:#e8e3d8;margin:0 0 4px">03</div>
+        <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--em-accent,#8a6d1f);margin:0 0 8px">TYPESET &amp; SHIP</div>
+        <h3 style="margin:0 0 10px;font:600 26px 'Source Serif 4',serif;color:#1c1b18">A real PDF and its LaTeX source, side by side.</h3>
+        <p style="margin:0;font:400 14.5px/1.6 system-ui;color:#6b6558;text-wrap:pretty">Download a professionally typeset PDF, or take the .tex source with you. Clean formatting that reads beautifully to both hiring systems and humans.</p>
+      </div>
+      <div class="em-row" style="background:#faf8f4;border:1px solid #e8e3d8;border-radius:12px;padding:22px;display:flex;gap:16px;align-items:stretch">
+        <div style="flex:1;background:#fff;box-shadow:0 2px 10px rgba(28,27,24,.12);padding:16px 18px">
+          <div style="text-align:center;font:700 10px 'Source Serif 4',serif;color:#111">Moses Avila</div>
+          <div style="text-align:center;font:400 4.5px 'JetBrains Mono',monospace;color:#555;margin:2px 0 7px">mavil072@ucr.edu · linkedin.com/in/moses-avila</div>
+          <div style="font:700 5.5px 'Source Serif 4',serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:5px 0 3px">EXPERIENCE</div>
+          <div style="font:600 5px system-ui;color:#222">Software Engineer Intern — General Atomics</div>
+          <div style="font:400 4.5px/1.5 system-ui;color:#444;margin:1px 0 0 5px">• 25+ integration tests across 5+ microservices<br>• One-click Bash setup scripts, −80% startup</div>
+          <div style="font:700 5.5px 'Source Serif 4',serif;color:#111;border-bottom:.6px solid #111;padding-bottom:1px;margin:5px 0 3px">PROJECTS</div>
+          <div style="font:600 5px system-ui;color:#222">ThreatSense — Python, YOLOv8, AWS</div>
+          <div style="font:400 4.5px/1.5 system-ui;color:#444;margin:1px 0 0 5px">• Live-demoed to 750+ attendees in real time</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px;font:600 12px system-ui;color:#1c1b18"><span style="width:22px;height:22px;border-radius:50%;background:#eef0e2;color:#5a6a34;display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>PDF ready</div>
+          <div style="display:flex;align-items:center;gap:8px;font:600 12px system-ui;color:#1c1b18"><span style="width:22px;height:22px;border-radius:50%;background:#eef0e2;color:#5a6a34;display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>.tex source included</div>
+          <div style="display:flex;align-items:center;gap:8px;font:600 12px system-ui;color:#1c1b18"><span style="width:22px;height:22px;border-radius:50%;background:#eef0e2;color:#5a6a34;display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>Passes major ATS systems</div>
+          <a href="#" style="display:inline-block;background:#1c1b18;color:#faf8f4;font:600 12.5px system-ui;padding:10px 18px;border-radius:7px;text-align:center;margin-top:6px" style-hover="background:#3a372f;color:#faf8f4">Download &amp; apply</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- YOUR WORDS — interactive rewrite demo -->
+<div id="rewrite" class="em-sec" style="max-width:1080px;margin:0 auto;padding:76px 32px 84px">
+  <div data-reveal style="text-align:center;max-width:640px;margin:0 auto 44px">
+    <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-accent,#8a6d1f);margin:0 0 10px">TRY IT — LIVE DEMO</div>
+    <h2 style="margin:0 0 10px;font:600 38px 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.01em">Every sentence, your call.</h2>
+    <p style="margin:0;font:400 16px/1.55 system-ui;color:#6b6558;text-wrap:pretty">This is your tailored resume. Click any sentence to select it — cycle through three grounded rewrites, edit the words in place, or revert to exactly what you originally wrote.</p>
+  </div>
+  <div data-reveal style="text-align:center;margin:0 0 18px"><span style="display:inline-block;font:500 12px 'JetBrains Mono',monospace;color:var(--em-accent,#8a6d1f);background:var(--em-soft,#f3ecd9);border:1px solid var(--em-softb,#e3cf96);border-radius:20px;padding:6px 16px;animation:emend-float 4s ease-in-out infinite">↓ try it — click any sentence below</span></div>
+  <div data-reveal class="em-resume" style="max-width:760px;margin:0 auto;background:#fff;box-shadow:0 12px 44px rgba(28,27,24,.13);border:1px solid #e8e3d8;border-radius:4px;padding:44px 52px 40px">
+    <div style="text-align:center;font:700 24px 'Source Serif 4',serif;color:#111">Moses Avila</div>
+    <div style="text-align:center;font:400 10.5px 'JetBrains Mono',monospace;color:#555;margin:4px 0 18px">(760) 490-6863 · mavil072@ucr.edu · linkedin.com/in/moses-avila · github.com/MosesfromSinai</div>
+    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="2">
+      <div style="margin:0 0 6px">
+        <div style="font:700 13px 'Source Serif 4',serif;letter-spacing:.08em;color:#111;border-bottom:1px solid #111;padding-bottom:2px;margin:14px 0 10px">{{ sec.heading }}</div>
+        <sc-for list="{{ sec.blocks }}" as="block" hint-placeholder-count="1">
+          <div onClick="{{ block.select }}" style="border:1.5px solid {{ block.borderColor }};background:{{ block.bg }};border-radius:8px;padding:12px 16px;margin:0 0 10px;cursor:pointer;transition:border-color .25s,background .25s" style-hover="border-color:var(--em-softb,#e3cf96)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <div style="font:600 13.5px system-ui;color:#1c1b18">{{ block.title }}</div>
+              <div style="font:400 11.5px 'JetBrains Mono',monospace;color:#8f8874">{{ block.dates }}</div>
+            </div>
+            <div style="font:italic 400 12px 'Source Serif 4',serif;color:#6b6558;margin:1px 0 7px">{{ block.sub }}</div>
+            <sc-for list="{{ block.bullets }}" as="bullet" hint-placeholder-count="2">
+              <div>
+                <div onClick="{{ bullet.select }}" style="display:flex;gap:8px;align-items:baseline;border-radius:6px;padding:4px 8px;margin:0 -8px;background:{{ bullet.bg }};cursor:pointer;transition:background .2s" style-hover="background:var(--em-soft,#f3ecd9)">
+                  <span style="font:400 12.5px system-ui;color:#444">•</span>
+                  <span key="{{ bullet.textKey }}" contenteditable="{{ bullet.editable }}" spellcheck="false" onBlur="{{ bullet.saveEdit }}" onInput="{{ bullet.markDirty }}" onKeyDown="{{ bullet.keydown }}" style="font:400 13px/1.55 system-ui;color:#333;outline:none;flex:1">{{ bullet.text }}</span>
+                  <span style="font:600 9.5px 'JetBrains Mono',monospace;color:{{ bullet.tagColor }};white-space:nowrap">{{ bullet.tag }}</span>
+                </div>
+                <sc-if value="{{ bullet.selected }}" hint-placeholder-val="{{ false }}">
+                  <div onClick="{{ bullet.keep }}" style="display:flex;align-items:center;gap:10px;background:#211f1a;border-radius:8px;padding:9px 12px;margin:6px 0 8px;flex-wrap:wrap">
+                    <button onClick="{{ bullet.prev }}" style="border:1px solid #4a463c;background:transparent;color:#faf8f4;font:600 13px system-ui;width:28px;height:28px;border-radius:6px;cursor:pointer" style-hover="border-color:var(--em-bright,#c9a648);color:var(--em-bright,#c9a648)">‹</button>
+                    <div style="display:flex;gap:5px">
+                      <sc-for list="{{ bullet.dots }}" as="dot" hint-placeholder-count="3"><span style="width:6px;height:6px;border-radius:50%;background:{{ dot.bg }}"></span></sc-for>
+                    </div>
+                    <button onClick="{{ bullet.next }}" style="border:1px solid #4a463c;background:transparent;color:#faf8f4;font:600 13px system-ui;width:28px;height:28px;border-radius:6px;cursor:pointer" style-hover="border-color:var(--em-bright,#c9a648);color:var(--em-bright,#c9a648)">›</button>
+                    <span style="font:500 11px system-ui;color:#a89f8c">{{ bullet.modeLabel }}</span>
+                    <span style="font:400 10.5px system-ui;color:#8f887a">· click text to edit — your words are kept</span>
+                    <sc-if value="{{ bullet.hasCustom }}" hint-placeholder-val="{{ false }}"><button onClick="{{ bullet.discardEdit }}" style="border:none;background:transparent;color:#a89f8c;font:600 11.5px system-ui;cursor:pointer;padding:5px 7px;border-radius:5px;white-space:nowrap" style-hover="background:#3a372f;color:#faf8f4">↺ discard my edit</button></sc-if>
+                    <button onClick="{{ bullet.toggleOrig }}" style="margin-left:auto;border:none;background:transparent;color:var(--em-bright,#c9a648);font:600 11.5px system-ui;cursor:pointer;padding:5px 7px;border-radius:5px;white-space:nowrap" style-hover="background:#3a372f">{{ bullet.origBtnLabel }}</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+  <div data-reveal style="text-align:center;margin:36px 0 0;font:400 13px system-ui;color:#8f8874">Every rewrite above is generated from the same confirmed fact — never from thin air.</div>
+</div>
+
+<!-- WHAT IT IS -->
+<div id="what" style="background:#fff;border-top:1px solid #e8e3d8;border-bottom:1px solid #e8e3d8">
+<div class="em-sec" style="max-width:840px;margin:0 auto;padding:76px 32px 80px">
+  <div data-reveal>
+    <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-accent,#8a6d1f);margin:0 0 10px">ABOUT</div>
+    <h2 style="margin:0 0 8px;font:600 38px 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.01em">Structured, so it can't hallucinate.</h2>
+    <p style="margin:0 0 28px;font:400 16px system-ui;color:#6b6558">The resume tool built for how hiring actually works — without lying for you.</p>
+  </div>
+  <!-- pipeline -->
+  <div data-reveal class="em-pipe" style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin:0 0 34px">
+    <div style="background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:14px 15px"><div style="font:600 10px 'JetBrains Mono',monospace;color:#9a927f;margin:0 0 5px">STEP 1</div><div style="font:600 13.5px 'Source Serif 4',serif;color:#1c1b18;margin:0 0 4px">Your resume</div><div style="font:400 11.5px/1.45 system-ui;color:#6b6558">Plain text in, exactly as you wrote it.</div></div>
+    <div class="em-arrow" style="align-self:center;font:600 16px system-ui;color:var(--em-bright,#c9a648)">→</div>
+    <div style="background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:14px 15px"><div style="font:600 10px 'JetBrains Mono',monospace;color:#9a927f;margin:0 0 5px">STEP 2</div><div style="font:600 13.5px 'Source Serif 4',serif;color:#1c1b18;margin:0 0 4px">Facts you confirm</div><div style="font:400 11.5px/1.45 system-ui;color:#6b6558">Every claim becomes a numbered fact you sign off on.</div></div>
+    <div class="em-arrow" style="align-self:center;font:600 16px system-ui;color:var(--em-bright,#c9a648)">→</div>
+    <div style="background:var(--em-soft,#f3ecd9);border:1px solid var(--em-softb,#e3cf96);border-radius:10px;padding:14px 15px"><div style="font:600 10px 'JetBrains Mono',monospace;color:var(--em-accent,#8a6d1f);margin:0 0 5px">STEP 3</div><div style="font:600 13.5px 'Source Serif 4',serif;color:#1c1b18;margin:0 0 4px">Constrained writer</div><div style="font:400 11.5px/1.45 system-ui;color:var(--em-deep,#5c4a17)">The AI can only compose from your fact list — structurally.</div></div>
+    <div class="em-arrow" style="align-self:center;font:600 16px system-ui;color:var(--em-bright,#c9a648)">→</div>
+    <div style="background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:14px 15px"><div style="font:600 10px 'JetBrains Mono',monospace;color:#9a927f;margin:0 0 5px">STEP 4</div><div style="font:600 13.5px 'Source Serif 4',serif;color:#1c1b18;margin:0 0 4px">Grounding report</div><div style="font:400 11.5px/1.45 system-ui;color:#6b6558">Every line → its source fact. Auditable receipts.</div></div>
+  </div>
+  <div data-reveal style="font:400 15.5px/1.75 system-ui;color:#3a372f;display:flex;flex-direction:column;gap:18px">
+    <p style="margin:0;text-wrap:pretty">Most resumes are rejected before a human reads them. Hiring systems scan, filter, and rank candidates on keyword matches and formatting patterns. If your resume doesn't speak that language, it's filtered out — regardless of what you've actually done.</p>
+    <p style="margin:0;text-wrap:pretty">Emend reverse-engineers that process. Paste a job description and it extracts what the employer is prioritizing, then rewrites your resume to match — stronger verbs, quantified results, the right framing.</p>
+    <p style="margin:0;text-wrap:pretty"><strong style="font-weight:600;color:#1c1b18">The difference: Emend can't make things up.</strong> Other AI resume tools generate free-form text and hope it's true. Emend's pipeline is structured — the writer literally has no input except the facts you confirmed, and every output line is tagged with the fact it was built from. If a line has no source, it doesn't ship.</p>
+  </div>
+  <div data-reveal class="em-stats" style="display:flex;gap:12px;margin:32px 0 0">
+    <div style="flex:1;background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:18px 20px"><div style="font:700 24px 'Source Serif 4',serif;color:#1c1b18">18/18</div><div style="font:400 12.5px system-ui;color:#6b6558">lines grounded in confirmed facts, every export</div></div>
+    <div style="flex:1;background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:18px 20px"><div style="font:700 24px 'Source Serif 4',serif;color:#1c1b18">&lt; 60s</div><div style="font:400 12.5px system-ui;color:#6b6558">from job posting to typeset PDF</div></div>
+    <div style="flex:1;background:#faf8f4;border:1px solid #e8e3d8;border-radius:10px;padding:18px 20px"><div style="font:700 24px 'Source Serif 4',serif;color:#1c1b18">.tex</div><div style="font:400 12.5px system-ui;color:#6b6558">full LaTeX source — your resume is yours</div></div>
+  </div>
+</div>
+</div>
+
+<!-- TESTIMONIALS -->
+<div class="em-sec" style="max-width:1080px;margin:0 auto;padding:76px 32px 84px">
+  <div data-reveal style="text-align:center;max-width:560px;margin:0 auto 40px">
+    <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-accent,#8a6d1f);margin:0 0 10px">EARLY USERS</div>
+    <h2 style="margin:0;font:600 38px 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.01em">Job seekers who kept their integrity.</h2>
+  </div>
+  <div data-reveal class="em-tgrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:stretch">
+    <div style="background:#fff;border:1px solid #e8e3d8;border-radius:12px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:14px;transition:transform .3s,box-shadow .3s" style-hover="transform:translateY(-4px);box-shadow:0 10px 28px rgba(28,27,24,.1)">
+      <p style="margin:0;font:400 15px/1.6 'Source Serif 4',serif;color:#3a372f;font-style:italic;flex:1">"I stopped dreading the 'tailor your resume for every posting' advice. Paste, confirm, done — and I can prove every line."</p>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--em-soft,#f3ecd9);display:flex;align-items:center;justify-content:center;font:600 11px system-ui;color:var(--em-deep,#5c4a17)">JK</div><div><div style="font:600 12.5px system-ui;color:#1c1b18">Jasmine K.</div><div style="font:400 11.5px system-ui;color:#9a927f">CS senior · 3 offers</div></div></div>
+    </div>
+    <div style="background:#fff;border:1px solid #e8e3d8;border-radius:12px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:14px;transition:transform .3s,box-shadow .3s" style-hover="transform:translateY(-4px);box-shadow:0 10px 28px rgba(28,27,24,.1)">
+      <p style="margin:0;font:400 15px/1.6 'Source Serif 4',serif;color:#3a372f;font-style:italic;flex:1">"Other AI tools wrote bullets I couldn't defend in interviews. Emend only rephrases what I actually did — that's the whole point."</p>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--em-soft,#f3ecd9);display:flex;align-items:center;justify-content:center;font:600 11px system-ui;color:var(--em-deep,#5c4a17)">DR</div><div><div style="font:600 12.5px system-ui;color:#1c1b18">Diego R.</div><div style="font:400 11.5px system-ui;color:#9a927f">New-grad SWE</div></div></div>
+    </div>
+    <div style="background:#fff;border:1px solid #e8e3d8;border-radius:12px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:14px;transition:transform .3s,box-shadow .3s" style-hover="transform:translateY(-4px);box-shadow:0 10px 28px rgba(28,27,24,.1)">
+      <p style="margin:0;font:400 15px/1.6 'Source Serif 4',serif;color:#3a372f;font-style:italic;flex:1">"The LaTeX output alone sold me. My resume finally looks like I care — because the typesetting does."</p>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--em-soft,#f3ecd9);display:flex;align-items:center;justify-content:center;font:600 11px system-ui;color:var(--em-deep,#5c4a17)">AP</div><div><div style="font:600 12.5px system-ui;color:#1c1b18">Aisha P.</div><div style="font:400 11.5px system-ui;color:#9a927f">Bootcamp grad</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="background:#fff;border-top:1px solid #e8e3d8">
+  <div class="em-sec" style="max-width:720px;margin:0 auto;padding:72px 32px 80px">
+    <div data-reveal style="text-align:center;margin:0 0 36px">
+      <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-accent,#8a6d1f);margin:0 0 10px">FAQ</div>
+      <h2 style="margin:0;font:600 34px 'Source Serif 4',serif;color:#1c1b18;letter-spacing:-.01em">Fair questions.</h2>
+    </div>
+    <div data-reveal style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ faqs }}" as="faq" hint-placeholder-count="4">
+        <div style="border:1px solid #e8e3d8;border-radius:10px;background:#faf8f4;overflow:hidden">
+          <button onClick="{{ faq.toggle }}" style="display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;border:none;background:transparent;text-align:left;padding:16px 20px;cursor:pointer;font:600 15px 'Source Serif 4',serif;color:#1c1b18" style-hover="background:#f4f0e6">{{ faq.q }}<span style="font:400 18px system-ui;color:var(--em-accent,#8a6d1f);flex:none">{{ faq.icon }}</span></button>
+          <sc-if value="{{ faq.open }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:0 20px 16px;font:400 14px/1.65 system-ui;color:#6b6558;text-wrap:pretty">{{ faq.a }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+
+<!-- CTA BAND -->
+<div style="background:#1c1b18">
+  <div data-reveal class="em-sec" style="max-width:1080px;margin:0 auto;padding:64px 32px;text-align:center">
+    <div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--em-bright,#c9a648);margin:0 0 12px">BUILT BY A TEAM OF 4 NEW GRADS WHO GET IT</div>
+    <h2 style="margin:0 0 24px;font:600 40px 'Source Serif 4',serif;color:#faf8f4;letter-spacing:-.01em">Ready to get started?</h2>
+    <div class="em-ctarow" style="display:flex;justify-content:center;align-items:center;gap:16px">
+      <a href="#" style="display:inline-block;background:#faf8f4;color:#1c1b18;font:600 15px system-ui;padding:13px 28px;border-radius:8px" style-hover="background:#e8e3d8;color:#1c1b18">Tailor your resume</a>
+      <a href="#" style="font:500 13.5px system-ui;color:#a89f8c" style-hover="color:#faf8f4">Already have an account? Sign in</a>
+    </div>
+    <p style="margin:20px 0 0;font:400 13px system-ui;color:#a89f8c">Create a free account to keep every version — revisit and reuse your previous tailored resumes anytime.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="background:#faf8f4;border-top:1px solid #e8e3d8">
+  <div class="em-foot em-sec" style="max-width:1080px;margin:0 auto;padding:48px 32px 36px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px">
+    <div>
+      <div style="display:flex;align-items:center;gap:9px;margin:0 0 10px"><div style="width:22px;height:22px;background:#1c1b18;color:#faf8f4;border-radius:4px;display:flex;align-items:center;justify-content:center;font:700 12px 'Source Serif 4',serif">E</div><span style="font:600 16px 'Source Serif 4',serif;color:#1c1b18">Emend</span></div>
+      <p style="margin:0;font:400 13px/1.55 system-ui;color:#8f8874;max-width:240px">Grounded, LaTeX-typeset resume tailoring. Every line traceable to your real experience.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px"><div style="font:600 12px system-ui;color:#1c1b18;margin:0 0 2px">Product</div><a href="#how" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">How it works</a><a href="#rewrite" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">Your words</a><a href="#what" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">What it is</a></div>
+    <div style="display:flex;flex-direction:column;gap:9px"><div style="font:600 12px system-ui;color:#1c1b18;margin:0 0 2px">Account</div><a href="#" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">Sign in</a><a href="#" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">Start building</a></div>
+    <div style="display:flex;flex-direction:column;gap:9px"><div style="font:600 12px system-ui;color:#1c1b18;margin:0 0 2px">Legal</div><a href="#" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">Privacy policy</a><a href="#" style="font:400 13px system-ui;color:#6b6558" style-hover="color:#1c1b18">Terms of service</a></div>
+  </div>
+  <div style="max-width:1080px;margin:0 auto;padding:0 32px 28px;font:400 12px system-ui;color:#a89f8c">© 2026 Emend. All rights reserved.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;colorScheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber (default)&quot;,&quot;Teal tide&quot;,&quot;Oxblood&quot;,&quot;Forest&quot;],&quot;default&quot;:&quot;Oxblood&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Color scheme&quot;},&quot;revealMotion&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Subtle&quot;,&quot;Standard&quot;,&quot;Dramatic&quot;],&quot;default&quot;:&quot;Dramatic&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Scroll reveal&quot;},&quot;revealReplay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Scroll reveal&quot;}}">
+class Component extends DCLogic {
+  state = { sel: null, sentences: {}, faqOpen: 0 };
+  componentDidMount() {
+    this._applyTheme();
+    this._docClick = () => { if (this.state.sel) this.setState({ sel: null }); };
+    document.addEventListener('click', this._docClick);
+    this._revealed = new Set();
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.setAttribute('data-reveal', 'in');
+          if (this.props.revealReplay ?? false) return;
+          this._revealed.add(e.target);
+          this._io.unobserve(e.target);
+        } else if ((this.props.revealReplay ?? false) && e.boundingClientRect.top > 0) {
+          e.target.removeAttribute('data-reveal');
+          void e.target.offsetWidth;
+          e.target.setAttribute('data-reveal', '');
+        }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('[data-reveal]').forEach((el) => this._io.observe(el));
+  }
+  componentDidUpdate() {
+    this._applyTheme();
+    if (this._revealed) this._revealed.forEach((el) => el.setAttribute('data-reveal', 'in'));
+  }
+  componentWillUnmount() { if (this._io) this._io.disconnect(); if (this._docClick) document.removeEventListener('click', this._docClick); }
+  _applyTheme() {
+    const scheme = {
+      'Teal tide': { accent: '#2e6e7a', soft: '#e0ecee', softb: '#b5d2d8', bright: '#7fb8c2', deep: '#1e4a53' },
+      'Oxblood': { accent: '#8a3a30', soft: '#f6e4e0', softb: '#e0b8ae', bright: '#d99483', deep: '#5c2620' },
+      'Forest': { accent: '#54703c', soft: '#e7eedd', softb: '#c5d6a9', bright: '#a9c47c', deep: '#3a4f28' }
+    }[this.props.colorScheme] || null;
+    const motion = {
+      'Subtle': { ry: '14px', rd: '0.5s' },
+      'Dramatic': { ry: '60px', rd: '1.25s' }
+    }[this.props.revealMotion] || null;
+    const b = document.body.style;
+    ['accent', 'soft', 'softb', 'bright', 'deep'].forEach((k) => scheme ? b.setProperty('--em-' + k, scheme[k]) : b.removeProperty('--em-' + k));
+    if (motion) { b.setProperty('--em-ry', motion.ry); b.setProperty('--em-rd', motion.rd); }
+    else { b.removeProperty('--em-ry'); b.removeProperty('--em-rd'); }
+  }
+  renderVals() {
+    const RESUME = [
+      { heading: 'EDUCATION', blocks: [
+        { id: 'edu', title: 'University of California, Riverside', sub: 'B.S. in Computer Science · Riverside, CA', dates: 'Expected Mar 2027', bullets: [
+          { fact: 'EDU-01',
+            original: 'Coursework: Operating Systems, Computer Architecture, Data Structures & Algorithms, Edge Computing.',
+            variants: [
+              'Coursework: Operating Systems, Computer Architecture, Data Structures & Algorithms, Edge Computing.',
+              'Coursework: Data Structures & Algorithms, Operating Systems, Edge Computing, Computer Architecture.',
+              'Relevant coursework: Edge Computing, Operating Systems, Data Structures & Algorithms, Computer Architecture.'
+            ] }
+        ] }
+      ] },
+      { heading: 'EXPERIENCE', blocks: [
+        { id: 'ga', title: 'Software Engineer Intern', sub: 'General Atomics — San Diego, CA', dates: 'Jun 2026 – Present', bullets: [
+          { fact: 'GA-01',
+            original: 'Writing Python integration tests for microservices on the C2 team.',
+            variants: [
+              'Developing 25+ Python integration tests using behave and Gherkin on the Advanced C2 Systems team, validating end-to-end message flow across 5+ microservices in a Linux environment.',
+              'Validating end-to-end message flow across 5+ Linux microservices by building a 25+ test behave/Gherkin integration suite for Advanced C2 Systems.',
+              'Built out 25+ behave and Gherkin integration tests covering end-to-end message flow across 5+ microservices on the Advanced C2 Systems team.'
+            ] },
+          { fact: 'GA-02',
+            original: 'Made Bash scripts to start and stop our dev environment, which saved a lot of setup time.',
+            variants: [
+              'Developed Bash startup and shutdown scripts with desktop launchers for RHEL 8 VMs and Docker containers, replacing a 12-step manual workflow and reducing environment setup time by 80%.',
+              'Reduced environment setup time 80% by replacing a 12-step manual workflow with Bash startup/shutdown scripts and desktop launchers for RHEL 8 VMs and Docker containers.',
+              'Engineered one-click Bash automation and desktop launchers for RHEL 8 VM and Docker environments, collapsing a 12-step manual workflow and cutting setup time 80%.'
+            ] }
+        ] },
+        { id: 'acm', title: 'Software Engineer Intern', sub: 'ACM @ UCR — Riverside, CA', dates: 'Jan 2025 – Mar 2025', bullets: [
+          { fact: 'ACM-01',
+            original: 'Built and launched a website for Beta Alpha Psi at UCR.',
+            variants: [
+              'Developed and deployed UCR\u2019s Beta Alpha Psi website using Next.js, TypeScript, and Tailwind CSS.',
+              'Shipped UCR\u2019s Beta Alpha Psi website end to end with Next.js, TypeScript, and Tailwind CSS.',
+              'Designed, built, and deployed the Beta Alpha Psi chapter website (Next.js · TypeScript · Tailwind CSS).'
+            ] },
+          { fact: 'ACM-02',
+            original: 'Made React components for the site and improved its performance score.',
+            variants: [
+              'Built 20+ reusable React components across 5 feature areas and improved Lighthouse performance score by 35%.',
+              'Improved Lighthouse performance 35% while building 20+ reusable React components spanning 5 feature areas.',
+              'Shipped 20+ reusable React components across 5 feature areas, lifting the Lighthouse performance score 35%.'
+            ] },
+          { fact: 'ACM-03',
+            original: 'Worked with the team on GitHub and set up automatic deploys.',
+            variants: [
+              'Collaborated through GitHub code reviews and Agile sprints; automated builds and deploys with GitHub Actions CI/CD pipelines.',
+              'Automated builds and deployments with GitHub Actions CI/CD while collaborating via code reviews and Agile sprints.',
+              'Practiced Agile delivery with GitHub code reviews and CI/CD pipelines that automated every build and deploy.'
+            ] }
+        ] },
+        { id: 'nasa', title: 'Embedded Software Intern', sub: 'NASA California Space Grant Consortium — Los Angeles, CA', dates: 'Jun 2024 – Aug 2024', bullets: [
+          { fact: 'NASA-01',
+            original: 'Wrote Arduino firmware for an underwater robot with water-quality sensors.',
+            variants: [
+              'Implemented embedded C++ firmware for an Arduino-based ROV integrating pH, temperature, turbidity and TDS sensors, processing measurements and transmitting serial telemetry every 2 seconds.',
+              'Built C++ firmware for an Arduino ROV that fused pH, temperature, turbidity, and TDS readings into serial telemetry transmitted every 2 seconds.',
+              'Engineered embedded C++ firmware integrating 4 water-quality sensors on an Arduino ROV, streaming serial telemetry on a 2-second cycle.'
+            ] },
+          { fact: 'NASA-02',
+            original: 'Made an algorithm that combines the sensor readings to flag bad water quality.',
+            variants: [
+              'Developed a composite health score algorithm weighting all 4 sensor readings against their safe ranges to flag water-quality anomalies and implemented pH sensor software.',
+              'Designed a weighted composite health score across 4 sensors to flag water-quality anomalies against safe ranges, plus the pH sensor software.',
+              'Flagged water-quality anomalies via a composite health score weighting 4 sensor readings against safe ranges; also implemented the pH sensor software.'
+            ] }
+        ] }
+      ] },
+      { heading: 'PROJECTS', blocks: [
+        { id: 'em', title: 'Emend', sub: 'Python · Anthropic API · Pydantic · FastAPI · PostgreSQL · Next.js · Docker · LaTeX', dates: 'In Progress', bullets: [
+          { fact: 'EM-01',
+            original: 'Building an AI resume website that makes tailored resumes as PDFs.',
+            variants: [
+              'Developing an AI-powered resume platform using FastAPI, PostgreSQL, Next.js, and LaTeX to generate job-tailored resumes and downloadable PDF and .tex files.',
+              'Building a resume-tailoring platform (FastAPI · PostgreSQL · Next.js · LaTeX) that outputs job-matched PDFs and .tex source.',
+              'Architecting an AI resume platform that turns any job posting into a tailored, LaTeX-typeset PDF, built on FastAPI, PostgreSQL, and Next.js.'
+            ] },
+          { fact: 'EM-02',
+            original: 'Using the Anthropic API with checks so it doesn\u2019t make things up.',
+            variants: [
+              'Integrating the Anthropic API with structured output validation, keyword matching, and source-based checks to prevent unsupported claims in generated resume content.',
+              'Preventing unsupported claims in generated content via structured Anthropic API outputs, keyword matching, and source-based validation.',
+              'Grounding every generated line with structured output validation, keyword matching, and source-based checks on the Anthropic API.'
+            ] }
+        ] },
+        { id: 'ts', title: 'ThreatSense', sub: 'Python · Flask · OpenCV · YOLOv8 · NVIDIA Jetson · AWS EC2', dates: '2026', bullets: [
+          { fact: 'TS-01',
+            original: 'Built a threat-detection system on a Jetson that sends alerts to a cloud dashboard.',
+            variants: [
+              'Deployed an edge\u2013fog\u2013cloud threat-detection pipeline using YOLOv8 on a Jetson Orin Nano, transmitting alert metadata and image frames to an AWS EC2 dashboard in real time through Flask REST APIs.',
+              'Built a real-time edge\u2013fog\u2013cloud pipeline: YOLOv8 detections on a Jetson Orin Nano streamed to an AWS EC2 dashboard via Flask REST APIs.',
+              'Shipped a YOLOv8 threat-detection pipeline spanning edge (Jetson Orin Nano) to cloud (AWS EC2), streaming alerts and frames in real time over Flask REST APIs.'
+            ] },
+          { fact: 'TS-02',
+            original: 'Added a human review step before alerts go out.',
+            variants: [
+              'Implemented authenticated human-in-the-loop verification before alert dispatch, preventing unreviewed detections from triggering broadcast alerts.',
+              'Prevented unreviewed detections from broadcasting by adding authenticated human-in-the-loop verification ahead of alert dispatch.',
+              'Gated alert dispatch behind authenticated human-in-the-loop review, so no unverified detection ever triggers a broadcast.'
+            ] }
+        ] },
+        { id: 'ti', title: 'TermIt', sub: 'C++ · CMake · GoogleTest', dates: '2025', bullets: [
+          { fact: 'TI-01',
+            original: 'Made a command-line to-do app in C++.',
+            variants: [
+              'Developed a C++ command-line task manager enabling users to organize work into categories (priorities, due dates, and completion tracking).',
+              'Built a C++ CLI task manager with categories, priorities, due dates, and completion tracking.',
+              'Designed a command-line task manager in C++ organizing work by category with priorities, due dates, and completion tracking.'
+            ] },
+          { fact: 'TI-02',
+            original: 'Split the code into classes and wrote unit tests.',
+            variants: [
+              'Modularized the system into 4 classes and a CMake build system; wrote 30 GoogleTest unit tests across 4 test suites.',
+              'Structured the codebase into 4 classes with a CMake build, backed by 30 GoogleTest unit tests in 4 suites.',
+              'Wrote 30 GoogleTest unit tests across 4 suites after modularizing the system into 4 classes on a CMake build.'
+            ] }
+        ] }
+      ] },
+      { heading: 'TECHNICAL SKILLS', blocks: [
+        { id: 'sk', title: 'Skills', sub: '', dates: '', bullets: [
+          { fact: 'SK-01',
+            original: 'Languages: C++, C, Python, Bash, SQL, TypeScript, JavaScript.',
+            variants: [
+              'Languages: C++, C, Python, Bash, SQL, TypeScript, JavaScript.',
+              'Languages: Python, C++, C, TypeScript, JavaScript, SQL, Bash.',
+              'Languages: TypeScript, JavaScript, Python, C++, C, SQL, Bash.'
+            ] },
+          { fact: 'SK-02',
+            original: 'Frameworks/Libraries: FastAPI, Flask, React, Next.js, Node.js, Tailwind CSS, OpenCV, PyTorch, NumPy, Pandas, Pydantic, SQLAlchemy.',
+            variants: [
+              'Frameworks/Libraries: FastAPI, Flask, React, Next.js, Node.js, Tailwind CSS, OpenCV, PyTorch, NumPy, Pandas, Pydantic, SQLAlchemy.',
+              'Frameworks/Libraries: React, Next.js, Node.js, Tailwind CSS, FastAPI, Flask, Pydantic, SQLAlchemy, OpenCV, PyTorch, NumPy, Pandas.',
+              'Frameworks/Libraries: PyTorch, OpenCV, NumPy, Pandas, FastAPI, Flask, Pydantic, SQLAlchemy, React, Next.js, Node.js, Tailwind CSS.'
+            ] },
+          { fact: 'SK-03',
+            original: 'Systems/Platforms: Linux (RHEL 8, Ubuntu), Docker, Podman, AWS EC2, NVIDIA Jetson, Arduino, PostgreSQL.',
+            variants: [
+              'Systems/Platforms: Linux (RHEL 8, Ubuntu), Docker, Podman, AWS EC2, NVIDIA Jetson, Arduino, PostgreSQL.',
+              'Systems/Platforms: Docker, Podman, AWS EC2, PostgreSQL, Linux (RHEL 8, Ubuntu), NVIDIA Jetson, Arduino.',
+              'Systems/Platforms: AWS EC2, Docker, Podman, Linux (RHEL 8, Ubuntu), PostgreSQL, NVIDIA Jetson, Arduino.'
+            ] },
+          { fact: 'SK-04',
+            original: 'Tools/Testing: Git, GitHub Actions, CMake, behave, pytest, GoogleTest, CI/CD, Unit & Integration Testing.',
+            variants: [
+              'Tools/Testing: Git, GitHub Actions, CMake, behave, pytest, GoogleTest, CI/CD, Unit & Integration Testing.',
+              'Tools/Testing: Git, GitHub Actions, CI/CD, pytest, behave, GoogleTest, CMake, Unit & Integration Testing.',
+              'Tools/Testing: CI/CD (GitHub Actions), Git, pytest, behave, GoogleTest, CMake, Unit & Integration Testing.'
+            ] }
+        ] }
+      ] }
+    ];
+    const sentences = this.state.sentences, sel = this.state.sel;
+    const sections = RESUME.map((s) => ({
+      heading: s.heading,
+      blocks: s.blocks.map((b) => {
+        const blockSelected = sel && sel.indexOf(b.id + '/') === 0;
+        return {
+          title: b.title, sub: b.sub, dates: b.dates,
+          borderColor: blockSelected ? 'var(--em-softb,#e3cf96)' : 'transparent',
+          bg: blockSelected ? 'var(--em-soft,#f3ecd9)' : 'transparent',
+          select: () => {},
+          bullets: b.bullets.map((bl, i) => {
+            const key = b.id + '/' + i;
+            const st = sentences[key] || { idx: 0, orig: false };
+            const selected = sel === key;
+            const set = (p) => this.setState((s) => ({ sentences: Object.assign({}, s.sentences, { [key]: Object.assign({}, s.sentences[key] || { idx: 0, orig: false }, p) }) }));
+            const hasCustom = st.custom != null;
+            const rev = st.rev || 0;
+            const shown = st.orig ? bl.original : (hasCustom ? st.custom : bl.variants[st.idx]);
+            return {
+              text: shown,
+              textKey: key + ':' + st.idx + ':' + (st.orig ? 'o' : 'r') + ':' + (hasCustom ? 'c' + st.custom.length : 'n') + ':' + rev,
+              editable: selected ? 'true' : 'false',
+              selected: selected,
+              bg: selected ? 'var(--em-soft,#f3ecd9)' : 'transparent',
+              tag: st.orig ? 'original' : (hasCustom ? 'edited \u270e' : '% ' + bl.fact),
+              tagColor: st.orig ? '#9a927f' : 'var(--em-accent,#8a6d1f)',
+              hasCustom: hasCustom || !!st.dirty,
+              markDirty: () => { if (!st.dirty) set({ dirty: true }); },
+              select: (e) => { e.stopPropagation(); if (!selected) this.setState({ sel: key }); },
+              keep: (e) => e.stopPropagation(),
+              saveEdit: (e) => { const t = e.target.textContent.trim(); if (t && t !== shown) set({ custom: t, orig: false, dirty: false }); else { if (!t) e.target.textContent = shown; set({ dirty: false }); } },
+              keydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } },
+              discardEdit: (e) => { e.stopPropagation(); set({ custom: null, orig: false, dirty: false, rev: rev + 1 }); },
+              prev: (e) => { e.stopPropagation(); set({ idx: (st.idx + 2) % 3, orig: false, custom: null, dirty: false, rev: rev + 1 }); },
+              next: (e) => { e.stopPropagation(); set({ idx: (st.idx + 1) % 3, orig: false, custom: null, dirty: false, rev: rev + 1 }); },
+              toggleOrig: (e) => { e.stopPropagation(); set({ orig: !st.orig }); },
+              modeLabel: st.orig ? 'your original wording' : (hasCustom ? 'your edit \u00b7 based on fact ' + bl.fact : 'rewrite ' + (st.idx + 1) + ' of 3 \u00b7 fact ' + bl.fact),
+              origBtnLabel: st.orig ? (hasCustom ? '\u21a9 back to my edit' : '\u21a9 back to Emend\u2019s rewrite') : 'view my original',
+              dots: bl.variants.map((_, j) => ({ bg: !st.orig && !hasCustom && j === st.idx ? 'var(--em-bright,#c9a648)' : '#4a463c' }))
+            };
+          })
+        };
+      })
+    }));
+    const FAQS = [
+      { q: 'How is this different from ChatGPT writing my resume?', a: 'Free-form AI can invent experience you never had. Emend is structured: the writer\u2019s only input is the fact list you confirmed, and every output line is tagged with its source fact. If a line has no source, it doesn\u2019t ship.' },
+      { q: 'Will it pass applicant tracking systems (ATS)?', a: 'Yes. The LaTeX templates are single-column, standard-heading layouts that parse cleanly in major ATS platforms — and the keyword matching is built around what those systems scan for.' },
+      { q: 'Do I need to know LaTeX?', a: 'No. You get a finished PDF with one click. The .tex source is included for people who want it — your resume is yours to keep and edit anywhere.' },
+      { q: 'What if I don\u2019t like a rewritten sentence?', a: 'Every sentence is interactive: cycle through three grounded rewrites, edit the words in place, or revert to your original phrasing for that line. You approve everything before it exports.' }
+    ];
+    const faqs = FAQS.map((f, i) => ({
+      q: f.q, a: f.a,
+      open: this.state.faqOpen === i,
+      icon: this.state.faqOpen === i ? '\u2212' : '+',
+      toggle: () => this.setState({ faqOpen: this.state.faqOpen === i ? -1 : i })
+    }));
+    return { sections: sections, faqs: faqs };
+  }
+}
+</script>
+</body>
+</html>

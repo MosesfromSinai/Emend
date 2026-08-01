@@ -232,9 +232,14 @@ grounding pass rate / coverage / cost on ≥5 postings.
 
 | Item | Needs | Owner |
 |---|---|---|
-| `JDExtract`/`Report` list fields typed `list[str]` by C | ratify or amend via contract PR | A |
 | `DATABASE_URL` driver suffix (`+psycopg` assumed) | confirm when picking DB lib | B |
-| Project dates: schema has none; template renders an empty date slot for projects | accept, or contract-PR a `dates` field | A + all |
 | Fly app name `emend-api` + region `sjc` placeholders | confirm at deploy time | C |
-| Design files (`Emend Landing v2.dc.html`, v1, brand exploration) and the `uploads/` sample resume are referenced by the brief but **not in the repo** — D can't build the landing without them | commit them under `docs/design/` | D + Moses |
-| Fact-id charset: receipts assume ids stay `<ENTITY>-<NN>` (letters/digits/dash); the render layer whitespace-collapses + escapes anything weirder, but confirm `structure_resume` enforces the format | note in `core/schemas.py` | A |
+
+Closed:
+
+- ✅ `JDExtract`/`Report` list fields typed `list[str]` — **ratified**, noted in `core/schemas.py`.
+- ✅ Project dates — **accepted as-is**; the empty template slot is intentional, noted in `core/schemas.py`.
+- ✅ Fact-id charset — documented in `core/schemas.py` and enforced by `FACT_ID_PATTERN`.
+- ✅ Design files — committed under `docs/design/`; the demo persona is `docs/demo-persona.md`.
+- ✅ `BulletVerdict.source_fact_ids` added so D's provenance panel reads fact ids
+  from the `Report` instead of parsing `% grounded:` comments out of the tex.
