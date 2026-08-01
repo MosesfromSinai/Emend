@@ -27,6 +27,11 @@ from core.validation import build_grounding_report, judge_bullets, validate_grou
 
 JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
 JD_STOP_WORDS = {"and", "for", "the", "to", "using", "with"}
+EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+PHONE_PATTERN = re.compile(r"\(?\+?\d[\d\s().-]{7,}\d")
+LINK_PATTERN = re.compile(r"(?:https?://|www\.|linkedin\.com/|github\.com/)\S+")
+BULLET_PATTERN = re.compile(r"^[•\-*·]+\s*")
+MAX_FACTS_PER_SECTION = 99  # fact ids carry a two-digit suffix
 
 
 def _json_object_text(text: str) -> str:
