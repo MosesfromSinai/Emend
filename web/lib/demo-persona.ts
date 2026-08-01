@@ -175,6 +175,53 @@ export const DEMO_RESUME: DemoSection[] = [
           },
         ],
       },
+      {
+        id: "pl",
+        title: "PackList",
+        sub: "C++, CMake, GoogleTest",
+        dates: "",
+        bullets: [
+          {
+            sources: ["PL-01", "PL-02"],
+            original: "A C++ command line tool for organizing tasks.",
+            variants: [
+              "Developed a C++ CLI task tool (categories, priorities, due dates) structured into 4 modular classes with 25 GoogleTest unit tests.",
+              "Built a modular C++ command-line organizer — 4 classes, 25 unit tests across 3 GoogleTest suites.",
+              "Engineered a C++/CMake CLI for task management with priorities and due dates, covered by 25 GoogleTest tests.",
+            ],
+          },
+          {
+            sources: ["PL-03"],
+            original: "Worked on it with some classmates.",
+            variants: [
+              "Led a 3-member team using GitHub Projects and a CMake build system.",
+              "Coordinated a 3-person team via GitHub Projects, owning the CMake build.",
+              "Drove planning and delivery for a 3-member team on GitHub Projects.",
+            ],
+          },
+        ],
+      },
     ],
+  },
+];
+
+export type FaqItem = { q: string; a: string };
+
+export const DEMO_FAQS: FaqItem[] = [
+  {
+    q: "How is this different from ChatGPT writing my resume?",
+    a: "Free-form AI can invent experience you never had. Emend is structured: the writer's only input is the fact list you confirmed, and every output line is tagged with its source fact. If a line has no source, it doesn't ship.",
+  },
+  {
+    q: "Will it pass applicant tracking systems (ATS)?",
+    a: "Yes. The LaTeX templates are single-column, standard-heading layouts that parse cleanly in major ATS platforms — and the keyword matching is built around what those systems scan for.",
+  },
+  {
+    q: "Do I need to know LaTeX?",
+    a: "No. You get a finished PDF with one click. The .tex source is included for people who want it — your resume is yours to keep and edit anywhere.",
+  },
+  {
+    q: "What if I don't like a rewritten sentence?",
+    a: "Every sentence is interactive: cycle through three grounded rewrites, edit the words in place, or revert to your original phrasing for that line. You approve everything before it exports.",
   },
 ];
