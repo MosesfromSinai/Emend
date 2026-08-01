@@ -12,9 +12,16 @@ def _tokens(text: str) -> set[str]:
 
 
 def _master_text(master: MasterResume) -> str:
+    """Searchable corpus: facts, skills, project names, and project tech.
+
+    Company, title, and coursework are deliberately excluded — a JD keyword
+    matching only an employer name is not a skill the candidate claimed.
+    """
     facts = " ".join(fact.text for fact in master.fact_lookup().values())
     skills = " ".join(skill for group in master.skills.values() for skill in group)
-    projects = " ".join(project.name for project in master.projects)
+    projects = " ".join(
+        " ".join([project.name, *project.tech]) for project in master.projects
+    )
     return " ".join([facts, skills, projects])
 
 
