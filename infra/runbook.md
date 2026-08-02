@@ -95,12 +95,11 @@ cache — the build itself fails if the offline verification compile fails.
 
 ## Rollback
 
-- **api:** `fly releases --config infra/fly.toml` then
-  `fly deploy --image <previous-image-ref>` (or re-run the deploy workflow from
-  the last good commit).
+- **api:** Railway dashboard → service → Deployments → Redeploy a previous
+  build (or re-run `.github/workflows/deploy.yml` from the last good commit).
 - **web:** Vercel dashboard → Deployments → Promote a previous deployment.
-- **db:** Neon supports point-in-time restore branches; create a branch at the
-  pre-incident timestamp and repoint `DATABASE_URL`.
+- **db:** Railway's Postgres plugin takes periodic backups (dashboard →
+  database → Backups); restore from there before repointing `DATABASE_URL`.
 
 ## Contract assumptions baked into infra (Workflow B/D, please confirm)
 
