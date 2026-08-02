@@ -17,10 +17,17 @@ export const PERSONA_EDUCATION = {
 export const PERSONA_SKILLS =
   "Languages: Python, C++, TypeScript, SQL, Bash · Frameworks: Flask, React, Next.js · Tools: Linux, Git, Docker, CMake · Libraries: OpenCV, NumPy, Pandas";
 
-export type DemoBullet = {
+// Sources are per-variant, not per-bullet: two rewrites of the same
+// sentence can lean on different (or additional) facts from the same
+// block, so each needs its own citation list rather than one shared list.
+export type DemoVariant = {
+  text: string;
   sources: string[];
+};
+
+export type DemoBullet = {
   original: string;
-  variants: [string, string, string];
+  variants: [DemoVariant, DemoVariant, DemoVariant];
 };
 
 export type DemoBlock = {
@@ -47,21 +54,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "Jun 2026 – Present",
         bullets: [
           {
-            sources: ["HX-01"],
             original: "Writing integration tests in Python for our microservices.",
             variants: [
-              "Developed 20+ behave integration tests in Python, validating end-to-end message flow across 5 microservices.",
-              "Built a Gherkin-based integration suite of 20+ scenarios covering cross-service message flow in a Linux environment.",
-              "Authored 20+ Python integration tests verifying end-to-end behavior across a 5-microservice backend.",
+              {
+                text: "Developed 20+ behave integration tests in Python, validating end-to-end message flow across 5 microservices.",
+                sources: ["HX-01"],
+              },
+              {
+                text: "Built a Gherkin-based integration suite of 20+ scenarios covering cross-service message flow in a Linux environment.",
+                sources: ["HX-01"],
+              },
+              {
+                text: "Authored 20+ Python integration tests verifying end-to-end behavior across a 5-microservice backend.",
+                sources: ["HX-01"],
+              },
             ],
           },
           {
-            sources: ["HX-02", "HX-03"],
             original: "Made scripts to set up the dev environment faster.",
             variants: [
-              "Automated a multi-step dev-environment setup into one-command Bash scripts managing VMs and Docker containers, cutting setup from ~45 to under 10 minutes.",
-              "Reduced new-machine setup time by ~80% by scripting VM and container provisioning behind a single Bash entry point.",
-              "Replaced a manual environment checklist with one-command Bash automation for VMs and Docker, saving ~35 minutes per setup.",
+              {
+                text: "Automated a multi-step dev-environment setup into one-command Bash scripts managing VMs and Docker containers, cutting setup from ~45 to under 10 minutes.",
+                sources: ["HX-02", "HX-03"],
+              },
+              {
+                text: "Cut environment setup time from ~45 minutes to under 10 by scripting one-command VM and container provisioning in Bash.",
+                sources: ["HX-02", "HX-03"],
+              },
+              {
+                text: "Replaced a manual, multi-step environment checklist with one-command Bash automation for VMs and Docker, taking setup from ~45 minutes down to under 10.",
+                sources: ["HX-02", "HX-03"],
+              },
             ],
           },
         ],
@@ -73,21 +96,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "Jan – Mar 2025",
         bullets: [
           {
-            sources: ["NCS-01", "NCS-02"],
             original: "Worked on the club website using React.",
             variants: [
-              "Built and deployed the society's website with Next.js, TypeScript, and Tailwind, creating 15+ reusable components across 4 feature areas.",
-              "Developed 15+ reusable React components across 4 feature areas for the society's Next.js/TypeScript site.",
-              "Shipped the club's production website (Next.js, TypeScript, Tailwind) built on a 15-component design system.",
+              {
+                text: "Built and deployed the society's website with Next.js, TypeScript, and Tailwind, creating 15+ reusable components across 4 feature areas.",
+                sources: ["NCS-01", "NCS-02"],
+              },
+              {
+                text: "Developed 15+ reusable React components across 4 feature areas for the society's Next.js/TypeScript site.",
+                sources: ["NCS-01", "NCS-02"],
+              },
+              {
+                text: "Delivered the society's Next.js website (TypeScript, Tailwind) backed by a library of 15+ reusable components across 4 feature areas.",
+                sources: ["NCS-01", "NCS-02"],
+              },
             ],
           },
           {
-            sources: ["NCS-03", "NCS-04"],
             original: "Improved site performance and helped with deploys.",
             variants: [
-              "Raised the Lighthouse performance score from 62 to 89 and automated build-and-deploy on merge with GitHub Actions.",
-              "Improved Lighthouse performance 62 → 89 while maintaining CI/CD pipelines (GitHub Actions) through PR-reviewed merges.",
-              "Lifted the site's Lighthouse score 27 points (62 → 89) and set up merge-triggered CI/CD with GitHub Actions.",
+              {
+                text: "Raised the Lighthouse performance score from 62 to 89 and automated build-and-deploy on merge with GitHub Actions.",
+                sources: ["NCS-03", "NCS-04"],
+              },
+              {
+                text: "Improved Lighthouse performance 62 → 89 while maintaining CI/CD pipelines (GitHub Actions) through PR-reviewed merges.",
+                sources: ["NCS-03", "NCS-04"],
+              },
+              {
+                text: "Set up merge-triggered CI/CD with GitHub Actions and lifted the site's Lighthouse score from 62 to 89.",
+                sources: ["NCS-03", "NCS-04"],
+              },
             ],
           },
         ],
@@ -99,21 +138,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "Jun – Aug 2024",
         bullets: [
           {
-            sources: ["LAB-01", "LAB-02"],
             original: "Programmed sensors for a water monitoring project.",
             variants: [
-              "Wrote Arduino/C++ firmware integrating 4 water-quality sensors (pH, temperature, turbidity, TDS) with serial telemetry every 2 seconds.",
-              "Built C++ firmware for a 4-sensor water-monitoring buoy, streaming readings over serial at 2-second intervals.",
-              "Integrated pH, temperature, turbidity, and TDS sensors into Arduino firmware with 2-second telemetry.",
+              {
+                text: "Wrote Arduino/C++ firmware integrating 4 water-quality sensors (pH, temperature, turbidity, TDS) with serial telemetry every 2 seconds.",
+                sources: ["LAB-01", "LAB-02"],
+              },
+              {
+                text: "Built C++ firmware for a 4-sensor water-monitoring buoy, streaming readings over serial at 2-second intervals.",
+                sources: ["LAB-01", "LAB-02"],
+              },
+              {
+                text: "Integrated pH, temperature, turbidity, and TDS sensors into Arduino firmware with 2-second telemetry.",
+                sources: ["LAB-01", "LAB-02"],
+              },
             ],
           },
           {
-            sources: ["LAB-03"],
             original: "Wrote code to detect when the water readings looked wrong.",
             variants: [
-              "Implemented a composite anomaly score weighting each sensor reading against its safe range to flag water-quality issues.",
-              "Designed a weighted anomaly-scoring algorithm that evaluates all 4 sensor readings against safe thresholds.",
-              "Built the anomaly-detection logic: a composite score across sensor channels, each weighted against its safe range.",
+              {
+                text: "Implemented a composite anomaly score weighting each sensor reading against its safe range to flag water-quality issues.",
+                sources: ["LAB-01", "LAB-03"],
+              },
+              {
+                text: "Designed a weighted anomaly-scoring algorithm that evaluates all 4 sensor readings against safe thresholds.",
+                sources: ["LAB-01", "LAB-03"],
+              },
+              {
+                text: "Built the anomaly-detection logic: a composite score across sensor channels, each weighted against its safe range.",
+                sources: ["LAB-03"],
+              },
             ],
           },
         ],
@@ -130,21 +185,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "",
         bullets: [
           {
-            sources: ["LOG-01", "LOG-02"],
             original: "A website I made to keep track of my flights.",
             variants: [
-              "Built a Flask + PostgreSQL flight-logging app on a normalized 5-table schema with Alembic migrations.",
-              "Designed a 5-table relational schema (PostgreSQL, Alembic) powering a Flask app with a flight-stats dashboard.",
-              "Developed a full-stack flight logger — Flask API, PostgreSQL with versioned migrations, and a stats dashboard.",
+              {
+                text: "Built a Flask + PostgreSQL flight-logging app on a normalized 5-table schema with Alembic migrations.",
+                sources: ["LOG-01", "LOG-02"],
+              },
+              {
+                text: "Designed a 5-table relational schema (PostgreSQL, Alembic) powering a Flask app with a flight-stats dashboard.",
+                sources: ["LOG-01", "LOG-02"],
+              },
+              {
+                text: "Developed a full-stack flight logger — Flask API, PostgreSQL with versioned migrations, and a stats dashboard.",
+                sources: ["LOG-01", "LOG-02"],
+              },
             ],
           },
           {
-            sources: ["LOG-03"],
             original: "Put the app in Docker and got it running online.",
             variants: [
-              "Containerized the app with Docker Compose and deployed it to production.",
-              "Packaged the full stack into Docker Compose services and shipped a deployed instance.",
-              "Deployed the application via a Docker Compose setup covering app and database.",
+              {
+                text: "Containerized the app with Docker Compose and deployed it to production.",
+                sources: ["LOG-03"],
+              },
+              {
+                text: "Packaged the full stack into Docker Compose services and shipped a deployed instance.",
+                sources: ["LOG-03"],
+              },
+              {
+                text: "Moved the app from local development to a live deployment using Docker Compose.",
+                sources: ["LOG-03"],
+              },
             ],
           },
         ],
@@ -156,21 +227,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "",
         bullets: [
           {
-            sources: ["TS-01", "TS-02"],
             original: "Detects animals on trail cameras using AI.",
             variants: [
-              "Ran real-time YOLOv8 wildlife detection on a Jetson Nano, forwarding detections and frames to a Flask dashboard in under 3 seconds.",
-              "Built an edge-inference pipeline (YOLOv8 on Jetson Nano) pushing detection alerts to a web dashboard in <3s.",
-              "Deployed YOLOv8 on embedded hardware for real-time detection against simulated trail-camera feeds, with a live Flask dashboard.",
+              {
+                text: "Ran real-time YOLOv8 wildlife detection on a Jetson Nano, forwarding detections and frames to a Flask dashboard in under 3 seconds.",
+                sources: ["TS-01", "TS-02"],
+              },
+              {
+                text: "Built an edge-inference pipeline (YOLOv8 on Jetson Nano) pushing detection alerts to a web dashboard in <3s.",
+                sources: ["TS-01", "TS-02"],
+              },
+              {
+                text: "Deployed YOLOv8 on embedded hardware for real-time detection against simulated trail-camera feeds, with a live Flask dashboard.",
+                sources: ["TS-01", "TS-02"],
+              },
             ],
           },
           {
-            sources: ["TS-03"],
             original: "Showed the project at a school event.",
             variants: [
-              "Demoed the system live at the campus engineering showcase.",
-              "Presented a live end-to-end demo at the university engineering showcase.",
-              "Ran a live demonstration of the detection pipeline at the campus showcase.",
+              {
+                text: "Demoed the system live at the campus engineering showcase.",
+                sources: ["TS-03"],
+              },
+              {
+                text: "Presented a live end-to-end demo at the university engineering showcase.",
+                sources: ["TS-03"],
+              },
+              {
+                text: "Ran a live demonstration of the detection pipeline at the campus showcase.",
+                sources: ["TS-03"],
+              },
             ],
           },
         ],
@@ -182,21 +269,37 @@ export const DEMO_RESUME: DemoSection[] = [
         dates: "",
         bullets: [
           {
-            sources: ["PL-01", "PL-02"],
             original: "A C++ command line tool for organizing tasks.",
             variants: [
-              "Developed a C++ CLI task tool (categories, priorities, due dates) structured into 4 modular classes with 25 GoogleTest unit tests.",
-              "Built a modular C++ command-line organizer — 4 classes, 25 unit tests across 3 GoogleTest suites.",
-              "Engineered a C++/CMake CLI for task management with priorities and due dates, covered by 25 GoogleTest tests.",
+              {
+                text: "Developed a C++ CLI task tool (categories, priorities, due dates) structured into 4 modular classes with 25 GoogleTest unit tests.",
+                sources: ["PL-01", "PL-02"],
+              },
+              {
+                text: "Built a modular C++ command-line organizer — 4 classes, 25 unit tests across 3 GoogleTest suites.",
+                sources: ["PL-01", "PL-02"],
+              },
+              {
+                text: "Engineered a C++/CMake CLI for task management with priorities and due dates, covered by 25 GoogleTest tests.",
+                sources: ["PL-01", "PL-02", "PL-03"],
+              },
             ],
           },
           {
-            sources: ["PL-03"],
             original: "Worked on it with some classmates.",
             variants: [
-              "Led a 3-member team using GitHub Projects and a CMake build system.",
-              "Coordinated a 3-person team via GitHub Projects, owning the CMake build.",
-              "Drove planning and delivery for a 3-member team on GitHub Projects.",
+              {
+                text: "Led a 3-member team using GitHub Projects and a CMake build system.",
+                sources: ["PL-03"],
+              },
+              {
+                text: "Coordinated a 3-person team via GitHub Projects, owning the CMake build.",
+                sources: ["PL-03"],
+              },
+              {
+                text: "Drove planning and delivery for a 3-member team on GitHub Projects.",
+                sources: ["PL-03"],
+              },
             ],
           },
         ],

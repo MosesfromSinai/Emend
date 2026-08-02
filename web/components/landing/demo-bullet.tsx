@@ -19,7 +19,8 @@ export function DemoBulletRow({
   onPatch: (next: Partial<BulletState>) => void;
 }) {
   const hasCustom = state.custom != null;
-  const shown = state.orig ? bullet.original : hasCustom ? state.custom! : bullet.variants[state.idx];
+  const variant = bullet.variants[state.idx];
+  const shown = state.orig ? bullet.original : hasCustom ? state.custom! : variant.text;
   // forces the span to remount (and pick up `shown`) whenever we
   // programmatically change what's displayed — see use-sentence-demo.ts
   const textKey = `${bulletKey}:${state.idx}:${state.orig ? "o" : "r"}:${hasCustom ? "c" + state.custom!.length : "n"}:${state.rev}`;
@@ -68,7 +69,7 @@ export function DemoBulletRow({
             ? "original"
             : hasCustom
               ? "edited ✎"
-              : `% ${bullet.sources.join(", ")}`}
+              : `% ${variant.sources.join(", ")}`}
         </span>
       </div>
       {selected && (
@@ -88,14 +89,15 @@ function DemoBulletToolbar({
   onPatch: (next: Partial<BulletState>) => void;
 }) {
   const hasCustom = state.custom != null;
+  const variant = bullet.variants[state.idx];
   const cycle = (delta: 1 | -1) =>
     onPatch({ idx: (state.idx + delta + 3) % 3, orig: false, custom: null, dirty: false, rev: state.rev + 1 });
 
   const modeLabel = state.orig
     ? "your original wording"
     : hasCustom
-      ? `your edit · based on fact ${bullet.sources[0]}`
-      : `rewrite ${state.idx + 1} of 3 · fact ${bullet.sources.join(", ")}`;
+      ? `your edit · based on fact ${variant.sources[0]}`
+      : `rewrite ${state.idx + 1} of 3 · fact ${variant.sources.join(", ")}`;
 
   const origBtnLabel = state.orig
     ? hasCustom
@@ -116,16 +118,22 @@ function DemoBulletToolbar({
         ‹
       </button>
       <div className="flex gap-1.5">
-        {bullet.variants.map((_, i) => (
-          <span
-            key={i}
-            className="h-1.5 w-1.5 rounded-full"
-            style={{
-              background:
-                !state.orig && !hasCustom && i === state.idx ? "var(--em-bright)" : "#4a463c",
-            }}
-          />
-        ))}
+        {bullet.variants.map((_, i) =>
+          state.orig ? (
+            // hollow, not filled: signals "no rewrite active" rather than
+            // reading as three identical (and seemingly broken) dots
+            <span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full border border-[#4a463c]"
+            />
+          ) : (
+            <span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: !hasCustom && i === state.idx ? "var(--em-bright)" : "#4a463c" }}
+            />
+          )
+        )}
       </div>
       <button
         onClick={() => cycle(1)}

@@ -3,7 +3,8 @@
 **Purpose.** This file is the single source of truth for every sentence shown in the landing page's "Every sentence, your call" demo and the hero product mock. The persona is **fictional**; the resume mirrors the shape of the original design content so the existing demo layout ports 1:1 (Helix Dynamics ↔ the defense internship block, Northgate CS Society ↔ the campus web block, Robotics Lab ↔ the embedded block, LayoverLog / TrailScout / PackList ↔ the three project blocks).
 
 **Rules.**
-- Every demo sentence and every rewrite must trace to fact ids below — the site's "never invent" convention applies to its own marketing.
+- Every demo sentence and every rewrite must trace to fact ids below — the site's "never invent" convention applies to its own marketing. Sources are tracked per rewrite, not per sentence: two rewrites of the same line can cite different (or additional) facts from the same block.
+- No derived numbers: a rewrite may not contain a percentage, delta, or subtraction computed from a fact's stated values — only the numbers as they literally appear in the cited fact. Per the brief's "Grounding design" rule, this must hold for the real product's tailor output too, not just the demo.
 - Numbers are deliberately modest-realistic, not impressive-fake.
 - Contact details and handles are placeholders — do not swap in real domains or accounts.
 - To change demo copy: add or edit a fact here first, then update the sentence. Keep the "grounded n/n" pill equal to the number of demo sentences actually shipped (currently **12/12**).
@@ -66,25 +67,25 @@
 - rewrite 2: "Built a Gherkin-based integration suite of 20+ scenarios covering cross-service message flow in a Linux environment."
 - rewrite 3: "Authored 20+ Python integration tests verifying end-to-end behavior across a 5-microservice backend."
 
-**HX-B** — sources: `HX-02`, `HX-03`
+**HX-B** — sources: `HX-02`, `HX-03` (all three rewrites)
 - original: "Made scripts to set up the dev environment faster."
 - rewrite 1: "Automated a multi-step dev-environment setup into one-command Bash scripts managing VMs and Docker containers, cutting setup from ~45 to under 10 minutes."
-- rewrite 2: "Reduced new-machine setup time by ~80% by scripting VM and container provisioning behind a single Bash entry point."
-- rewrite 3: "Replaced a manual environment checklist with one-command Bash automation for VMs and Docker, saving ~35 minutes per setup."
+- rewrite 2: "Cut environment setup time from ~45 minutes to under 10 by scripting one-command VM and container provisioning in Bash."
+- rewrite 3: "Replaced a manual, multi-step environment checklist with one-command Bash automation for VMs and Docker, taking setup from ~45 minutes down to under 10."
 
 ### Northgate CS Society
 
-**NCS-A** — sources: `NCS-01`, `NCS-02`
+**NCS-A** — sources: `NCS-01`, `NCS-02` (all three rewrites)
 - original: "Worked on the club website using React."
 - rewrite 1: "Built and deployed the society's website with Next.js, TypeScript, and Tailwind, creating 15+ reusable components across 4 feature areas."
 - rewrite 2: "Developed 15+ reusable React components across 4 feature areas for the society's Next.js/TypeScript site."
-- rewrite 3: "Shipped the club's production website (Next.js, TypeScript, Tailwind) built on a 15-component design system."
+- rewrite 3: "Delivered the society's Next.js website (TypeScript, Tailwind) backed by a library of 15+ reusable components across 4 feature areas."
 
-**NCS-B** — sources: `NCS-03`, `NCS-04`
+**NCS-B** — sources: `NCS-03`, `NCS-04` (all three rewrites)
 - original: "Improved site performance and helped with deploys."
 - rewrite 1: "Raised the Lighthouse performance score from 62 to 89 and automated build-and-deploy on merge with GitHub Actions."
 - rewrite 2: "Improved Lighthouse performance 62 → 89 while maintaining CI/CD pipelines (GitHub Actions) through PR-reviewed merges."
-- rewrite 3: "Lifted the site's Lighthouse score 27 points (62 → 89) and set up merge-triggered CI/CD with GitHub Actions."
+- rewrite 3: "Set up merge-triggered CI/CD with GitHub Actions and lifted the site's Lighthouse score from 62 to 89."
 
 ### University Robotics Lab
 
@@ -94,11 +95,11 @@
 - rewrite 2: "Built C++ firmware for a 4-sensor water-monitoring buoy, streaming readings over serial at 2-second intervals."
 - rewrite 3: "Integrated pH, temperature, turbidity, and TDS sensors into Arduino firmware with 2-second telemetry."
 
-**LAB-B** — sources: `LAB-03`
+**LAB-B** — sources vary by rewrite: `LAB-01` supplies the "water-quality" framing (r1) and the sensor count "4" (r2), neither of which is in `LAB-03` alone.
 - original: "Wrote code to detect when the water readings looked wrong."
-- rewrite 1: "Implemented a composite anomaly score weighting each sensor reading against its safe range to flag water-quality issues."
-- rewrite 2: "Designed a weighted anomaly-scoring algorithm that evaluates all 4 sensor readings against safe thresholds."
-- rewrite 3: "Built the anomaly-detection logic: a composite score across sensor channels, each weighted against its safe range."
+- rewrite 1: "Implemented a composite anomaly score weighting each sensor reading against its safe range to flag water-quality issues." — sources: `LAB-01`, `LAB-03`
+- rewrite 2: "Designed a weighted anomaly-scoring algorithm that evaluates all 4 sensor readings against safe thresholds." — sources: `LAB-01`, `LAB-03`
+- rewrite 3: "Built the anomaly-detection logic: a composite score across sensor channels, each weighted against its safe range." — sources: `LAB-03`
 
 ### LayoverLog
 
@@ -108,11 +109,11 @@
 - rewrite 2: "Designed a 5-table relational schema (PostgreSQL, Alembic) powering a Flask app with a flight-stats dashboard."
 - rewrite 3: "Developed a full-stack flight logger — Flask API, PostgreSQL with versioned migrations, and a stats dashboard."
 
-**LOG-B** — sources: `LOG-03`
+**LOG-B** — sources: `LOG-03` (all three rewrites)
 - original: "Put the app in Docker and got it running online."
 - rewrite 1: "Containerized the app with Docker Compose and deployed it to production."
 - rewrite 2: "Packaged the full stack into Docker Compose services and shipped a deployed instance."
-- rewrite 3: "Deployed the application via a Docker Compose setup covering app and database."
+- rewrite 3: "Moved the app from local development to a live deployment using Docker Compose."
 
 ### TrailScout
 
@@ -130,11 +131,11 @@
 
 ### PackList
 
-**PL-A** — sources: `PL-01`, `PL-02`
+**PL-A** — sources: `PL-01`, `PL-02` (rewrites 1–2); rewrite 3 also cites `PL-03`, which is where "CMake" comes from.
 - original: "A C++ command line tool for organizing tasks."
-- rewrite 1: "Developed a C++ CLI task tool (categories, priorities, due dates) structured into 4 modular classes with 25 GoogleTest unit tests."
-- rewrite 2: "Built a modular C++ command-line organizer — 4 classes, 25 unit tests across 3 GoogleTest suites."
-- rewrite 3: "Engineered a C++/CMake CLI for task management with priorities and due dates, covered by 25 GoogleTest tests."
+- rewrite 1: "Developed a C++ CLI task tool (categories, priorities, due dates) structured into 4 modular classes with 25 GoogleTest unit tests." — sources: `PL-01`, `PL-02`
+- rewrite 2: "Built a modular C++ command-line organizer — 4 classes, 25 unit tests across 3 GoogleTest suites." — sources: `PL-01`, `PL-02`
+- rewrite 3: "Engineered a C++/CMake CLI for task management with priorities and due dates, covered by 25 GoogleTest tests." — sources: `PL-01`, `PL-02`, `PL-03`
 
 **PL-B** — sources: `PL-03`
 - original: "Worked on it with some classmates."
