@@ -4,7 +4,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from core.schemas import Fact, MasterResume, TailoredBullet
+from core.schemas import (
+    Experience,
+    Fact,
+    MasterResume,
+    TailoredBullet,
+    TailoredResume,
+    TailoredSection,
+)
 from core.validation import (
     GroundingError,
     build_grounding_report,
@@ -13,6 +20,43 @@ from core.validation import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _one_fact_resume(fact_text: str) -> MasterResume:
+    return MasterResume(
+        name="Sam Sample",
+        email="sam@example.com",
+        phone="",
+        links=[],
+        education=[],
+        projects=[],
+        skills={},
+        experiences=[
+            Experience(
+                id="ACME",
+                company="Acme",
+                title="",
+                location="",
+                start="",
+                end="",
+                facts=[Fact(id="ACME-01", text=fact_text)],
+            )
+        ],
+    )
+
+
+def _one_bullet_resume(bullet_text: str) -> TailoredResume:
+    return TailoredResume(
+        summary_of_strategy="",
+        experiences=[
+            TailoredSection(
+                ref_id="ACME",
+                bullets=[TailoredBullet(text=bullet_text, source_fact_ids=["ACME-01"])],
+            )
+        ],
+        projects=[],
+        skills={},
+    )
 
 
 def test_validate_grounding_accepts_known_fact_ids(sample_master, sample_tailored):
@@ -108,6 +152,33 @@ def test_validate_grounding_rejects_unknown_skill_category(sample_master, sample
 
     with pytest.raises(GroundingError, match="unknown skill category"):
         validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_derived_percentage():
+    # "80%" is computed from 45 and 10 (a ~78% reduction, rounded up) -- the
+    # fact only ever states the two absolute minute values, never a percent.
+    master = _one_fact_resume("Cut deploy time from 45 minutes to under 10")
+    tailored = _one_bullet_resume("Cut deploy time by 80%, down to under 10 minutes.")
+
+    with pytest.raises(GroundingError, match="unsupported numbers"):
+        validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_subtraction_delta():
+    # "35" is 45 minus 10 -- a derived delta, not a number either fact states.
+    master = _one_fact_resume("Cut deploy time from 45 minutes to under 10")
+    tailored = _one_bullet_resume("Reduced deploy time by 35 minutes, from 45 down to under 10.")
+
+    with pytest.raises(GroundingError, match="unsupported numbers"):
+        validate_grounding(master, tailored)
+
+
+def test_validate_grounding_accepts_number_copied_from_fact():
+    # 45 and 10 both appear literally in the fact -- no arithmetic performed.
+    master = _one_fact_resume("Cut deploy time from 45 minutes to under 10")
+    tailored = _one_bullet_resume("Cut deploy time from 45 minutes to under 10.")
+
+    validate_grounding(master, tailored)
 
 
 def test_fact_lookup_rejects_duplicate_fact_ids(sample_master):
