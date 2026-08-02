@@ -17,29 +17,28 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
 
 ## Production setup (run once, in this order)
 
-1. **Railway** — create a project with two services from the repo root:
+1. **Neon** — create a project + database. Copy the pooled connection string.
+2. **Railway** — from the repo root:
    ```sh
    railway login
    railway init                              # new project
-   railway add --database postgres           # managed Postgres, same project
    railway up --service api                  # builds infra/docker/api.Dockerfile
    railway volume add --mount-path /data --service api
    railway variables --service api \
+     --set "DATABASE_URL=<neon-pooled-url>" \
      --set "CORS_ORIGINS=https://<vercel-domain>" \
      --set "SESSION_COOKIE_SAMESITE=none" \
      --set "SESSION_COOKIE_SECURE=1" \
      --set "MOCK=1"
    ```
-   `DATABASE_URL` is injected automatically when the Postgres plugin and the
-   api service share a project. Railway reads `infra/railway.json` for build
-   + deploy config (point the service's *Config File Path* setting at it if
-   it isn't picked up automatically). Set `ANTHROPIC_API_KEY` only when
-   flipping to `MOCK=0`.
-2. **GitHub** — repo → Settings → Secrets → Actions: add `RAILWAY_TOKEN`
+   Railway reads `infra/railway.json` for build + deploy config (point the
+   service's *Config File Path* setting at it if it isn't picked up
+   automatically). Set `ANTHROPIC_API_KEY` only when flipping to `MOCK=0`.
+3. **GitHub** — repo → Settings → Secrets → Actions: add `RAILWAY_TOKEN`
    (Railway dashboard → project → Settings → Tokens → create a project
    token). After this, every green CI run on `main` auto-deploys the api via
    `.github/workflows/deploy.yml`.
-3. **Vercel** — import the GitHub repo, set *Root Directory* to `web/`, add env
+4. **Vercel** — import the GitHub repo, set *Root Directory* to `web/`, add env
    `NEXT_PUBLIC_API_URL=https://<railway-api-domain>`. Vercel auto-deploys
    `main` and previews PRs; no workflow file needed.
 
@@ -47,7 +46,7 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
 
 | Secret | Where it lives | Used by |
 |---|---|---|
-| `DATABASE_URL` | Railway (auto-injected from the Postgres plugin) / compose env (dev) | api |
+| `DATABASE_URL` | Railway variables, copied from Neon (prod) / compose env (dev) | api |
 | `ANTHROPIC_API_KEY` | Railway variables (prod) / `.env` (dev, MOCK=0 only) | core via api |
 | `RAILWAY_TOKEN` | GitHub Actions secrets | deploy workflow |
 | `NEXT_PUBLIC_API_URL` | Vercel env / `.env` | web |
