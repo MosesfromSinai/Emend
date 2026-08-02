@@ -74,6 +74,29 @@ def _section_id(title: str, used: set[str]) -> str:
     return section_id
 
 
+def _insert_section_breaks(text: str) -> str:
+    """Force a block boundary before a recognized section header line.
+
+    Resumes copy-pasted from a PDF often lose the blank lines between
+    sections, collapsing "Education" and "Experience" into one block. A
+    known header (on its own line) is a strong enough signal to split on
+    even without one.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if (
+            index > 0
+            and SECTION_HEADER_PATTERN.match(stripped)
+            and out
+            and out[-1].strip()
+        ):
+            out.append("")
+        out.append(line)
+    return "\n".join(out)
+
+
 def _text_master_resume(text: str) -> MasterResume:
     """Deterministic fallback: turn pasted plain text into one fact per line.
 
@@ -82,6 +105,7 @@ def _text_master_resume(text: str) -> MasterResume:
     and stable, so the confirmation screen and the rest of the pipeline work
     without an API key.
     """
+    text = _insert_section_breaks(text)
     lines = [line.strip() for line in text.splitlines()]
     name = next((line for line in lines if line), "Unknown")
     email = match.group(0) if (match := EMAIL_PATTERN.search(text)) else ""

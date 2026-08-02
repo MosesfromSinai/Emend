@@ -70,6 +70,30 @@ def test_structure_resume_ignores_incidental_braces():
     assert master.experiences[0].facts[0].text == "Shipped {feature flags} to prod"
 
 
+def test_structure_resume_splits_sections_without_blank_lines():
+    # PDF copy-paste often collapses the blank lines between sections; a
+    # known header should still start a new section on its own.
+    text = (
+        "Sam Sample\n"
+        "sam@example.com\n"
+        "Education\n"
+        "Riverside State University\n"
+        "Experience\n"
+        "Software Engineer Intern, Acme Corp\n"
+        "Skills\n"
+        "Python, Docker\n"
+    )
+
+    master = structure_resume(text)
+
+    assert [e.company for e in master.experiences] == [
+        "Education",
+        "Experience",
+        "Skills",
+    ]
+    assert master.experiences[1].facts[0].text == "Software Engineer Intern, Acme Corp"
+
+
 def test_structure_resume_rejects_oversized_text(monkeypatch):
     monkeypatch.setenv("MAX_TEXT_CHARS", "10")
 
