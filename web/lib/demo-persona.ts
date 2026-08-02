@@ -107,7 +107,7 @@ export const DEMO_RESUME: DemoSection[] = [
                 sources: ["NCS-01", "NCS-02"],
               },
               {
-                text: "Shipped the club's production website in Next.js, TypeScript, and Tailwind, backed by 15+ reusable React components across 4 feature areas.",
+                text: "Delivered the society's Next.js website (TypeScript, Tailwind) backed by a library of 15+ reusable components across 4 feature areas.",
                 sources: ["NCS-01", "NCS-02"],
               },
             ],
@@ -213,7 +213,7 @@ export const DEMO_RESUME: DemoSection[] = [
                 sources: ["LOG-03"],
               },
               {
-                text: "Used Docker Compose to containerize and deploy the app end to end.",
+                text: "Moved the app from local development to a live deployment using Docker Compose.",
                 sources: ["LOG-03"],
               },
             ],

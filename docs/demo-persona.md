@@ -79,7 +79,7 @@
 - original: "Worked on the club website using React."
 - rewrite 1: "Built and deployed the society's website with Next.js, TypeScript, and Tailwind, creating 15+ reusable components across 4 feature areas."
 - rewrite 2: "Developed 15+ reusable React components across 4 feature areas for the society's Next.js/TypeScript site."
-- rewrite 3: "Shipped the club's production website in Next.js, TypeScript, and Tailwind, backed by 15+ reusable React components across 4 feature areas."
+- rewrite 3: "Delivered the society's Next.js website (TypeScript, Tailwind) backed by a library of 15+ reusable components across 4 feature areas."
 
 **NCS-B** — sources: `NCS-03`, `NCS-04` (all three rewrites)
 - original: "Improved site performance and helped with deploys."
@@ -113,7 +113,7 @@
 - original: "Put the app in Docker and got it running online."
 - rewrite 1: "Containerized the app with Docker Compose and deployed it to production."
 - rewrite 2: "Packaged the full stack into Docker Compose services and shipped a deployed instance."
-- rewrite 3: "Used Docker Compose to containerize and deploy the app end to end."
+- rewrite 3: "Moved the app from local development to a live deployment using Docker Compose."
 
 ### TrailScout
 
