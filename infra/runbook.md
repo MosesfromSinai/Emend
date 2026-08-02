@@ -103,15 +103,15 @@ cache — the build itself fails if the offline verification compile fails.
 
 ## Contract assumptions baked into infra (Workflow B/D, please confirm)
 
-The Dockerfiles / compose / fly.toml assume, per the brief's architecture:
+The Dockerfiles / compose / railway.json assume, per the brief's architecture:
 
 - `api/requirements.txt` exists and includes `uvicorn` + `fastapi`; the app object
   is `api/main.py:app` (image CMD `uvicorn api.main:app`).
-- The api exposes `GET /health` (fly.toml's HTTP check hits it).
+- The api exposes `GET /health` (railway.json's healthcheckPath hits it).
 - The api reads `DATABASE_URL` (compose provides a psycopg3-style
   `postgresql+psycopg://` URL — adjust the driver suffix if B picks a different one)
-  and writes PDFs under `ARTIFACTS_DIR` (`/data/artifacts` in prod, on the Fly
-  volume).
+  and writes PDFs under `ARTIFACTS_DIR` (`/data/artifacts` in prod, on the
+  Railway volume).
 - `web/` has standard `package.json` scripts (`dev`, `build`, `start`) and a
   committed `package-lock.json`.
 
