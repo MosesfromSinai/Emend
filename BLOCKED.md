@@ -29,14 +29,17 @@ not need a key and is done and verified.
 
 ## Phase 4 (deploy) needs accounts and credentials
 
-**What's blocked:** the whole deploy phase — Neon (Postgres), Fly.io (api
-+ volume + secrets + `FLY_API_TOKEN` for the GitHub Actions deploy
+**What's blocked:** the whole deploy phase — Neon (Postgres), Railway (api
++ volume + secrets + `RAILWAY_TOKEN` for the GitHub Actions deploy
 workflow), Vercel (web) all need accounts only you can create/authorize.
 
 **What I need from you:** either create these accounts and share the
-tokens/connection strings for me to wire into `infra/fly.toml` /
+tokens/connection strings for me to wire into `infra/railway.json` /
 `infra/docker-compose.yml` / repo secrets, or tell me to walk you through
 creating them together.
 
-**What I did instead:** left Phase 4 planned but unstarted in `PHASES.md`;
-nothing in the codebase depends on this being resolved before it is.
+**What I did instead:** built the Railway deploy config
+(`infra/railway.json`, `.github/workflows/deploy.yml`) and the Neon +
+Railway + Vercel production setup steps in `infra/runbook.md` on
+`feat/infra/railway-deploy`, so this is ready to run the moment accounts
+exist. Nothing in the codebase depends on this being resolved before it is.

@@ -49,9 +49,10 @@ complete. Remaining open item is the blocked real-mode eval numbers above.
 - Get a working `ANTHROPIC_API_KEY` (see `BLOCKED.md`) and fill in
   `docs/evals.md`'s real numbers.
 - **Phase 4 — Deploy + finish line** (blocked on accounts/credentials, see
-  `BLOCKED.md`): Neon (Postgres) + Fly.io (api, volume, secrets) + Vercel
+  `BLOCKED.md`): Neon (Postgres) + Railway (api, volume, secrets) + Vercel
   (web) accounts and first deploy with `MOCK=1`; flip to `MOCK=0` once real
   eval numbers land; branch protection on `main`; README architecture
   diagram + demo GIF + real eval numbers; phone check of the M1 flow
-  against the deployed URL.
+  against the deployed URL. Deploy config for Railway (`infra/railway.json`,
+  `.github/workflows/deploy.yml`) is ready on `feat/infra/railway-deploy`.
 

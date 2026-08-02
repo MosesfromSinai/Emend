@@ -7,7 +7,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 # Ensure the repo root is importable so `api.*` resolves when alembic is run
-# from anywhere (fly release command runs from the image workdir /app).
+# from anywhere (the pre-deploy command runs from the image workdir /app).
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from api import models  # noqa: E402,F401  (imported for metadata side effects)
