@@ -17,41 +17,46 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
 
 ## Production setup (run once, in this order)
 
-1. **Neon** — create a project + database. Copy the pooled connection string.
-2. **Fly.io** — from the repo root:
+1. **Railway** — create a project with two services from the repo root:
    ```sh
-   fly apps create emend-api                    # update app name in infra/fly.toml if different
-   fly volumes create emend_artifacts --region sjc --size 1
-   fly secrets set DATABASE_URL='<neon-url>' ANTHROPIC_API_KEY='<key>'
-   fly deploy --config infra/fly.toml
+   railway login
+   railway init                              # new project
+   railway add --database postgres           # managed Postgres, same project
+   railway up --service api                  # builds infra/docker/api.Dockerfile
+   railway volume add --mount-path /data --service api
+   railway variables --service api \
+     --set "CORS_ORIGINS=https://<vercel-domain>" \
+     --set "SESSION_COOKIE_SAMESITE=none" \
+     --set "SESSION_COOKIE_SECURE=1" \
+     --set "MOCK=1"
    ```
-3. **GitHub** — repo → Settings → Secrets → Actions: add `FLY_API_TOKEN`
-   (`fly tokens create deploy`). After this, every green CI run on `main`
-   auto-deploys the api via `.github/workflows/deploy.yml`.
-4. **Vercel** — import the GitHub repo, set *Root Directory* to `web/`, add env
-   `NEXT_PUBLIC_API_URL=https://emend-api.fly.dev`. Vercel auto-deploys `main`
-   and previews PRs; no workflow file needed.
+   `DATABASE_URL` is injected automatically when the Postgres plugin and the
+   api service share a project. Railway reads `infra/railway.json` for build
+   + deploy config (point the service's *Config File Path* setting at it if
+   it isn't picked up automatically). Set `ANTHROPIC_API_KEY` only when
+   flipping to `MOCK=0`.
+2. **GitHub** — repo → Settings → Secrets → Actions: add `RAILWAY_TOKEN`
+   (Railway dashboard → project → Settings → Tokens → create a project
+   token). After this, every green CI run on `main` auto-deploys the api via
+   `.github/workflows/deploy.yml`.
+3. **Vercel** — import the GitHub repo, set *Root Directory* to `web/`, add env
+   `NEXT_PUBLIC_API_URL=https://<railway-api-domain>`. Vercel auto-deploys
+   `main` and previews PRs; no workflow file needed.
 
 ## Secrets map
 
 | Secret | Where it lives | Used by |
 |---|---|---|
-| `DATABASE_URL` | Fly secrets (prod) / compose env (dev) | api |
-| `ANTHROPIC_API_KEY` | Fly secrets (prod) / `.env` (dev, MOCK=0 only) | core via api |
-| `FLY_API_TOKEN` | GitHub Actions secrets | deploy workflow |
+| `DATABASE_URL` | Railway (auto-injected from the Postgres plugin) / compose env (dev) | api |
+| `ANTHROPIC_API_KEY` | Railway variables (prod) / `.env` (dev, MOCK=0 only) | core via api |
+| `RAILWAY_TOKEN` | GitHub Actions secrets | deploy workflow |
 | `NEXT_PUBLIC_API_URL` | Vercel env / `.env` | web |
 
-## Migrations on deploy (for Workflow B to wire up)
+## Migrations on deploy
 
-Add to `infra/fly.toml` once Alembic exists in `api/`:
-
-```toml
-[deploy]
-  release_command = "alembic -c api/alembic.ini upgrade head"
-```
-
-Release commands run against the new image before traffic switches; a failing
-migration aborts the deploy.
+`infra/railway.json`'s `deploy.preDeployCommand` runs
+`alembic -c api/alembic.ini upgrade head` against the new deployment before
+it takes traffic; a failing migration aborts the deploy.
 
 ## LaTeX sandbox — how it's hardened
 
