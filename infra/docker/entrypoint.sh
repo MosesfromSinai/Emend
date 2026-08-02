@@ -5,4 +5,6 @@ set -e
 ARTIFACTS="${ARTIFACTS_DIR:-/data/artifacts}"
 mkdir -p "$ARTIFACTS"
 chown appuser:appuser "$ARTIFACTS"
-exec gosu appuser "$@"
+# Railway assigns its own PORT and healthchecks that port directly; compose
+# and other hosts get the Dockerfile's default of 8000.
+exec gosu appuser "$@" --port "${PORT:-8000}"
