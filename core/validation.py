@@ -34,6 +34,19 @@ class GroundingError(ValueError):
     """Raised when generated content is not grounded in confirmed facts."""
 
 
+def _numeric_tokens(text: str) -> set[str]:
+    """Every integer, decimal, percentage, or +-suffixed count in `text`.
+
+    Per the brief's "no derived numbers" rule: a bullet may only reuse a
+    numeric token that appears literally in its cited facts. Percentages or
+    deltas computed from two stated values (e.g. "80%" derived from "45" and
+    "10", or "27" derived from "62" and "89") are not direct paraphrases —
+    they're new claims a deterministic pass can catch, even though "the
+    arithmetic is correct" is a judgment only the LLM judge could make.
+    """
+    return set(NUMBER_PATTERN.findall(text))
+
+
 def _content_words(text: str) -> set[str]:
     return set(WORD_PATTERN.findall(text.lower())) - STOP_WORDS
 
@@ -67,9 +80,7 @@ def _validate_sections(
                     f"unknown fact ids or outside-section ids: {sorted(unknown_ids)}"
                 )
             cited_text = " ".join(facts[fact_id] for fact_id in bullet.source_fact_ids)
-            new_numbers = set(NUMBER_PATTERN.findall(bullet.text)) - set(
-                NUMBER_PATTERN.findall(cited_text)
-            )
+            new_numbers = _numeric_tokens(bullet.text) - _numeric_tokens(cited_text)
             if new_numbers:
                 raise GroundingError(f"unsupported numbers: {sorted(new_numbers)}")
             if not _has_fact_word_overlap(bullet.text, cited_text):
