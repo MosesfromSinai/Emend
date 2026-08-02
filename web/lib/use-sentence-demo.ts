@@ -20,9 +20,18 @@ export function useSentenceDemo() {
   const [selected, setSelected] = useState<string | null>(null);
   const [sentences, setSentences] = useState<Record<string, BulletState>>({});
 
-  // deselect on any click outside a bullet — bullet clicks stopPropagation
+  // Deselect on any click outside a bullet. React 17+ delegates synthetic
+  // events to the app root, not `document` — a bullet's `stopPropagation()`
+  // only blocks other React handlers, not this raw listener, which still
+  // sees every native click. So check the real target instead of relying
+  // on propagation being stopped.
   useEffect(() => {
-    const onDocClick = () => setSelected(null);
+    const onDocClick = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("[data-demo-interactive]")) {
+        return;
+      }
+      setSelected(null);
+    };
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
   }, []);

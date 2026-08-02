@@ -27,6 +27,7 @@ export function DemoBulletRow({
   return (
     <div>
       <div
+        data-demo-interactive
         onClick={(e) => {
           e.stopPropagation();
           if (!selected) onSelect();
@@ -104,6 +105,7 @@ function DemoBulletToolbar({
 
   return (
     <div
+      data-demo-interactive
       onClick={(e) => e.stopPropagation()}
       className="my-1.5 flex flex-wrap items-center gap-2.5 rounded-lg bg-code-pane px-3 py-2.5"
     >
