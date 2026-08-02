@@ -30,7 +30,7 @@ class Settings:
     )
     session_cookie_name: str = "emend_session"
     session_cookie_max_age: int = 60 * 60 * 24 * 365
-    # Vercel (web) and Fly (api) are cross-site in prod: set
+    # Vercel (web) and Railway (api) are cross-site in prod: set
     # SESSION_COOKIE_SAMESITE=none + SESSION_COOKIE_SECURE=1 there.
     session_cookie_secure: bool = field(
         default_factory=lambda: _env_bool("SESSION_COOKIE_SECURE", False)

@@ -14,7 +14,7 @@ prove the seams work.
 |---|---|---|
 | `core/schemas.py` | The brief's Pydantic contract, transcribed exactly — no helpers, no extras | **A (Moses)** from here on; C only bootstrapped it |
 | `latex/` | Done: `render_and_compile()`, Jake's template, injection-safe escaping, `% grounded:` receipts on every bullet, sandboxed Tectonic wrapper, 27 tests | C (Patrick) |
-| `infra/` | docker-compose, api/web Dockerfiles, cache-warm script, fly.toml, runbook | C (Patrick) |
+| `infra/` | docker-compose, api/web Dockerfiles, cache-warm script, railway.json, runbook | C (Patrick) |
 | `.github/workflows/` | CI (existence-guarded per area — your jobs auto-activate when your directory lands) + deploy | C (Patrick) |
 | `ruff.toml`, `.gitignore` | Shared lint config (py312) and ignores | shared |
 
@@ -27,7 +27,7 @@ your PR. You do not need to touch CI to onboard.
 
 ## 2. What the platform already assumes about your part
 
-These assumptions are baked into compose/Docker/fly.toml. They're all standard, but
+These assumptions are baked into compose/Docker/railway.json. They're all standard, but
 if your implementation differs, **say so before merging** — the fix belongs in
 `infra/`, and it's cheap if C knows early.
 
@@ -52,11 +52,11 @@ if your implementation differs, **say so before merging** — the fix belongs in
 **Workflow B (Aldrie, `api/`):**
 - `api/requirements.txt` exists and includes `fastapi` + `uvicorn` (+ your DB deps).
 - App object at `api/main.py:app` — the Docker image runs `uvicorn api.main:app`.
-- Expose `GET /health` returning 200 — Fly's health check and compose depend on it.
+- Expose `GET /health` returning 200 — Railway's health check and compose depend on it.
 - Read `DATABASE_URL` from env. Compose provides
   `postgresql+psycopg://emend:emend@postgres:5432/emend` (psycopg3 driver suffix —
   tell C if you pick psycopg2/asyncpg and we'll change compose, not you).
-- Write PDFs under `ARTIFACTS_DIR` env (`/data/artifacts` in prod = the Fly volume;
+- Write PDFs under `ARTIFACTS_DIR` env (`/data/artifacts` in prod = the Railway volume;
   a named volume in compose). Store paths, serve files session-checked.
 - `latex.render_and_compile(master, tailored|None) -> (tex, pdf_path, log)` is
   ready to call today. Failure mode: `pdf_path == ""` and `log` explains why (it
@@ -70,8 +70,8 @@ if your implementation differs, **say so before merging** — the fix belongs in
   field and the `.tex` artifact download. Receipts appear only on fact-backed
   experience/project bullets — coursework and skills are confirmed master data
   with no fact ids in the contract.
-- Alembic: when you add migrations, also add the release command to
-  `infra/fly.toml` (snippet ready in `infra/runbook.md`).
+- Alembic: when you add migrations, also add the pre-deploy command to
+  `infra/railway.json` (snippet ready in `infra/runbook.md`).
 
 **Workflow D (Brandon, `web/`):**
 - Standard Next.js layout in `web/` with `package.json` scripts `dev` / `build` /
@@ -82,7 +82,7 @@ if your implementation differs, **say so before merging** — the fix belongs in
 - Your fact-tag badges display the same `<ENTITY>-<NN>` ids the `.tex` receipts
   carry — one id vocabulary across the whole product.
 - The API base URL comes from `NEXT_PUBLIC_API_URL` (compose sets
-  `http://localhost:8000`; Vercel env sets the Fly URL).
+  `http://localhost:8000`; Vercel env sets the Railway URL).
 - Session cookie is httpOnly and set by the API — send `credentials: 'include'`
   on every fetch; never store identity client-side.
 - Until B's endpoints exist, build against the brief's API surface with
@@ -145,7 +145,7 @@ conventional commits, branches `feat/<area>/<slug>`).
 7. **D: `feat/web/live`** — swap mocks for real endpoints; dual view; async UX.
 8. **A: `feat/core/real-llm`** — real Anthropic calls behind the same signatures;
    `MOCK=1` stays the CI default. Then `feat/core/evals` (fixtures, metrics, cost).
-9. **C: deploy execution** — runbook's production setup (Neon → Fly → Vercel),
+9. **C: deploy execution** — runbook's production setup (Neon → Railway → Vercel),
    secrets, first deploy, then keep `main` auto-deploying.
 10. **All: hardening + README** (architecture diagram, demo GIF, eval numbers —
     the brief's "shared finish line").
@@ -233,7 +233,7 @@ grounding pass rate / coverage / cost on ≥5 postings.
 | Item | Needs | Owner |
 |---|---|---|
 | `DATABASE_URL` driver suffix (`+psycopg` assumed) | confirm when picking DB lib | B |
-| Fly app name `emend-api` + region `sjc` placeholders | confirm at deploy time | C |
+| Railway project/service names | confirm at deploy time | C |
 
 Closed:
 

@@ -46,8 +46,8 @@ FROM latex-sandbox AS runtime
 USER root
 COPY api/ api/
 # core/requirements.txt (already copied with core/ above) carries the anthropic
-# SDK the real pipeline needs. fly.toml sets MOCK=0, so without it every
-# request fails with "anthropic package is required when MOCK=0". Installed
+# SDK the real pipeline needs. Flipping the deployed MOCK var to "0" without it
+# fails every request with "anthropic package is required when MOCK=0". Installed
 # here rather than in latex-sandbox to keep that stage minimal and offline.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gosu \

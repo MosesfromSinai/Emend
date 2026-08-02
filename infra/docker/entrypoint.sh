@@ -1,5 +1,5 @@
 #!/bin/sh
-# Named and Fly volumes mount root-owned; the app runs as appuser.
+# Named and Railway volumes mount root-owned; the app runs as appuser.
 # Fix artifact-dir ownership, then drop privileges.
 set -e
 ARTIFACTS="${ARTIFACTS_DIR:-/data/artifacts}"
