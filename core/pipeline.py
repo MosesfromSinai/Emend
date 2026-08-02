@@ -41,6 +41,18 @@ PHONE_PATTERN = re.compile(r"\(?\+?\d[\d\s().-]{7,}\d")
 LINK_PATTERN = re.compile(r"(?:https?://|www\.|linkedin\.com/|github\.com/)\S+")
 BULLET_PATTERN = re.compile(r"^[•\-*·]+\s*")
 MAX_FACTS_PER_SECTION = 99  # fact ids carry a two-digit suffix
+SECTION_HEADER_PATTERN = re.compile(
+    r"^(?:work |professional |relevant )?experiences?:?$"
+    r"|^educations?:?$"
+    r"|^(?:technical |core )?skills:?$"
+    r"|^projects?:?$"
+    r"|^summary:?$"
+    r"|^objective:?$"
+    r"|^certifications?:?$"
+    r"|^awards?:?$"
+    r"|^publications?:?$",
+    re.IGNORECASE,
+)
 
 
 def _json_object_text(text: str) -> str:
