@@ -1,5 +1,6 @@
 import { LandingNav } from "@/components/landing/nav";
 import { Hero } from "@/components/landing/hero";
+import { ProofStrip } from "@/components/landing/proof-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { SentenceDemo } from "@/components/landing/sentence-demo";
 import { WhatItIs } from "@/components/landing/what-it-is";
@@ -12,6 +13,7 @@ export default function Home() {
     <main>
       <LandingNav />
       <Hero />
+      <ProofStrip />
       <HowItWorks />
       <SentenceDemo />
       <WhatItIs />

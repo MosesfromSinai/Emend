@@ -4,6 +4,14 @@ const PRODUCT_LINKS = [
   { href: "#what", label: "What it is" },
 ];
 
+// "Get started", not "Account" — there's no auth yet (see the brief's
+// reconciliation #2), so this column links to what actually exists rather
+// than a sign-in flow that doesn't.
+const GET_STARTED_LINKS = [
+  { href: "/app/workspace", label: "Tailor my resume" },
+  { href: "/app", label: "Upload existing resume" },
+];
+
 const LEGAL_LINKS = [
   { href: "#", label: "Privacy policy" },
   { href: "#", label: "Terms of service" },
@@ -35,7 +43,7 @@ function FooterColumn({
 export function Footer() {
   return (
     <div className="border-t border-em-softb bg-paper">
-      <div className="mx-auto grid max-w-270 grid-cols-1 gap-8 px-8 py-12 sm:grid-cols-[2fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-270 grid-cols-1 gap-8 px-8 py-12 sm:grid-cols-[2fr_1fr_1fr_1fr]">
         <div>
           <div className="mb-2.5 flex items-center gap-2.25">
             <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-ink font-serif text-xs font-bold text-paper">
@@ -49,6 +57,7 @@ export function Footer() {
           </p>
         </div>
         <FooterColumn heading="Product" links={PRODUCT_LINKS} />
+        <FooterColumn heading="Get started" links={GET_STARTED_LINKS} />
         <FooterColumn heading="Legal" links={LEGAL_LINKS} />
       </div>
       <div className="mx-auto max-w-270 px-8 pb-7 text-xs text-[#a89f8c]">
