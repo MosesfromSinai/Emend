@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { MasterResumeEditor } from "@/components/master-resume-editor";
+import { ParseError } from "@/components/parse-error";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, MAX_TEXT_CHARS, importResume, saveMaster } from "@/lib/api";
+import { MAX_TEXT_CHARS, importResume, saveMaster } from "@/lib/api";
 import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
@@ -17,7 +18,9 @@ export default function OnboardingPage() {
   const [text, setText] = useState("");
   const [master, setMaster] = useState<MasterResume | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // the error object, not a flattened string: ParseError decides what of it
+  // a person should see, and keeps the raw text behind a toggle
+  const [error, setError] = useState<unknown>(null);
 
   async function extractFacts() {
     setBusy(true);
@@ -26,7 +29,7 @@ export default function OnboardingPage() {
       setMaster(await importResume(text));
       setStep("confirm");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong.");
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -40,7 +43,7 @@ export default function OnboardingPage() {
       await saveMaster(master);
       router.push("/app/workspace");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong.");
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -56,7 +59,7 @@ export default function OnboardingPage() {
             anything that&apos;s off before confirming.
           </p>
         </div>
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        <ParseError error={error} />
         <MasterResumeEditor master={master} onChange={setMaster} />
         <div className="flex items-center gap-3">
           <Button onClick={confirm} disabled={busy}>
@@ -79,7 +82,7 @@ export default function OnboardingPage() {
           in LaTeX. Nothing is saved until you confirm.
         </p>
       </div>
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      <ParseError error={error} />
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
