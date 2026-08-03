@@ -1,3 +1,5 @@
+import { DEMO_SENTENCE_COUNT } from "@/lib/demo-persona";
+
 export function HeroMock() {
   return (
     <div className="relative">
@@ -58,7 +60,7 @@ export function HeroMock() {
               </div>
             </div>
             <span className="rounded-full bg-[#eef0e2] px-3 py-1 text-[11px] font-semibold text-[#5a6a34]">
-              ✓ grounded 12/12
+              ✓ grounded {DEMO_SENTENCE_COUNT}/{DEMO_SENTENCE_COUNT}
             </span>
           </div>
         </div>

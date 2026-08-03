@@ -1,13 +1,19 @@
 import { Reveal } from "@/components/landing/reveal";
 import { PipelineDiagram } from "@/components/landing/pipeline-diagram";
+import { DEMO_SENTENCE_COUNT } from "@/lib/demo-persona";
 
 // Stat cards are claims true by construction, not usage metrics — the brief
 // requires "real measured numbers only" and this is a pre-launch product
-// with no users yet. 12/12 is the shipped demo's own sentence count; .tex
-// describes the deliverable; the match-score claim is a fact about the
-// architecture (core/matching.py never calls the LLM), not a benchmark.
+// with no users yet. The grounded count is computed from the demo's own
+// sentence count, never hardcoded — a hardcoded number drifts the moment a
+// bullet is added or removed. .tex describes the deliverable; the
+// match-score claim is a fact about the architecture (core/matching.py
+// never calls the LLM), not a benchmark.
 const STATS = [
-  { value: "12/12", label: "demo lines grounded in confirmed facts, above" },
+  {
+    value: `${DEMO_SENTENCE_COUNT}/${DEMO_SENTENCE_COUNT}`,
+    label: "demo lines grounded in confirmed facts, above",
+  },
   { value: ".tex", label: "full LaTeX source — your resume is yours" },
   { value: "0", label: "LLM calls in your match score — pure keyword math" },
 ];

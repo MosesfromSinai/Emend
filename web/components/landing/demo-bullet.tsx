@@ -2,6 +2,7 @@
 
 import type { BulletState } from "@/lib/use-sentence-demo";
 import type { DemoBullet } from "@/lib/demo-persona";
+import { cn } from "@/lib/utils";
 
 export function DemoBulletRow({
   bulletKey,
@@ -33,8 +34,10 @@ export function DemoBulletRow({
           e.stopPropagation();
           if (!selected) onSelect();
         }}
-        className="-mx-2 flex cursor-pointer items-baseline gap-2 rounded-md px-2 py-1 transition-colors"
-        style={{ background: selected ? "var(--em-soft)" : "transparent" }}
+        className={cn(
+          "-mx-2 flex cursor-pointer items-baseline gap-2 rounded-md px-2 py-1 transition-colors",
+          selected ? "bg-em-soft" : "hover:bg-em-soft"
+        )}
       >
         <span className="text-[12.5px] text-[#444]">•</span>
         <span
@@ -65,11 +68,7 @@ export function DemoBulletRow({
           {shown}
         </span>
         <span className="shrink-0 font-mono text-[9.5px] font-semibold text-em-accent">
-          {state.orig
-            ? "original"
-            : hasCustom
-              ? "edited ✎"
-              : `% ${variant.sources.join(", ")}`}
+          {state.orig ? "original" : hasCustom ? "edited ✎" : `% ${bullet.source}`}
         </span>
       </div>
       {selected && (
@@ -89,15 +88,14 @@ function DemoBulletToolbar({
   onPatch: (next: Partial<BulletState>) => void;
 }) {
   const hasCustom = state.custom != null;
-  const variant = bullet.variants[state.idx];
   const cycle = (delta: 1 | -1) =>
     onPatch({ idx: (state.idx + delta + 3) % 3, orig: false, custom: null, dirty: false, rev: state.rev + 1 });
 
   const modeLabel = state.orig
     ? "your original wording"
     : hasCustom
-      ? `your edit · based on fact ${variant.sources[0]}`
-      : `rewrite ${state.idx + 1} of 3 · fact ${variant.sources.join(", ")}`;
+      ? `your edit · based on fact ${bullet.source}`
+      : `rewrite ${state.idx + 1} of 3 · fact ${bullet.source}`;
 
   const origBtnLabel = state.orig
     ? hasCustom
