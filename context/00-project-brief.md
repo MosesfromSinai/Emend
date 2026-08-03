@@ -21,11 +21,11 @@ Each member pastes **this brief + their own workflow file** into Cowork and inst
 
 ## In scope — the shippable product
 
-Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import with an LLM-proposed fact schema gated by a **user confirmation screen** · refactor mode (no JD) · tailor mode (deterministic match score, hit/miss keyword chips, grounded rewriting, read-only provenance report) · dual-view workspace (react-pdf + copyable `.tex` pane) with downloads and print · **the Emend landing page** (built from the v2 design component, responsive) · async job UX with polling and surfaced compile logs · history list · eval suite of ≥5 real postings with reported numbers · deployed production URL · one-command local dev · CI per PR · seed script · README with architecture diagram and demo GIF.
+Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import with an LLM-proposed fact schema gated by a **user confirmation screen**, accepting either pasted text or a **PDF upload** · refactor mode (no JD) · tailor mode (deterministic match score, hit/miss keyword chips, grounded rewriting, read-only provenance report), fed by either pasted JD text or a **job-posting URL** (fetched and extracted server-side) · dual-view workspace (react-pdf + copyable `.tex` pane) with downloads and print · **the Emend landing page** (built from the v2 design component, responsive) · async job UX with polling and surfaced compile logs · history list · eval suite of ≥5 real postings with reported numbers · deployed production URL · one-command local dev · CI per PR · seed script · README with architecture diagram and demo GIF.
 
 ## Explicitly deferred — do NOT build
 
-Application autofill / browser extension · accounts & auth · job-URL ingestion · PDF upload · **live** per-sentence rewrite cycling or accept/reject editing in the workspace (the landing demo is scripted — see reconciliations) · chat refinement · diff views · in-browser `.tex` editing · rate limiting · Redis/queues · additional templates · object storage.
+Application autofill / browser extension · accounts & auth · **live** per-sentence rewrite cycling or accept/reject editing in the workspace (the landing demo is scripted — see reconciliations) · chat refinement · diff views · in-browser `.tex` editing · rate limiting · Redis/queues · additional templates · object storage.
 
 ## Design system ("Ink & Paper")
 
@@ -45,7 +45,7 @@ Application autofill / browser extension · accounts & auth · job-URL ingestion
 
 ### Design ↔ scope reconciliations (team decisions)
 
-1. **"Paste a link to the posting" field (hero + step 01):** job-URL ingestion is deferred — hide the field or disable it with a "coming soon" tooltip until it ships.
+1. **"Paste a link to the posting" field (hero + step 01) — SUPERSEDED, now in scope:** job-URL ingestion ships. The field accepts a URL; the api fetches it server-side (`httpx`), extracts JD text (`core.jd_text.html_to_jd_text`), and runs the normal `parse_jd` pipeline on the result. `POST /applications` takes `jd_text` or `jd_url` (never both — 422 if both are set); `GET /applications/{id}` reports back `jd_source_url` when the tailor ran from a URL. The field is no longer disabled or tooltipped once this ships.
 2. **Dark CTA band "Create a free account…":** accounts are deferred — reword the CTA (v1 is anonymous sessions); account copy returns when auth ships.
 3. **Interactive sentence demo:** on the landing page it is **scripted** (three pre-written grounded rewrites per sentence, ported from the design component; the click-to-edit behavior is real but client-side only). Live per-sentence cycling in the workspace is post-MVP.
 4. **Testimonials:** ship only real quotes. Invented testimonials would violate the product's own no-invented-claims brand — drop or replace the section until real users exist.
@@ -68,14 +68,15 @@ Application autofill / browser extension · accounts & auth · job-URL ingestion
 | LLM calls | `anthropic` SDK — tool-forced structured outputs; prompt caching; Sonnet tailors, Haiku structures/extracts/judges | A |
 | Data contracts | Pydantic v2 — `core/schemas.py` is the single source of truth | A |
 | Evals & tracing | pytest + `fixtures/` golden postings + JSONL trace/cost logs | A |
-| API + jobs | FastAPI with background tasks + DB status polling | B |
+| Resume/JD ingestion | `pypdf` (PDF text extraction) + `selectolax` (HTML → JD text) in `core/`, offline and pure Python | A |
+| API + jobs | FastAPI with background tasks + DB status polling; `httpx` for server-side job-posting URL fetch | B |
 | Database | PostgreSQL via SQLAlchemy 2 + Alembic; anonymous session scoping | B |
 | LaTeX rendering | Jinja2 with `\VAR{}`/`\BLOCK{}` delimiters + injection-safe escaping + grounding comments | C |
 | LaTeX compile | Tectonic `--untrusted`, pre-warmed cache, timeout/CPU/memory caps, non-root, in the api image | C |
 | CI/CD & deploy | GitHub Actions · docker-compose (web, api, postgres) · Vercel + Fly.io/Railway + Neon | C |
 | Frontend | Next.js App Router · Tailwind + shadcn/ui on the Ink & Paper tokens · react-pdf · plain `fetch` | D |
 
-**Removed as redundant (team vote to re-add):** agent frameworks, Langfuse, promptfoo, TanStack Query/Zod, scraping libs, rank_bm25, slowapi, Redis/arq/Upstash, Auth.js/PyJWT, latexdiff, CodeMirror, WXT/Playwright, R2, PyMuPDF.
+**Removed as redundant:** agent frameworks, Langfuse, promptfoo, TanStack Query/Zod, rank_bm25, slowapi, Redis/arq/Upstash, Auth.js/PyJWT, latexdiff, CodeMirror, WXT/Playwright, R2. (`scraping libs` and `PyMuPDF` were on this list when job-URL ingestion and PDF upload were deferred; superseded above by `selectolax` and `pypdf` respectively now that both are in scope.)
 
 ## Contracts — change only via a `contract` PR approved by all four
 
@@ -89,7 +90,7 @@ MasterResume{name, email, phone, links: list[str], education: list[Education],
              experiences: list[Experience], projects: list[Project],
              skills: dict[str, list[str]]}
 JDExtract{company, title, hard_skills, soft_requirements, responsibilities,
-          keywords: list[str]}
+          keywords: list[str], source_url: str | None = None}
 TailoredBullet{text, source_fact_ids: list[str]}
 TailoredSection{ref_id, bullets: list[TailoredBullet]}
 TailoredResume{summary_of_strategy, experiences: list[TailoredSection],
@@ -101,17 +102,20 @@ Report{match_score: float, matched_keywords, missing_keywords,
 
 API surface (the generated OpenAPI spec is the frontend's contract):
 ```
-POST /resumes/import {text}          -> proposed MasterResume (not saved)
+POST /resumes/import {text} | multipart file=<pdf>
+                                      -> proposed MasterResume (not saved), either way
 PUT  /resumes/master {MasterResume}  -> save confirmed   |   GET /resumes/master
-POST /applications {jd_text?}        -> {id}   (null jd_text = refactor mode)
-GET  /applications/{id}              -> status, match data, report, inline tex, artifact URLs
+POST /applications {jd_text?, jd_url?} -> {id}   (both null = refactor mode; both set = 422)
+GET  /applications/{id}              -> status, match data, report, inline tex, artifact URLs,
+                                         jd_source_url (null unless tailored from a URL)
 GET  /applications                   -> session's history
 GET  /artifacts/{version_id}.pdf|.tex -> session-checked file response
 ```
+`POST /resumes/import`'s multipart path and `jd_url` fetch/extraction are contract-documented here now; implementation is a later task, not part of this change.
 
 LaTeX entrypoint: `latex.render_and_compile(master: MasterResume, tailored: TailoredResume | None) -> (tex: str, pdf_path: str, log: str)` — `tailored=None` renders the full master resume; rendered bullets carry `% grounded: <fact ids>` comments.
 
-Database tables: `sessions(id, created_at)` · `master_resumes(id, session_id, data JSONB, updated_at)` · `applications(id, session_id, mode, jd_text NULL, status queued|running|done|failed, match_score, matched_keywords JSONB, missing_keywords JSONB, error, created_at)` · `resume_versions(id, application_id, tex TEXT, pdf_path, report JSONB, created_at)`.
+Database tables: `sessions(id, created_at)` · `master_resumes(id, session_id, data JSONB, updated_at)` · `applications(id, session_id, mode, jd_text NULL, jd_url TEXT NULL, status queued|running|done|failed, match_score, matched_keywords JSONB, missing_keywords JSONB, error, created_at)` · `resume_versions(id, application_id, tex TEXT, pdf_path, report JSONB, created_at)`.
 
 **Mock rule:** `core` ships `MOCK=1` (deterministic pass-through, no API key). Every other workflow builds against mock first, real later.
 
