@@ -5,7 +5,8 @@ import { Reveal } from "@/components/landing/reveal";
 import {
   DEMO_RESUME,
   PERSONA_CONTACT,
-  PERSONA_EDUCATION,
+  PERSONA_EDUCATION_COURSEWORK,
+  PERSONA_EDUCATION_HEADER,
   PERSONA_NAME,
   PERSONA_SKILLS,
 } from "@/lib/demo-persona";
@@ -46,17 +47,26 @@ export function SentenceDemo() {
           <div className="mt-3.5 mb-2.5 border-b border-[#111] pb-0.5 font-serif text-[13px] font-bold tracking-widest text-[#111]">
             EDUCATION
           </div>
-          <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-3">
-            <span className="text-[13.5px] font-semibold text-ink">
-              {PERSONA_EDUCATION.title} — {PERSONA_EDUCATION.sub}
-            </span>
-            <span className="font-mono text-[11.5px] text-[#8f8874]">
-              {PERSONA_EDUCATION.dates}
-            </span>
+          <div
+            className="mb-2.5 rounded-lg border-[1.5px] border-transparent px-4 py-3 transition-colors hover:border-em-softb"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <span className="text-[13.5px] font-semibold text-ink">
+                {PERSONA_EDUCATION_HEADER.title} — {PERSONA_EDUCATION_HEADER.sub}
+              </span>
+              <span className="font-mono text-[11.5px] text-[#8f8874]">
+                {PERSONA_EDUCATION_HEADER.dates}
+              </span>
+            </div>
+            <DemoBulletRow
+              bulletKey="edu/course"
+              bullet={PERSONA_EDUCATION_COURSEWORK}
+              state={get("edu/course")}
+              selected={selected === "edu/course"}
+              onSelect={() => setSelected("edu/course")}
+              onPatch={(next) => patch("edu/course", next)}
+            />
           </div>
-          <p className="mb-3 text-[13px] leading-relaxed text-[#333]">
-            {PERSONA_EDUCATION.text}
-          </p>
         </div>
 
         {DEMO_RESUME.map((section) => (
@@ -102,7 +112,26 @@ export function SentenceDemo() {
         <div className="mt-3.5 mb-2.5 border-b border-[#111] pb-0.5 font-serif text-[13px] font-bold tracking-widest text-[#111]">
           TECHNICAL SKILLS
         </div>
-        <p className="text-[13px] leading-relaxed text-[#333]">{PERSONA_SKILLS}</p>
+        <div className="mb-2.5 rounded-lg border-[1.5px] border-transparent px-4 py-3 transition-colors hover:border-em-softb">
+          {PERSONA_SKILLS.map(({ label, bullet }) => {
+            const key = `skills/${bullet.source}`;
+            return (
+              <div key={key} className="flex items-baseline gap-2 text-[13px]">
+                <span className="w-36 shrink-0 font-semibold text-ink">{label}:</span>
+                <div className="flex-1">
+                  <DemoBulletRow
+                    bulletKey={key}
+                    bullet={bullet}
+                    state={get(key)}
+                    selected={selected === key}
+                    onSelect={() => setSelected(key)}
+                    onPatch={(next) => patch(key, next)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Reveal>
       <Reveal className="mt-9 text-center text-[13px] text-[#8f8874]">
         Every rewrite above is generated from the same confirmed fact — never
