@@ -277,6 +277,53 @@ def test_structured_tool_does_not_mutate_the_model_schema():
 # --- retry -------------------------------------------------------------------
 
 
+def _raw_payload_with_fact(fact_text: str) -> dict:
+    return {
+        "name": "Ada Lovelace",
+        "email": "",
+        "phone": "",
+        "links": [],
+        "education": [],
+        "experiences": [
+            {
+                "company": "Babbage & Co",
+                "title": "Engineer",
+                "location": "London, UK",
+                "start": "Jun 2023",
+                "end": "Aug 2023",
+                "facts": [{"text": fact_text}],
+            }
+        ],
+        "projects": [],
+        "skills": {},
+    }
+
+
+def test_structure_repair_retry_calls_out_a_segmentation_failure():
+    # a leaked header, not a stray fragment -- the retry has to say so
+    leaked = _raw_payload_with_fact("Technical Lead Jun 2025 - Aug 2025")
+    clean = _raw_payload_with_fact("Wrote the first published algorithm.")
+    client = FakeClient(leaked, clean)
+
+    structure_resume("messy resume text", client=client)
+
+    retry = client.calls[1]["messages"][0]["content"]
+    assert "entry boundaries in the wrong place" in retry
+    assert "starts a NEW entry" in retry
+
+
+def test_structure_repair_retry_stays_plain_for_an_ordinary_fragment():
+    fragment = _raw_payload_with_fact("and validated the results.")
+    clean = _raw_payload_with_fact("Wrote the first published algorithm.")
+    client = FakeClient(fragment, clean)
+
+    structure_resume("messy resume text", client=client)
+
+    retry = client.calls[1]["messages"][0]["content"]
+    assert "Fix these specific facts" in retry
+    assert "entry boundaries" not in retry
+
+
 def test_structured_call_retries_once_on_invalid_output():
     jd = _jd()
     client = FakeClient({"company": "Acme"}, jd.model_dump())

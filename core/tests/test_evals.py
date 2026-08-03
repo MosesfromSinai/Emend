@@ -16,7 +16,14 @@ from core.pipeline import _fact_violations, parse_jd, real_tailor_result, struct
 RESUME_FIXTURES = Path(__file__).parent.parent / "fixtures" / "resumes"
 POSTING_FIXTURES = Path(__file__).parent.parent / "fixtures" / "postings"
 PDF_FIXTURES = Path(__file__).parent.parent / "fixtures" / "pdfs"
-FACT_ID_SHAPE = re.compile(r"^[A-Z]{2,5}[0-9]?-[0-9]{2}$")
+FACT_ID_SHAPE = re.compile(r"^[A-Z]{2,6}[0-9]?-[0-9]{2}$")
+# shapes that are entry metadata, never fact content
+NON_FACT_SHAPES = (
+    re.compile(r"(?:[A-Za-z]{3,9}\.?\s*\d{4}|\d{1,2}/\d{4})\s*-\s*"
+               r"(?:[A-Za-z]{3,9}\.?\s*\d{4}|\d{1,2}/\d{4}|Present|Current)", re.IGNORECASE),
+    re.compile(r"^[A-Z][A-Za-z.\s]+,\s*[A-Z]{2}\.?$"),
+    re.compile(r"^[A-Za-z/ ]+:\s"),
+)
 # hard mid-sentence wraps, a hyphenated line-wrap, a multi-sentence bullet,
 # and three different bullet glyphs (bullet count -> 5 facts total)
 WRAPPED_RESUME_SENTENCE_COUNT = 5
@@ -76,6 +83,57 @@ def test_wrapped_resume_structures_cleanly():
 
     for fact_id in master.all_fact_ids():
         assert FACT_ID_SHAPE.match(fact_id), fact_id
+
+
+def test_two_line_header_resume_segments_every_entry():
+    """The acceptance bar for the entry-segmentation fix.
+
+    Entries in this fixture run together with no blank lines between them,
+    so the only boundary signal is Jake's two-line header (title + dates,
+    then org + location). Getting it wrong collapses a whole section into
+    one entry and bleeds one entity's id prefix across all of them.
+    """
+    text = (RESUME_FIXTURES / "two_line_headers.txt").read_text()
+
+    master = structure_resume(text)
+
+    assert [(e.company, e.title, e.start, e.end) for e in master.experiences] == [
+        ("General Atomics", "Software Engineering Intern", "Jun 2025", "Sep 2025"),
+        ("ACM @ UCR", "Technical Lead", "", "2025"),
+        (
+            "NASA California Space Grant Consortium",
+            "Undergraduate Research Assistant",
+            "Jan 2024",
+            "Dec 2024",
+        ),
+    ]
+
+    assert [p.name for p in master.projects] == ["Emend", "ThreatSense", "TermIt"]
+    assert all(p.tech for p in master.projects)
+
+    assert len(master.education) == 1
+    assert master.education[0].school == "University of California, Riverside"
+    assert master.education[0].coursework
+    assert "Operating Systems" in master.education[0].coursework
+
+    assert set(master.skills) == {
+        "Languages",
+        "Frameworks/Libraries",
+        "Systems/Platforms",
+        "Tools/Testing",
+    }
+
+    # one prefix per entry -- never one spanning several
+    assert [e.id for e in master.experiences] == ["GA", "ACM", "NASA"]
+    assert [p.id for p in master.projects] == ["EMEND", "TS", "TERMIT"]
+
+    for entry in [*master.experiences, *master.projects]:
+        company = getattr(entry, "company", "") or getattr(entry, "name", "")
+        title = getattr(entry, "title", "")
+        for fact in entry.facts:
+            assert _fact_violations(fact.text, company, title) == []
+            for shape in NON_FACT_SHAPES:
+                assert not shape.search(fact.text), fact.text
 
 
 def test_pdf_resume_extracts_and_structures_without_crashing():

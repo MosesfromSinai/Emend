@@ -4,6 +4,9 @@ from core.llm import LLMUnavailableError
 from core.pipeline import (
     _entity_prefix,
     _fact_violations,
+    _parse_education_entry,
+    _split_entries,
+    _split_location,
     mock_refactor_result,
     mock_refactor_resume,
     mock_tailor_resume,
@@ -25,14 +28,129 @@ def test_entity_prefix_prefers_an_existing_acronym():
     assert _entity_prefix("NASA California Space Grant Consortium", set()) == "NASA"
 
 
-def test_entity_prefix_truncates_a_single_word_name():
-    assert _entity_prefix("TrailScout", set()) == "TRAIL"
+def test_entity_prefix_splits_a_camelcase_name_on_its_seam():
+    assert _entity_prefix("TrailScout", set()) == "TS"
+    assert _entity_prefix("ThreatSense", set()) == "TS"
+
+
+def test_entity_prefix_keeps_a_name_whose_camel_tail_is_too_short():
+    # "TermIt" -> Term + It; a two-letter tail isn't a word worth an initial
+    assert _entity_prefix("TermIt", set()) == "TERMIT"
+    assert _entity_prefix("Emend", set()) == "EMEND"
 
 
 def test_entity_prefix_adds_numeric_suffix_on_collision():
     used: set[str] = set()
     assert _entity_prefix("General Atomics", used) == "GA"
     assert _entity_prefix("General Atomics", used) == "GA2"
+
+
+def test_split_entries_breaks_at_each_dated_header():
+    lines = [
+        "Software Engineer Intern Jun 2025 - Sep 2025",
+        "General Atomics San Diego, CA",
+        "• Wrote tests.",
+        "Research Assistant Jan 2024 - Dec 2024",
+        "NASA Los Angeles, CA",
+        "• Analyzed telemetry.",
+    ]
+
+    assert _split_entries(lines, "experience") == [lines[:3], lines[3:]]
+
+
+def test_split_entries_breaks_when_the_date_is_on_the_second_header_line():
+    # "Technical Lead" carries no date of its own -- the line under it does
+    lines = [
+        "Software Engineer Intern Jun 2025 - Sep 2025",
+        "General Atomics San Diego, CA",
+        "• Wrote tests.",
+        "Technical Lead",
+        "ACM @ UCR Riverside, CA 2025",
+        "• Led four students.",
+    ]
+
+    assert _split_entries(lines, "experience") == [lines[:3], lines[3:]]
+
+
+def test_split_entries_breaks_projects_at_a_tech_header():
+    lines = [
+        "Emend | Python, FastAPI",
+        "• Built a resume service.",
+        "TermIt | C++, CMake",
+        "• Built a task manager.",
+    ]
+
+    assert _split_entries(lines, "project") == [lines[:2], lines[2:]]
+
+
+def test_split_location_prefers_the_reading_that_keeps_the_org_name_whole():
+    assert _split_location("University of California, Riverside Riverside, CA") == (
+        "University of California, Riverside",
+        "Riverside, CA",
+    )
+    assert _split_location("ACM @ UCR Riverside, CA") == ("ACM @ UCR", "Riverside, CA")
+    assert _split_location("General Atomics San Diego, CA") == (
+        "General Atomics",
+        "San Diego, CA",
+    )
+
+
+def test_parse_education_entry_reads_a_two_line_header():
+    education = _parse_education_entry(
+        [
+            "University of California, Riverside Riverside, CA",
+            "Bachelor of Science in Computer Science Expected Jun 2027",
+            "Coursework: Operating Systems, Edge Computing",
+        ]
+    )
+
+    assert education.school == "University of California, Riverside"
+    assert education.degree == "Bachelor of Science in Computer Science"
+    assert education.location == "Riverside, CA"
+    assert education.grad_date == "Expected Jun 2027"
+    assert education.coursework == ["Operating Systems", "Edge Computing"]
+
+
+def test_education_is_inferred_without_an_education_header():
+    # no "Education" line anywhere -- a degree phrase plus a school is enough
+    master = structure_resume(
+        "Sam Sample\n"
+        "sam@example.com\n"
+        "\n"
+        "Riverside State University Riverside, CA\n"
+        "Bachelor of Science in Computer Science Expected May 2027\n"
+        "\n"
+        "Experience\n"
+        "Software Engineer Intern Jun 2025 - Aug 2025\n"
+        "Acme Corp, San Diego, CA\n"
+        "• Built an internal tool for the support team.\n"
+    )
+
+    assert len(master.education) == 1
+    assert master.education[0].school == "Riverside State University"
+    assert master.education[0].degree == "Bachelor of Science in Computer Science"
+    assert [e.company for e in master.experiences] == ["Acme Corp"]
+
+
+def test_labeled_lines_become_skills_not_facts():
+    master = structure_resume(
+        "Sam Sample\n"
+        "\n"
+        "Experience\n"
+        "Software Engineer Intern Jun 2025 - Aug 2025\n"
+        "Acme Corp, San Diego, CA\n"
+        "• Built an internal tool for the support team.\n"
+        "\n"
+        "Technical Skills\n"
+        "Languages: Python, C++\n"
+        "Tools/Testing: pytest, GoogleTest\n"
+    )
+
+    assert master.skills == {
+        "Languages": ["Python", "C++"],
+        "Tools/Testing": ["pytest", "GoogleTest"],
+    }
+    assert all("Languages" not in f.text for f in master.experiences[0].facts)
 
 
 def test_fact_violations_flags_missing_terminal_punctuation():
