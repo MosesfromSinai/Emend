@@ -2,6 +2,8 @@ import pytest
 
 from core.llm import LLMUnavailableError
 from core.pipeline import (
+    _entity_prefix,
+    _fact_violations,
     mock_refactor_result,
     mock_refactor_resume,
     mock_tailor_resume,
@@ -12,6 +14,50 @@ from core.pipeline import (
 )
 from core.schemas import JDExtract
 from core.validation import validate_grounding
+
+
+def test_entity_prefix_uses_initials_for_multiword_names():
+    assert _entity_prefix("General Atomics", set()) == "GA"
+
+
+def test_entity_prefix_prefers_an_existing_acronym():
+    assert _entity_prefix("ACM @ UCR", set()) == "ACM"
+    assert _entity_prefix("NASA California Space Grant Consortium", set()) == "NASA"
+
+
+def test_entity_prefix_truncates_a_single_word_name():
+    assert _entity_prefix("TrailScout", set()) == "TRAIL"
+
+
+def test_entity_prefix_adds_numeric_suffix_on_collision():
+    used: set[str] = set()
+    assert _entity_prefix("General Atomics", used) == "GA"
+    assert _entity_prefix("General Atomics", used) == "GA2"
+
+
+def test_fact_violations_flags_missing_terminal_punctuation():
+    assert _fact_violations("Shipped a feature", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_fragment_continuation():
+    assert _fact_violations("and validated the results.", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_bare_date_range():
+    assert _fact_violations("Jun 2025 - Present", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_bare_city_state():
+    assert _fact_violations("San Diego, CA", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_restated_company_or_title():
+    assert _fact_violations("Acme.", "Acme", "Engineer")
+    assert _fact_violations("Engineer.", "Acme", "Engineer")
+
+
+def test_fact_violations_accepts_a_clean_sentence():
+    assert _fact_violations("Shipped a feature used by 100+ customers.", "Acme", "Engineer") == []
 
 
 def test_structure_resume_accepts_master_resume_json(sample_master):
