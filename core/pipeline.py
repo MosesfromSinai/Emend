@@ -19,7 +19,7 @@ from core.llm import (
     structured_call_with_usage,
 )
 from core.matching import keyword_match
-from core.normalize import unwrap_text
+from core.normalize import BULLET_START_PATTERN, unwrap_text
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     Education,
@@ -202,7 +202,9 @@ def _section_kind(header_line: str) -> str | None:
 
 
 def _looks_like_fact_line(line: str) -> bool:
-    return bool(BULLET_PATTERN.match(line)) or line.rstrip()[-1:] in (".", "!", "?")
+    # checked on raw, pre-unwrap lines, so recognize any bullet glyph
+    # unwrap_text would later normalize -- not just the plain-ASCII ones
+    return bool(BULLET_START_PATTERN.match(line)) or line.rstrip()[-1:] in (".", "!", "?")
 
 
 def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
