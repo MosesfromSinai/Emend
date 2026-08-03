@@ -4,40 +4,34 @@ Kept in one module so prompt revisions are a reviewable diff and the eval
 harness can attribute a metric change to a specific prompt version.
 """
 
-FACT_ID_RULES = """\
-Fact ids are the product's public surface: they appear verbatim in the LaTeX
-`% grounded:` receipts and in the web app's fact tags.
+STRUCTURE_SYSTEM = """\
+You convert a pasted resume into a structured fact schema, in two passes.
+The user will confirm every fact before anything is generated from it, so
+accuracy matters more than polish. Do not assign any ids -- a separate,
+deterministic step derives those from your output.
 
-- Format is <ENTITY>-<NN>: uppercase letters/digits, a hyphen, two digits.
-  Examples: GA-01, ACM-02, NASA-01.
-- <ENTITY> is a short uppercase abbreviation of the section it belongs to
-  (the employer for an experience, the project name for a project).
-- Every experience and project carries its own id in the same <ENTITY> form
-  with no numeric suffix (GA, ACM, NASA).
-- A fact id must begin with its section's id followed by a hyphen. Facts on
-  experience GA are GA-01, GA-02, ...; facts on project ACM are ACM-01, ...
-- Number facts sequentially from 01 within each section. Ids are unique
-  across the whole resume.\
-"""
+Pass 1 -- entry metadata. For each experience and project, pull the
+entry's own company (or project) name, title, location, start, and end
+straight from its header lines. This is metadata, never fact content -- a
+job title, a date range, or a bare city/state is never emitted as a fact.
 
-STRUCTURE_SYSTEM = f"""\
-You convert a pasted resume into a structured fact schema. The user will
-confirm every fact before anything is generated from it, so accuracy matters
-more than polish.
+Pass 2 -- content, as complete sentences. Every fact is exactly one
+complete sentence: not a fragment, not a line-wrap, and never two
+sentences merged into one. A bullet containing two sentences yields two
+facts; never split a single sentence across two facts.
 
 Rules:
 - Extract only what the resume states. Never infer, embellish, or add
   accomplishments, numbers, technologies, dates, or contact details that are
   not present in the text.
-- Split each bullet into atomic facts: one claim per fact. If a bullet makes
-  two claims, emit two facts.
 - Preserve the user's own numbers and metrics exactly as written.
 - Keep the original wording where you can; you are restructuring, not
   rewriting.
+- Education entries belong in `education`, never in `experiences`.
+- Contact info (name, email, phone, links) never belongs in a company,
+  title, or fact field.
 - If a field is genuinely absent from the resume, use an empty string or an
-  empty list rather than inventing a plausible value.
-
-{FACT_ID_RULES}\
+  empty list rather than inventing a plausible value.\
 """
 
 PARSE_JD_SYSTEM = """\
