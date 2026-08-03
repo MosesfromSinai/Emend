@@ -5,14 +5,19 @@ makes a normal `pytest` run spend real money.
 """
 
 import os
+import re
 from pathlib import Path
 
 import pytest
 
-from core.pipeline import parse_jd, real_tailor_result, structure_resume
+from core.pipeline import _fact_violations, parse_jd, real_tailor_result, structure_resume
 
 RESUME_FIXTURES = Path(__file__).parent.parent / "fixtures" / "resumes"
 POSTING_FIXTURES = Path(__file__).parent.parent / "fixtures" / "postings"
+FACT_ID_SHAPE = re.compile(r"^[A-Z]{2,5}[0-9]?-[0-9]{2}$")
+# hard mid-sentence wraps, a hyphenated line-wrap, a multi-sentence bullet,
+# and three different bullet glyphs (bullet count -> 5 facts total)
+WRAPPED_RESUME_SENTENCE_COUNT = 5
 
 requires_real_evals = pytest.mark.skipif(
     os.getenv("RUN_REAL_EVALS") != "1",
@@ -40,6 +45,35 @@ def test_every_resume_fixture_structures_without_crashing():
             continue
         assert master.name
         master.fact_lookup()
+
+
+def test_wrapped_resume_structures_cleanly():
+    """The exact acceptance bar for the sentence-parsing fix."""
+    text = (RESUME_FIXTURES / "ugly_wrapped_resume.txt").read_text()
+
+    master = structure_resume(text)
+
+    all_facts = [f for e in [*master.experiences, *master.projects] for f in e.facts]
+    assert len(all_facts) == WRAPPED_RESUME_SENTENCE_COUNT
+
+    for entry in [*master.experiences, *master.projects]:
+        company = getattr(entry, "company", "") or getattr(entry, "name", "")
+        title = getattr(entry, "title", "")
+        for fact in entry.facts:
+            assert _fact_violations(fact.text, company, title) == []
+
+    for experience in master.experiences:
+        assert experience.company
+        assert experience.title
+
+    assert not any(
+        "education" in e.company.lower() or "education" in e.title.lower()
+        for e in master.experiences
+    )
+    assert len(master.education) == 1
+
+    for fact_id in master.all_fact_ids():
+        assert FACT_ID_SHAPE.match(fact_id), fact_id
 
 
 def _posting_files() -> list[Path]:
