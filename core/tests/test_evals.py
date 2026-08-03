@@ -10,10 +10,12 @@ from pathlib import Path
 
 import pytest
 
+from core.extract import pdf_to_text
 from core.pipeline import _fact_violations, parse_jd, real_tailor_result, structure_resume
 
 RESUME_FIXTURES = Path(__file__).parent.parent / "fixtures" / "resumes"
 POSTING_FIXTURES = Path(__file__).parent.parent / "fixtures" / "postings"
+PDF_FIXTURES = Path(__file__).parent.parent / "fixtures" / "pdfs"
 FACT_ID_SHAPE = re.compile(r"^[A-Z]{2,5}[0-9]?-[0-9]{2}$")
 # hard mid-sentence wraps, a hyphenated line-wrap, a multi-sentence bullet,
 # and three different bullet glyphs (bullet count -> 5 facts total)
@@ -74,6 +76,23 @@ def test_wrapped_resume_structures_cleanly():
 
     for fact_id in master.all_fact_ids():
         assert FACT_ID_SHAPE.match(fact_id), fact_id
+
+
+def test_pdf_resume_extracts_and_structures_without_crashing():
+    # pypdf's text extraction doesn't reliably preserve blank-line paragraph
+    # gaps the way copy-pasted text does (a real, documented PDF-extraction
+    # limitation, not a parser bug) -- same bar as the malformed text
+    # fixtures: a clean result or a clean ValueError, never anything else.
+    data = (PDF_FIXTURES / "sample_resume.pdf").read_bytes()
+    text = pdf_to_text(data)
+    assert "Jordan Rivera" in text
+
+    try:
+        master = structure_resume(text)
+    except ValueError:
+        return
+    assert master.name
+    master.fact_lookup()
 
 
 def _posting_files() -> list[Path]:
