@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, MAX_TEXT_CHARS, createApplication } from "@/lib/api";
 
 export default function WorkspacePage() {
   const router = useRouter();
   const [jdText, setJdText] = useState("");
+  const [jdUrl, setJdUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +19,9 @@ export default function WorkspacePage() {
     setBusy(true);
     setError(null);
     try {
-      const { id } = await createApplication(mode === "tailor" ? jdText : undefined);
+      const { id } = await createApplication(
+        mode === "tailor" ? { jdText: jdText || undefined, jdUrl: jdUrl || undefined } : undefined
+      );
       router.push(`/app/applications/${id}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "no_master_resume") {
@@ -47,19 +51,40 @@ export default function WorkspacePage() {
       <section className="rounded-lg border border-em-softb p-5">
         <h2 className="mb-1 font-serif text-xl font-semibold">Tailor to a posting</h2>
         <p className="mb-4 text-sm text-ink/70">
-          Paste a job description. Emend grounds every rewrite in the facts you
-          confirmed — gaps are left as gaps, never invented.
+          Paste a job description, or a link to one. Emend grounds every
+          rewrite in the facts you confirmed — gaps are left as gaps, never
+          invented.
         </p>
         <Textarea
           value={jdText}
-          onChange={(e) => setJdText(e.target.value.slice(0, MAX_TEXT_CHARS))}
+          onChange={(e) => {
+            setJdText(e.target.value.slice(0, MAX_TEXT_CHARS));
+            if (e.target.value) setJdUrl("");
+          }}
           rows={10}
           placeholder="Paste the job description here…"
           className="mb-3"
+          disabled={jdUrl.trim().length > 0}
+        />
+        <div className="mb-3 flex items-center gap-3 text-xs text-ink/50">
+          <div className="h-px flex-1 bg-em-softb" />
+          or
+          <div className="h-px flex-1 bg-em-softb" />
+        </div>
+        <Input
+          type="url"
+          value={jdUrl}
+          onChange={(e) => {
+            setJdUrl(e.target.value);
+            if (e.target.value) setJdText("");
+          }}
+          placeholder="Paste a link to the posting instead…"
+          className="mb-3"
+          disabled={jdText.trim().length > 0}
         />
         <Button
           onClick={() => start("tailor")}
-          disabled={busy || jdText.trim().length === 0}
+          disabled={busy || (jdText.trim().length === 0 && jdUrl.trim().length === 0)}
         >
           Tailor my resume →
         </Button>
