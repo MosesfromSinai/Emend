@@ -25,15 +25,21 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
    ```sh
    railway login
    railway init                              # new project
-   railway up --service api                  # builds infra/docker/api.Dockerfile
-   railway volume add --mount-path /data --service api
-   railway variables --service api \
+   railway up --service Emend                 # builds infra/docker/api.Dockerfile
+   railway volume add --mount-path /data --service Emend
+   railway variables --service Emend \
      --set "DATABASE_URL=<neon-pooled-url>" \
      --set "CORS_ORIGINS=https://<vercel-domain>" \
      --set "SESSION_COOKIE_SAMESITE=none" \
      --set "SESSION_COOKIE_SECURE=1" \
      --set "MOCK=1"
    ```
+   `Emend` is this project's actual Railway service name (Settings tab on the
+   service card confirms it) — if you ever rename it or spin up a fresh
+   project, update every `--service` flag here and in
+   `.github/workflows/deploy.yml` to match, or `railway up`/`variables` will
+   fail with "Service not found".
+
    Railway reads `infra/railway.json` for build + deploy config (point the
    service's *Config File Path* setting at it if it isn't picked up
    automatically). Set `ANTHROPIC_API_KEY` only when flipping to `MOCK=0`.
