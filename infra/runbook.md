@@ -17,7 +17,10 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
 
 ## Production setup (run once, in this order)
 
-1. **Neon** — create a project + database. Copy the pooled connection string.
+1. **Neon** — create a project + database. Copy the pooled connection string,
+   then rewrite its scheme from `postgresql://` to **`postgresql+psycopg://`**
+   before using it anywhere — SQLAlchemy picks its driver from the scheme, and
+   the bare form resolves to psycopg2, which isn't installed.
 2. **Railway** — from the repo root:
    ```sh
    railway login
@@ -34,6 +37,15 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
    Railway reads `infra/railway.json` for build + deploy config (point the
    service's *Config File Path* setting at it if it isn't picked up
    automatically). Set `ANTHROPIC_API_KEY` only when flipping to `MOCK=0`.
+
+   Two deploy-time failure modes worth knowing before you hit them:
+   - **No volume → failed deploy.** `requiredMountPath: "/data"` refuses to
+     start without one. The `railway volume add` line above is not optional;
+     500 MB is the plan cap and is plenty for artifacts.
+   - **Healthcheck timeout → the port is wrong.** Railway assigns `$PORT` per
+     deploy. `infra/docker/entrypoint.sh` passes `--port "${PORT:-8000}"`, so
+     never reintroduce a hardcoded `--port` in the Dockerfile's `CMD`; it
+     builds fine and then fails `/health` forever.
 3. **GitHub** — repo → Settings → Secrets → Actions: add `RAILWAY_TOKEN`
    (Railway dashboard → project → Settings → Tokens → create a project
    token). After this, every green CI run on `main` auto-deploys the api via
