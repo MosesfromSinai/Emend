@@ -224,9 +224,13 @@ grounding pass rate / coverage / cost on ≥5 postings.
   `.github/` → C · `docs/` → whoever, review from the affected workflow.
 - **If it's not in a workflow file, it doesn't exist.** Claim scope before
   building it; propose contract changes, never merge them unilaterally.
-- Explicitly deferred (do not build, per the brief): auth/accounts, PDF upload,
-  job-URL ingestion, rate limiting, Redis/queues, object storage, in-browser tex
-  editing, diff views, per-bullet accept/reject, extra templates.
+- Explicitly deferred (do not build, per the brief): auth/accounts, rate
+  limiting, Redis/queues, object storage, in-browser tex editing, diff views,
+  per-bullet accept/reject, extra templates.
+- **Stale as of a later contract PR:** PDF upload and job-URL ingestion moved
+  from "deferred" to "in scope" (see `00-project-brief.md`'s reconciliation
+  #1) — but as of this writing neither has actually been built. Don't treat
+  their absence as a deliberate deferral; it's just unstarted work.
 
 ## 8. Open items needing a decision
 

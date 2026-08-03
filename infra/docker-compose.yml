@@ -1,7 +1,5 @@
 # Fresh clone -> one command (from the repo root):
 #   docker compose -f infra/docker-compose.yml up --build
-# NOTE: the api and web services need Workflow B's api/ and Workflow D's web/
-# to exist before they build; postgres works standalone today.
 
 name: emend
 

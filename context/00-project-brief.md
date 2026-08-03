@@ -45,7 +45,7 @@ Application autofill / browser extension · accounts & auth · **live** per-sent
 
 ### Design ↔ scope reconciliations (team decisions)
 
-1. **"Paste a link to the posting" field (hero + step 01) — SUPERSEDED, now in scope:** job-URL ingestion ships. The field accepts a URL; the api fetches it server-side (`httpx`), extracts JD text (`core.jd_text.html_to_jd_text`), and runs the normal `parse_jd` pipeline on the result. `POST /applications` takes `jd_text` or `jd_url` (never both — 422 if both are set); `GET /applications/{id}` reports back `jd_source_url` when the tailor ran from a URL. The field is no longer disabled or tooltipped once this ships.
+1. **"Paste a link to the posting" field (hero + step 01) — SUPERSEDED, now in scope, but not yet implemented.** Contract decision: job-URL ingestion will ship. The field will accept a URL; the api will fetch it server-side (`httpx`), extract JD text (`core.jd_text.html_to_jd_text`, already written and tested in isolation), and run the normal `parse_jd` pipeline on the result. `POST /applications` will take `jd_text` or `jd_url` (never both — 422 if both are set); `GET /applications/{id}` will report back `jd_source_url` when the tailor ran from a URL. **As of this writing, none of the api/db/web wiring exists** — no `jd_url` field on `CreateApplicationRequest`, no `applications.jd_url` column, no `httpx` fetch call anywhere in `api/`, and the landing hero still renders the field disabled ("Coming soon", see `web/components/landing/hero-mock.tsx`). Same for PDF upload: `core/extract.py::pdf_to_text` exists and is tested, but `POST /resumes/import` only accepts `{text}` JSON — no multipart path in `api/routers/resumes.py`. The field and the multipart path stay unbuilt until this lands.
 2. **Dark CTA band "Create a free account…":** accounts are deferred — reword the CTA (v1 is anonymous sessions); account copy returns when auth ships.
 3. **Interactive sentence demo:** on the landing page it is **scripted** (three pre-written grounded rewrites per sentence, ported from the design component; the click-to-edit behavior is real but client-side only). Live per-sentence cycling in the workspace is post-MVP.
 4. **Testimonials:** ship only real quotes. Invented testimonials would violate the product's own no-invented-claims brand — drop or replace the section until real users exist.
@@ -105,6 +105,16 @@ production actually exercises is the deterministic parser and the mock
 tailorer. Flipping to `MOCK=0` is a Railway variable change once the key
 works and the evals in `docs/evals.md` have real numbers.
 
+**Auto-deploy is currently broken.** `.github/workflows/deploy.yml` runs
+`railway up` after every green CI run on `main`, but every run since at least
+2026-08-03 has failed with `Invalid RAILWAY_TOKEN` (`gh run list --workflow
+deploy.yml`) — the repo has no `RAILWAY_TOKEN` secret set (`gh secret list`
+returns empty). Whatever the live URL is currently serving was deployed some
+other way (Railway's own GitHub integration, or a manual `railway up`) and is
+**not guaranteed to match the latest merged `main`.** Fix: set `RAILWAY_TOKEN`
+in repo secrets (Railway dashboard → project → Settings → Tokens), then
+confirm the next merge actually redeploys.
+
 Operational detail — secrets map, migrations, rollback per service, rebuilding
 the Tectonic cache layer — lives in `infra/runbook.md`.
 
@@ -141,7 +151,7 @@ GET  /applications/{id}              -> status, match data, report, inline tex, 
 GET  /applications                   -> session's history
 GET  /artifacts/{version_id}.pdf|.tex -> session-checked file response
 ```
-`POST /resumes/import`'s multipart path and `jd_url` fetch/extraction are contract-documented here now; implementation is a later task, not part of this change.
+`POST /resumes/import`'s multipart path and `jd_url` fetch/extraction are contract-documented here now; implementation is a later task, not part of this change — see reconciliation #1 above for exactly what's built vs. not.
 
 LaTeX entrypoint: `latex.render_and_compile(master: MasterResume, tailored: TailoredResume | None) -> (tex: str, pdf_path: str, log: str)` — `tailored=None` renders the full master resume; rendered bullets carry `% grounded: <fact ids>` comments.
 
@@ -161,7 +171,7 @@ emend/
 └── docs/    # this brief, the four workflow files, design components, demo persona fact file, architecture diagram
 ```
 
-`main` protected (green CI + 1 review) · branches `feat/<area>/<slug>` / `fix/<area>/<slug>` · conventional commits · rotate reviewers across workflows · never edit another workflow's directories · if it's not in a workflow file, it doesn't exist — claim it before building it.
+`main` intended to be protected (green CI + 1 review) — **not yet configured on GitHub as of this writing** (`branches/main/protection` 404s; anything can push straight to `main` today) · branches `feat/<area>/<slug>` / `fix/<area>/<slug>` · conventional commits · rotate reviewers across workflows · never edit another workflow's directories · if it's not in a workflow file, it doesn't exist — claim it before building it.
 
 ## Non-functional requirements
 

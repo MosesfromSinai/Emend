@@ -1,6 +1,6 @@
 # Build from the repo root:
-#   docker build -f infra/docker/api.Dockerfile --target latex-sandbox .   (works today)
-#   docker build -f infra/docker/api.Dockerfile .                          (needs api/)
+#   docker build -f infra/docker/api.Dockerfile --target latex-sandbox .   (latex only)
+#   docker build -f infra/docker/api.Dockerfile .                          (full api image)
 
 ARG TECTONIC_VERSION=0.16.9
 
@@ -39,8 +39,6 @@ ENV TECTONIC_ONLY_CACHED=1 \
     COMPILE_TIMEOUT_SECONDS=10
 
 # --------------------------------------------------------------------- runtime
-# NOTE: this stage requires api/ (Workflow B). Until it lands, build with
-# --target latex-sandbox.
 FROM latex-sandbox AS runtime
 
 USER root
