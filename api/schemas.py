@@ -7,7 +7,7 @@ shapes reuse the team contract models from core.schemas verbatim.
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from api.config import settings
 from core.schemas import Report
@@ -23,6 +23,13 @@ class CreateApplicationRequest(BaseModel):
     jd_text: str | None = Field(
         default=None, min_length=1, max_length=settings.max_text_chars
     )
+    jd_url: str | None = Field(default=None, min_length=1, max_length=2048)
+
+    @model_validator(mode="after")
+    def validate_jd_text_and_url_are_exclusive(self) -> "CreateApplicationRequest":
+        if self.jd_text is not None and self.jd_url is not None:
+            raise ValueError("jd_text and jd_url cannot both be set")
+        return self
 
 
 class CreateApplicationResponse(BaseModel):
@@ -48,6 +55,7 @@ class ApplicationOut(BaseModel):
     error: str | None
     created_at: datetime
     version: VersionOut | None
+    jd_source_url: str | None = None
 
 
 class ApplicationListItem(BaseModel):

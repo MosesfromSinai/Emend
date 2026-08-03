@@ -44,8 +44,9 @@ def create_application(
         )
     app_row = Application(
         session_id=session.id,
-        mode="refactor" if body.jd_text is None else "tailor",
+        mode="refactor" if body.jd_text is None and body.jd_url is None else "tailor",
         jd_text=body.jd_text,
+        jd_url=body.jd_url,
         status="queued",
     )
     db.add(app_row)
@@ -89,6 +90,7 @@ def get_application(
         error=app_row.error,
         created_at=app_row.created_at,
         version=_version_out(version) if version is not None else None,
+        jd_source_url=app_row.jd_url,
     )
 
 

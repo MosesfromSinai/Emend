@@ -10,12 +10,23 @@ import shutil
 import uuid
 from pathlib import Path
 
+import httpx
+
 from api import core_bridge, db
 from api.config import settings
 from api.models import Application, MasterResumeRow, ResumeVersion
 from core.schemas import MasterResume, Report
 
 logger = logging.getLogger("emend.jobs")
+
+JD_FETCH_TIMEOUT_SECONDS = 10
+
+
+def _fetch_jd_text(url: str) -> str:
+    """Fetch a job-posting URL server-side and extract its JD text."""
+    response = httpx.get(url, timeout=JD_FETCH_TIMEOUT_SECONDS, follow_redirects=True)
+    response.raise_for_status()
+    return core_bridge.html_to_jd_text(response.text)
 
 
 def run_application(application_id: uuid.UUID) -> None:
@@ -55,10 +66,22 @@ def _run(session, app_row: Application) -> None:
         return
     master = MasterResume.model_validate(master_row.data)
 
+    jd_text: str | None = None
+    if app_row.jd_url is not None:
+        try:
+            jd_text = _fetch_jd_text(app_row.jd_url)
+        except httpx.HTTPError as e:
+            app_row.status = "failed"
+            app_row.error = f"Could not fetch job posting URL: {e}"
+            session.commit()
+            return
+    elif app_row.jd_text is not None:
+        jd_text = app_row.jd_text
+
     tailored = None
     report: Report | None = None
-    if app_row.jd_text is not None:
-        jd = core_bridge.parse_jd(app_row.jd_text)
+    if jd_text is not None:
+        jd = core_bridge.parse_jd(jd_text)
         score, matched, missing = core_bridge.keyword_match(jd, master)
         app_row.match_score = score
         app_row.matched_keywords = matched

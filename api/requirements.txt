@@ -4,5 +4,7 @@ sqlalchemy>=2.0
 alembic>=1.13
 psycopg[binary]>=3.2
 pydantic>=2.7
-# test client (CI installs only this file + pytest)
+python-multipart>=0.0.12
+# test client (CI installs only this file + pytest); also used for the
+# server-side job-posting URL fetch in api/jobs.py
 httpx>=0.27

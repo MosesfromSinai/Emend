@@ -51,6 +51,7 @@ class Application(Base):
     )
     mode: Mapped[str] = mapped_column(String(16), nullable=False)  # refactor | tailor
     jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    jd_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     matched_keywords: Mapped[list | None] = mapped_column(JSONVariant, nullable=True)

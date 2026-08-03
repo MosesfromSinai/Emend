@@ -34,6 +34,20 @@ def error_response(status_code: int, code: str, message: str, **extra) -> JSONRe
     )
 
 
+def _jsonable_validation_errors(errors: list[dict]) -> list[dict]:
+    """Pydantic embeds the raw exception under ctx.error (e.g. a model_validator's
+    bare ValueError) -- not JSON-serializable, so stringify it before it hits
+    JSONResponse's encoder."""
+    safe = []
+    for err in errors:
+        err = dict(err)
+        ctx = err.get("ctx")
+        if isinstance(ctx, dict) and "error" in ctx:
+            err["ctx"] = {**ctx, "error": str(ctx["error"])}
+        safe.append(err)
+    return safe
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -43,7 +57,10 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, exc: RequestValidationError):
         return error_response(
-            422, "validation_error", "Request validation failed", details=exc.errors()
+            422,
+            "validation_error",
+            "Request validation failed",
+            details=_jsonable_validation_errors(exc.errors()),
         )
 
     @app.exception_handler(Exception)

@@ -1,9 +1,13 @@
+from pathlib import Path
+
 import pytest
 
 from api import core_bridge
 from api.config import settings
 from api.core_bridge import CoreUnavailableError
 from api.tests.conftest import sample_master
+
+PDF_FIXTURES = Path(__file__).resolve().parents[2] / "core" / "fixtures" / "pdfs"
 
 
 @pytest.fixture()
@@ -57,6 +61,42 @@ def test_import_parses_pasted_text_via_real_core(client, monkeypatch):
 def test_import_422_for_invalid_fenced_json(client, monkeypatch):
     monkeypatch.setenv("MOCK", "1")
     r = client.post("/resumes/import", json={"text": "```json\n{not valid}\n```"})
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "unstructurable_resume"
+
+
+def test_import_accepts_multipart_pdf_upload(client, monkeypatch):
+    captured = {}
+
+    def fake_structure_resume(text: str):
+        captured["text"] = text
+        return sample_master()
+
+    monkeypatch.setattr(core_bridge, "structure_resume", fake_structure_resume)
+
+    pdf_bytes = (PDF_FIXTURES / "sample_resume.pdf").read_bytes()
+    r = client.post(
+        "/resumes/import",
+        files={"file": ("resume.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert r.status_code == 200
+    assert r.json()["name"] == "Sam Sample"
+    # the extracted PDF text, not a placeholder, reached structure_resume
+    assert "Jordan Rivera" in captured["text"]
+
+
+def test_import_multipart_without_file_field_is_422(client, stub_structure):
+    r = client.post(
+        "/resumes/import", files={"not_file": ("x.txt", b"hello", "text/plain")}
+    )
+    assert r.status_code == 422
+
+
+def test_import_rejects_unparseable_pdf_upload(client, stub_structure):
+    r = client.post(
+        "/resumes/import",
+        files={"file": ("resume.pdf", b"not a pdf at all", "application/pdf")},
+    )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "unstructurable_resume"
 
