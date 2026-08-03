@@ -73,10 +73,40 @@ Application autofill / browser extension · accounts & auth · **live** per-sent
 | Database | PostgreSQL via SQLAlchemy 2 + Alembic; anonymous session scoping | B |
 | LaTeX rendering | Jinja2 with `\VAR{}`/`\BLOCK{}` delimiters + injection-safe escaping + grounding comments | C |
 | LaTeX compile | Tectonic `--untrusted`, pre-warmed cache, timeout/CPU/memory caps, non-root, in the api image | C |
-| CI/CD & deploy | GitHub Actions · docker-compose (web, api, postgres) · Vercel + Fly.io/Railway + Neon | C |
+| CI/CD & deploy | GitHub Actions · docker-compose (web, api, postgres) · **Vercel (web) + Railway (api) + Neon (Postgres)** — deployed, see below | C |
 | Frontend | Next.js App Router · Tailwind + shadcn/ui on the Ink & Paper tokens · react-pdf · plain `fetch` | D |
 
 **Removed as redundant:** agent frameworks, Langfuse, promptfoo, TanStack Query/Zod, rank_bm25, slowapi, Redis/arq/Upstash, Auth.js/PyJWT, latexdiff, CodeMirror, WXT/Playwright, R2. (`scraping libs` and `PyMuPDF` were on this list when job-URL ingestion and PDF upload were deferred; superseded above by `selectolax` and `pypdf` respectively now that both are in scope.)
+
+## Deployment — as built
+
+Live: **https://emend-two.vercel.app**. Three attached backing services, each
+owned by whoever runs it, none bundled into another (twelve-factor: a backing
+service is an attached resource, swappable by changing one URL).
+
+| Piece | Where | How it's wired |
+|---|---|---|
+| `web` | **Vercel** | GitHub repo import, *Root Directory* `web/`, auto-deploys on `main`. Env: `NEXT_PUBLIC_API_URL` → the Railway api domain. |
+| `api` + `latex` | **Railway** | One service built from `infra/docker/api.Dockerfile`; config lives in `infra/railway.json` (healthcheck `/health`, `preDeployCommand` runs `alembic upgrade head`, restart-on-failure). A **500 MB volume mounted at `/data`** holds compiled artifacts — `requiredMountPath` fails the deploy if it's missing. |
+| Postgres | **Neon** | Separate project; its pooled connection string goes into Railway's `DATABASE_URL`. Neon hands out `postgresql://…`; the app's SQLAlchemy driver needs it rewritten to **`postgresql+psycopg://…`** before pasting. |
+
+Two things that bit us and stay true of any redeploy:
+
+- **The container must listen on the platform's `$PORT`, not a hardcoded one.**
+  Railway assigns it per deploy; `infra/docker/entrypoint.sh` ends in
+  `exec gosu appuser "$@" --port "${PORT:-8000}"` so the Dockerfile's `CMD`
+  never pins it. A hardcoded port passes the build and fails the healthcheck.
+- **Artifacts need a real volume.** `/data` is where `api/jobs.py` writes; with
+  no volume attached the mount path check fails the deploy outright, which is
+  the loud failure we want rather than losing artifacts on restart.
+
+Currently running **`MOCK=1`** — no working `ANTHROPIC_API_KEY` yet, so what
+production actually exercises is the deterministic parser and the mock
+tailorer. Flipping to `MOCK=0` is a Railway variable change once the key
+works and the evals in `docs/evals.md` have real numbers.
+
+Operational detail — secrets map, migrations, rollback per service, rebuilding
+the Tectonic cache layer — lives in `infra/runbook.md`.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
@@ -139,6 +169,6 @@ Warm compiles ~1–2s with a hard timeout · no network egress from the compile 
 
 ## Shared finish line
 
-A stranger lands on the Emend page, pastes their resume, confirms the facts, and gets it refactored into LaTeX — viewable both ways, copyable, downloadable, printable — then pastes a JD and gets a tailored version with a match score and grounding report, receipts visible in the `.tex`. The README carries the architecture diagram, usage GIF, and real eval numbers.
+A stranger lands on **https://emend-two.vercel.app**, pastes their resume, confirms the facts, and gets it refactored into LaTeX — viewable both ways, copyable, downloadable, printable — then pastes a JD and gets a tailored version with a match score and grounding report, receipts visible in the `.tex`. The README carries the architecture diagram, usage GIF, and real eval numbers.
 
 **Resume-honesty rule:** bullets go on our resumes when the thing they describe exists; bracketed numbers get filled in only once measured. Same rule the product enforces on itself.
