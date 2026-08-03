@@ -290,6 +290,57 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
     assert len(other_client.get("/applications").json()) == 1
 
 
+def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
+    from api import jobs
+
+    class FakeResponse:
+        text = (
+            "<html><body><nav>skip me</nav>"
+            "<main>We need a backend engineer with Python.</main></body></html>"
+        )
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(jobs.httpx, "get", lambda *a, **k: FakeResponse())
+
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_url": "https://example.com/job"})
+    assert r.status_code == 202
+    got = client.get(f"/applications/{r.json()['id']}").json()
+
+    assert got["status"] == "done"
+    assert got["mode"] == "tailor"
+    assert got["jd_source_url"] == "https://example.com/job"
+    assert pipeline[0] == "parse_jd"
+
+
+def test_jd_url_fetch_failure_fails_the_job(client, master, pipeline, monkeypatch):
+    import httpx
+
+    from api import jobs
+
+    def failing_get(*a, **k):
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(jobs.httpx, "get", failing_get)
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_url": "https://example.com/job"})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+
+    assert got["status"] == "failed"
+    assert "Could not fetch job posting URL" in got["error"]
+    assert pipeline == []
+
+
+def test_jd_text_and_jd_url_together_is_422(client, master, pipeline):
+    confirm_master(client, master)
+    r = client.post(
+        "/applications", json={"jd_text": "a posting", "jd_url": "https://example.com/job"}
+    )
+    assert r.status_code == 422
+
+
 def test_jd_text_capped(client, master, pipeline):
     from api.config import settings
 

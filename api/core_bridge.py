@@ -37,6 +37,20 @@ def _core_fn(name: str):
     return fn
 
 
+def pdf_to_text(data: bytes) -> str:
+    """PdfExtractionError (a ValueError subclass) maps to 422 same as any
+    other bad structure_resume input -- callers don't need a special case."""
+    from core.extract import pdf_to_text as _pdf_to_text
+
+    return _pdf_to_text(data)
+
+
+def html_to_jd_text(html: str) -> str:
+    from core.jd_text import html_to_jd_text as _html_to_jd_text
+
+    return _html_to_jd_text(html)
+
+
 def structure_resume(text: str) -> MasterResume:
     return _core_fn("structure_resume")(text)
 

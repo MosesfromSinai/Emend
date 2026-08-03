@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,16 +19,39 @@ router = APIRouter(prefix="/resumes", tags=["resumes"])
 DB = Annotated[Session, Depends(get_db)]
 
 
-@router.post("/import", response_model=MasterResume)
-def import_resume(body: ImportRequest, session: CurrentSession) -> MasterResume:
-    """Propose a fact schema from pasted text. Nothing is saved — the user
-    confirms (and edits) before PUT /resumes/master persists it."""
+async def _resume_text_from_request(request: Request) -> str:
+    """Pull resume text out of either a JSON {text} body or a multipart PDF.
+
+    One endpoint, two shapes (per the brief's documented contract) — FastAPI
+    can't bind a single handler's parameters to both at once, so the two
+    paths are told apart by content-type and parsed by hand.
+    """
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        upload = form.get("file")
+        if upload is None or not hasattr(upload, "read"):
+            raise ApiError(422, "validation_error", "multipart import requires a 'file' field")
+        data = await upload.read()
+        return core_bridge.pdf_to_text(data)
     try:
-        return core_bridge.structure_resume(body.text)
+        body = ImportRequest.model_validate_json(await request.body())
+    except ValidationError as e:
+        raise ApiError(422, "validation_error", "Request validation failed") from e
+    return body.text
+
+
+@router.post("/import", response_model=MasterResume)
+async def import_resume(request: Request, session: CurrentSession) -> MasterResume:
+    """Propose a fact schema from pasted text or an uploaded PDF. Nothing is
+    saved — the user confirms (and edits) before PUT /resumes/master persists it."""
+    try:
+        text = await _resume_text_from_request(request)
+        return core_bridge.structure_resume(text)
     except CoreUnavailableError as e:
         raise ApiError(503, "core_unavailable", str(e)) from e
     except ValueError as e:
-        # core rejected the text (e.g. invalid fenced JSON) — caller's input
+        # core rejected the text (e.g. invalid fenced JSON, unreadable PDF)
         raise ApiError(422, "unstructurable_resume", str(e)) from e
     except RuntimeError as e:
         # real mode without a key/package must not surface as a bare 500
