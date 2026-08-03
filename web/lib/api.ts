@@ -12,6 +12,9 @@ export const API_BASE_URL =
 // the server with a paste we already know it'll 422 on
 export const MAX_TEXT_CHARS = 50000;
 
+// mirrors core/extract.py's MAX_PDF_BYTES
+export const MAX_PDF_BYTES = 5 * 1024 * 1024;
+
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -27,10 +30,14 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // FormData needs the browser to set its own Content-Type (with the
+  // multipart boundary) -- forcing application/json here would break the
+  // PDF upload path silently.
+  const isFormData = init?.body instanceof FormData;
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include", // the session cookie is httpOnly; the browser sends it
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: isFormData ? init?.headers : { "Content-Type": "application/json", ...init?.headers },
   });
 
   if (!res.ok) {
@@ -55,6 +62,12 @@ export function importResume(text: string): Promise<MasterResume> {
   });
 }
 
+export function importResumeFromFile(file: File): Promise<MasterResume> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiFetch("/resumes/import", { method: "POST", body: form });
+}
+
 export function saveMaster(master: MasterResume): Promise<MasterResume> {
   return apiFetch("/resumes/master", {
     method: "PUT",
@@ -66,10 +79,17 @@ export function getMaster(): Promise<MasterResume> {
   return apiFetch("/resumes/master");
 }
 
-export function createApplication(jdText?: string): Promise<{ id: string }> {
+// jdText and jdUrl are mutually exclusive — the api 422s if both are set.
+export function createApplication(options?: {
+  jdText?: string;
+  jdUrl?: string;
+}): Promise<{ id: string }> {
   return apiFetch("/applications", {
     method: "POST",
-    body: JSON.stringify({ jd_text: jdText ?? null }),
+    body: JSON.stringify({
+      jd_text: options?.jdText ?? null,
+      jd_url: options?.jdUrl ?? null,
+    }),
   });
 }
 

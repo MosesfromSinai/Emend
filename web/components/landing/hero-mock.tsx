@@ -22,13 +22,11 @@ export function HeroMock() {
             &quot;New-grad SWE. Python, React, CI/CD, AWS, distributed systems…&quot;
             <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-em-accent align-text-bottom" />
           </div>
-          {/* job-URL ingestion is deferred (brief reconciliation #1) */}
-          <div
-            title="Coming soon"
-            className="mt-2 flex cursor-not-allowed items-center gap-2 rounded-lg border-[1.5px] border-dashed border-[#ddd5c2] bg-white px-3.5 py-2.5 opacity-60"
-          >
+          {/* illustrative, like the JD textarea above it -- the real,
+              functional version of this field lives on the workspace page */}
+          <div className="mt-2 flex items-center gap-2 rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-3.5 py-2.5">
             <span className="text-xs text-[#9a927f]">
-              Paste a link to the posting — coming soon
+              Have a link to the posting? Paste it here instead
             </span>
           </div>
           <div className="my-3.5 flex flex-wrap gap-1.5 font-mono text-[11px]">

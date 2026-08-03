@@ -79,6 +79,7 @@ export interface ApplicationOut {
   error: string | null;
   created_at: string;
   version: VersionOut | null;
+  jd_source_url: string | null;
 }
 
 export interface ApplicationListItem {
