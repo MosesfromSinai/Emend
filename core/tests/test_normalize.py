@@ -62,6 +62,13 @@ def test_does_not_reattach_onto_a_header_that_already_has_a_date():
     assert "Intern Jun 2025 - Aug 2025 2026" not in reattach_orphan_dates(raw)
 
 
+def test_reattach_skips_a_bullet_fact_line_to_find_the_real_header():
+    raw = "TermIt | C++, CMake, GoogleTest\n• Developed a CLI task manager.\n2025"
+    assert reattach_orphan_dates(raw) == (
+        "TermIt | C++, CMake, GoogleTest 2025\n• Developed a CLI task manager."
+    )
+
+
 def test_split_inline_bullets_breaks_header_from_first_bullet():
     raw = "TermIt | C++, CMake, GoogleTest • Developed a CLI task manager."
     assert split_inline_bullets(raw) == (

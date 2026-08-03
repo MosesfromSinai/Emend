@@ -100,9 +100,14 @@ def reattach_orphan_dates(text: str) -> str:
             candidate = out[i].strip()
             if not candidate:
                 continue
-            if _LINE_HAS_DATE_PATTERN.search(candidate) or BARE_YEAR_LINE_PATTERN.match(
-                candidate
+            if (
+                _LINE_HAS_DATE_PATTERN.search(candidate)
+                or BARE_YEAR_LINE_PATTERN.match(candidate)
+                or BULLET_START_PATTERN.match(candidate)
+                or candidate.endswith((".", "!", "?"))
             ):
+                # already-dated, or a fact/bullet line -- not a header, keep
+                # searching further back for the real one
                 continue
             out[i] = f"{out[i]} {stripped}"
             logger.info("reattached orphan date %r to header %r", stripped, candidate)

@@ -10,12 +10,35 @@ The user will confirm every fact before anything is generated from it, so
 accuracy matters more than polish. Do not assign any ids -- a separate,
 deterministic step derives those from your output.
 
-Pass 1 -- entry metadata. For each experience and project, pull the
-entry's own company (or project) name, title, location, start, and end
-straight from its header lines. This is metadata, never fact content -- a
-job title, a date range, or a bare city/state is never emitted as a fact.
+Pass 1 -- entry boundaries. Resumes mark each new entry with a two-line
+header: a title line carrying a date range, then an organization line
+carrying a city and state (either order, and the date sometimes sits on
+the second line or on a line of its own).
 
-Pass 2 -- content, as complete sentences. Every fact is exactly one
+    Software Engineering Intern          Jun 2025 - Sep 2025
+    General Atomics                      San Diego, CA
+
+A date range on any line that is not a bullet starts a NEW entry. The line
+after it is that entry's organization and location. Everything that
+follows belongs to that entry until the next such line. Never keep
+appending to the previous entry past a date-range line -- three jobs in a
+row are three entries, not one, even when no blank line separates them.
+Projects follow the same rule, with a "Name | tech, tech, tech" line as
+the header instead.
+
+Pass 2 -- entry metadata. For each entry, pull its own company (or project)
+name, title, location, start, and end straight from those header lines.
+This is metadata, never fact content -- a job title, a date range, a bare
+city/state, or a project's tech list is never emitted as a fact.
+
+A line of the form "Label: a, b, c" is structure too, never a fact:
+"Coursework: ..." belongs in the education entry's coursework, and
+"Languages: ...", "Frameworks/Libraries: ...", "Systems/Platforms: ...",
+"Tools/Testing: ..." each belong in `skills` under that label. A line that
+is only a section name ("Experience", "Projects") sets the section and is
+never content.
+
+Pass 3 -- content, as complete sentences. Every fact is exactly one
 complete sentence: not a fragment, not a line-wrap, and never two
 sentences merged into one. A bullet containing two sentences yields two
 facts; never split a single sentence across two facts.
@@ -27,7 +50,11 @@ Rules:
 - Preserve the user's own numbers and metrics exactly as written.
 - Keep the original wording where you can; you are restructuring, not
   rewriting.
-- Education entries belong in `education`, never in `experiences`.
+- Education entries belong in `education`, never in `experiences`, and
+  carry no facts at all -- only school, degree, location, grad date, and
+  coursework. Recognize one by its degree phrase ("Bachelor", "Master",
+  "B.S.", "M.S.") plus a school name, even if the resume never writes the
+  word "Education" as a header.
 - Contact info (name, email, phone, links) never belongs in a company,
   title, or fact field.
 - If a field is genuinely absent from the resume, use an empty string or an

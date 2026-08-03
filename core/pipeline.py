@@ -19,7 +19,12 @@ from core.llm import (
     structured_call_with_usage,
 )
 from core.matching import keyword_match
-from core.normalize import BULLET_START_PATTERN, unwrap_text
+from core.normalize import (
+    BULLET_START_PATTERN,
+    reattach_orphan_dates,
+    split_inline_bullets,
+    unwrap_text,
+)
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     Education,
@@ -60,6 +65,9 @@ SECTION_HEADER_PATTERN = re.compile(
 
 ENTITY_STOP_WORDS = {"a", "an", "and", "at", "the", "of", "for"}
 ENTITY_WORD_PATTERN = re.compile(r"[A-Za-z0-9]+")
+CAMEL_PART_PATTERN = re.compile(r"[A-Z][a-z0-9]*|[a-z0-9]+")
+MIN_CAMEL_PART = 3
+MAX_PREFIX_LEN = 6
 
 # -- entry-header parsing --------------------------------------------------
 
@@ -69,9 +77,42 @@ DATE_RANGE_PATTERN = re.compile(
     r"(?:[A-Za-z]{3,9}\.?\s*\d{4}|\d{1,2}/\d{4}|Present|Current))",
     re.IGNORECASE,
 )
-LOCATION_SUFFIX_PATTERN = re.compile(
-    r"(?:^|\s)([A-Z][a-zA-Z.]*(?:\s+[A-Z][a-zA-Z.]*){0,1},\s*[A-Z]{2})\s*$"
+# "<org>, <city>, ST" -- a comma between the two settles the split outright
+COMMA_LOCATION_PATTERN = re.compile(
+    r"^(?P<head>.+?[^\s,]),\s*(?P<loc>[A-Z][a-zA-Z.]*(?:\s+[A-Z][a-zA-Z.]*)?,\s*[A-Z]{2})\s*$"
 )
+# no separating comma: longest city form first, falling back to the shorter
+# one when the longer reading would cut inside the organization's own name
+LOCATION_SUFFIX_PATTERNS = (
+    re.compile(r"(?:^|\s)([A-Z][a-zA-Z.]*\s+[A-Z][a-zA-Z.]*,\s*[A-Z]{2})\s*$"),
+    re.compile(r"(?:^|\s)([A-Z][a-zA-Z.]*,\s*[A-Z]{2})\s*$"),
+)
+BARE_YEAR_PATTERN = re.compile(r"(?:^|\s)((?:19|20)\d{2})\s*$")
+# a remainder left dangling on a connector means the location split cut
+# inside the organization's own name, not between the name and its city
+DANGLING_TAIL_PATTERN = re.compile(r"(?:[,&@/|-]|\b(?:of|the|at|and|for|de))$", re.IGNORECASE)
+# a "city" starting with one of these is really the tail of the org's name
+# ("Riverside State University Riverside, CA" is not in University Riverside)
+ORG_TAIL_WORDS = {
+    "university", "college", "institute", "school", "academy", "consortium",
+    "corp", "corporation", "inc", "llc", "ltd", "company", "group", "foundation",
+    "systems", "technologies", "labs", "laboratory", "center", "centre", "hospital",
+}
+GRAD_DATE_PATTERN = re.compile(
+    r"(?:expected\s+)?(?:[A-Za-z]{3,9}\.?\s*\d{4}|\d{4})\s*$", re.IGNORECASE
+)
+COURSEWORK_PATTERN = re.compile(r"^(?:relevant\s+)?coursework\s*:\s*(.+)$", re.IGNORECASE)
+
+# -- non-fact structured lines -------------------------------------------
+
+SKILL_LABEL_PATTERN = re.compile(
+    r"^(Languages|Frameworks/Libraries|Systems/Platforms|Tools/Testing)\s*:\s*(.+)$",
+    re.IGNORECASE,
+)
+DEGREE_PATTERN = re.compile(
+    r"\b(?:Bachelor|Master|B\.S\.|M\.S\.|B\.A\.|M\.A\.|Ph\.D\.?|Associate)\b", re.IGNORECASE
+)
+SCHOOL_PATTERN = re.compile(r"\b(?:University|College|Institute|Polytechnic)\b", re.IGNORECASE)
 
 # -- structural validation ---------------------------------------------
 
@@ -103,21 +144,27 @@ def _entity_prefix(name: str, used: set[str]) -> str:
 
     Prefers an acronym-like token already in the name ("NASA California
     Space Grant Consortium" -> NASA); otherwise takes initials of the
-    significant words ("General Atomics" -> GA); a single significant word
-    is truncated instead ("TrailScout" -> TRAIL). Numeric suffix on
-    collision within the same master resume ("GA" -> "GA2").
+    significant words ("General Atomics" -> GA). A single word splits on its
+    CamelCase seams when each part is a real word ("ThreatSense" -> TS) and
+    is otherwise truncated whole ("TermIt" -> TERMIT, "Emend" -> EMEND).
+    Numeric suffix on collision within the same master resume ("GA" -> "GA2").
     """
     words = [w for w in ENTITY_WORD_PATTERN.findall(name) if w.lower() not in ENTITY_STOP_WORDS]
     if not words:
         words = ENTITY_WORD_PATTERN.findall(name) or ["X"]
 
     acronym = next((w for w in words if w.isupper() and 2 <= len(w) <= 5), None)
+    if len(words) == 1 and not acronym:
+        parts = CAMEL_PART_PATTERN.findall(words[0])
+        if len(parts) > 1 and all(len(p) >= MIN_CAMEL_PART for p in parts):
+            words = parts
+
     if acronym:
         base = acronym
     elif len(words) == 1:
-        base = words[0].upper()[:5]
+        base = words[0].upper()[:MAX_PREFIX_LEN]
     else:
-        base = "".join(w[0] for w in words).upper()[:5]
+        base = "".join(w[0] for w in words).upper()[:MAX_PREFIX_LEN]
     if len(base) < 2:
         base = (base + "XX")[:2]
 
@@ -172,11 +219,51 @@ def _split_date_range(line: str) -> tuple[str, str, str]:
 
 
 def _split_location(line: str) -> tuple[str, str]:
-    """Strip a trailing "City, ST"-shaped location, returning (remaining, location)."""
-    match = LOCATION_SUFFIX_PATTERN.search(line)
+    """Strip a trailing "City, ST"-shaped location, returning (remaining, location).
+
+    "<org> <city>, ST" is genuinely ambiguous without a gazetteer: in
+    "Riverside State University Riverside, CA" the two-word city reading
+    swallows part of the school name. A comma separating org from city
+    settles it outright; without one, prefer the longest reading that leaves
+    neither a dangling connector nor an org noun stranded in the city.
+    """
+    comma_match = COMMA_LOCATION_PATTERN.match(line.strip())
+    if comma_match:
+        head, location = comma_match.group("head").strip(), comma_match.group("loc")
+        city, _, state = location.rpartition(",")
+        words = city.split()
+        # "University of California, Riverside Riverside, CA": a city never
+        # repeats its own name, so the first copy is the tail of the org's
+        # name and belongs back on the head
+        if len(words) == 2 and words[0].lower() == words[1].lower():
+            return f"{head}, {words[0]}", f"{words[1]},{state}"
+        return head, location
+
+    candidates = [
+        (line[: match.start(1)].strip(), match.group(1))
+        for pattern in LOCATION_SUFFIX_PATTERNS
+        if (match := pattern.search(line))
+    ]
+    if not candidates:
+        return line.strip(), ""
+    remaining, location = next(
+        (
+            c
+            for c in candidates
+            if not DANGLING_TAIL_PATTERN.search(c[0])
+            and c[1].split()[0].lower() not in ORG_TAIL_WORDS
+        ),
+        candidates[0],
+    )
+    return remaining.strip(" ,@&/-"), location
+
+
+def _split_grad_date(line: str) -> tuple[str, str]:
+    """Strip a trailing (possibly "Expected"-prefixed) graduation date."""
+    match = GRAD_DATE_PATTERN.search(line)
     if not match:
         return line.strip(), ""
-    return line[: match.start(1)].strip(" ,"), match.group(1)
+    return line[: match.start()].strip(" ,.-"), match.group(0).strip()
 
 
 def _split_tech(text: str) -> tuple[str, list[str]]:
@@ -196,15 +283,108 @@ def _section_kind(header_line: str) -> str | None:
         return "project"
     if re.fullmatch(r"(?:work |professional |relevant )?experiences?", stripped, re.IGNORECASE):
         return "experience"
+    if re.fullmatch(r"(?:technical |core )?skills?", stripped, re.IGNORECASE):
+        return "skills"
     if SECTION_HEADER_PATTERN.match(stripped):
         return "skip"
     return None
+
+
+def _looks_like_education_block(lines: list[str]) -> bool:
+    """Infer an education entry from a degree phrase plus a school name.
+
+    Lets education parse correctly even without an explicit "Education"
+    header -- some resumes fold it into a "Leadership" or unheaded block.
+    """
+    text = " ".join(lines)
+    return bool(DEGREE_PATTERN.search(text) and SCHOOL_PATTERN.search(text))
+
+
+def _merge_skill_line(skills: dict[str, list[str]], line: str) -> None:
+    """Route a "Label: a, b, c" (or bare "a, b, c") line into the skills dict."""
+    match = SKILL_LABEL_PATTERN.match(line)
+    label, items_text = (match.group(1), match.group(2)) if match else ("Skills", line)
+    items = [item.strip().rstrip(".") for item in items_text.split(",") if item.strip()]
+    if not items:
+        return
+    bucket = skills.setdefault(label, [])
+    bucket.extend(item for item in items if item not in bucket)
+
+
+def _pull_labeled_lines(
+    lines: list[str], skills: dict[str, list[str]]
+) -> tuple[list[str], list[str]]:
+    """Drain "Coursework:"/skill-category lines out of a block's content.
+
+    A "Label: a, b, c" line is structure -- it belongs in `skills` or an
+    education entry's coursework, and must never be minted as a fact.
+    Returns the remaining content lines and the coursework it pulled out.
+    """
+    remaining: list[str] = []
+    coursework: list[str] = []
+    for line in lines:
+        course = COURSEWORK_PATTERN.match(line)
+        if course:
+            coursework.extend(
+                c.strip().rstrip(".") for c in course.group(1).split(",") if c.strip()
+            )
+            continue
+        if SKILL_LABEL_PATTERN.match(line):
+            _merge_skill_line(skills, line)
+            continue
+        remaining.append(line)
+    return remaining, coursework
 
 
 def _looks_like_fact_line(line: str) -> bool:
     # checked on raw, pre-unwrap lines, so recognize any bullet glyph
     # unwrap_text would later normalize -- not just the plain-ASCII ones
     return bool(BULLET_START_PATTERN.match(line)) or line.rstrip()[-1:] in (".", "!", "?")
+
+
+def _has_date(line: str) -> bool:
+    return bool(DATE_RANGE_PATTERN.search(line) or BARE_YEAR_PATTERN.search(line))
+
+
+def _is_entry_boundary(lines: list[str], index: int, kind: str) -> bool:
+    """Whether `lines[index]` starts a new experience/project entry.
+
+    Jake's-style header is two lines -- title + dates, then org + location --
+    and the date can sit on either of them. A dated non-bullet line starts an
+    entry outright; a dateless one does too when the very next non-bullet
+    line carries the date, which is what makes "Technical Lead" / "ACM @ UCR
+    Riverside, CA 2025" one entry rather than trailing content of the last.
+    Projects often carry no date at all, so a "Name | tech, tech" header --
+    the other line a fact must never be minted from -- serves there instead.
+    """
+    line = lines[index]
+    if _looks_like_fact_line(line):
+        return False
+    if DATE_RANGE_PATTERN.search(line):
+        return True
+    if kind == "project" and "|" in line:
+        return True
+    following = lines[index + 1] if index + 1 < len(lines) else ""
+    return bool(following) and not _looks_like_fact_line(following) and _has_date(following)
+
+
+def _split_entries(lines: list[str], kind: str) -> list[list[str]]:
+    """Split a section's lines into per-entry groups at header boundaries.
+
+    Blank-line block splitting alone can't segment entries that run
+    together without blank lines between them -- this is the fix for
+    entries collapsing into one when a resume omits those blank lines.
+    """
+    entries: list[list[str]] = []
+    current: list[str] = []
+    for index, line in enumerate(lines):
+        if current and _is_entry_boundary(lines, index, kind):
+            entries.append(current)
+            current = []
+        current.append(line)
+    if current:
+        entries.append(current)
+    return entries
 
 
 def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
@@ -232,6 +412,14 @@ def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
     located: list[str] = []
     plain: list[str] = []
     for line in header:
+        # a lone trailing year (no real range) is common on club/project
+        # headers -- strip it before location splitting so it can't stick to
+        # a location suffix ("Riverside, CA 2025") and break that match
+        bare_year = ""
+        year_match = BARE_YEAR_PATTERN.search(line)
+        if year_match and not DATE_RANGE_PATTERN.search(line):
+            bare_year = year_match.group(1)
+            line = line[: year_match.start()].rstrip(" ,-")
         text, s, e = _split_date_range(line)
         if s or e:
             start, end = start or s, end or e
@@ -245,6 +433,7 @@ def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
             located.append(text)
         else:
             plain.append(text)
+        end = end or bare_year
 
     title = " ".join(t for t in dated if t)
     company = " ".join(t for t in located if t)
@@ -266,25 +455,42 @@ def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
 
 
 def _parse_education_entry(lines: list[str]) -> Education:
-    text = " ".join(lines)
+    """Parse an education entry line by line, never as one joined blob.
+
+    Jake's-style shape is two lines -- school (+ trailing "City, ST") then
+    degree (+ trailing graduation date) -- but the order varies and either
+    half may share a line, so each line is classified by the signals it
+    carries rather than by its position. Education entries hold no facts:
+    anything left over after school/degree/location/date is dropped.
+    """
+    school = degree = location = grad_date = ""
     coursework: list[str] = []
-    course_match = re.search(r"coursework:\s*(.+)$", text, re.IGNORECASE)
-    if course_match:
-        coursework = [c.strip().rstrip(".") for c in course_match.group(1).split(",") if c.strip()]
-        text = text[: course_match.start()].strip()
-
-    grad_date = ""
-    date_match = re.search(
-        r"(?:expected\s+)?(?:[A-Za-z]{3,9}\.?\s*\d{4}|\d{4})\s*$", text, re.IGNORECASE
-    )
-    if date_match:
-        grad_date = date_match.group(0).strip()
-        text = text[: date_match.start()].strip(" ,.-")
-
-    text, location = _split_location(text)
-    parts = re.split(r"\s*-\s*|,\s*(?=[A-Z])", text, maxsplit=1)
-    school = parts[0].strip()
-    degree = parts[1].strip() if len(parts) > 1 else ""
+    leftovers: list[str] = []
+    for line in lines:
+        course = COURSEWORK_PATTERN.match(line)
+        if course:
+            coursework.extend(
+                c.strip().rstrip(".") for c in course.group(1).split(",") if c.strip()
+            )
+            continue
+        text, date = _split_grad_date(line)
+        grad_date = grad_date or date
+        text, loc = _split_location(text)
+        location = location or loc
+        # a one-liner packs both halves in: "<School> - <Degree>"
+        text, _, tail = (t.strip() for t in text.partition(" - "))
+        for part in (text, tail):
+            part = part.strip(" ,.-")
+            if not part:
+                continue
+            if DEGREE_PATTERN.search(part) and not degree:
+                degree = part
+            elif not school:
+                school = part
+            else:
+                leftovers.append(part)
+    if not school and leftovers:
+        school = leftovers[0]
     return Education(
         school=school, degree=degree, location=location, grad_date=grad_date, coursework=coursework
     )
@@ -323,6 +529,8 @@ def _text_master_resume(text: str) -> MasterResume:
     experiences: list[Experience] = []
     projects: list[Project] = []
     education: list[Education] = []
+    skills: dict[str, list[str]] = {}
+    coursework: list[str] = []
     used_ids: set[str] = set()
     current_kind = "experience"
 
@@ -341,55 +549,71 @@ def _text_master_resume(text: str) -> MasterResume:
             for line in block_lines
             if line not in contact_lines and not EMAIL_PATTERN.search(line)
         ]
+        if current_kind == "skills":
+            for line in block_lines:
+                _merge_skill_line(skills, line)
+            continue
+        # labeled lines are structure, never fact content
+        block_lines, block_coursework = _pull_labeled_lines(block_lines, skills)
+        coursework.extend(block_coursework)
         if not block_lines:
             continue
 
-        if current_kind == "education":
+        # an explicit header wins, but a degree phrase plus a school name is
+        # enough on its own -- some resumes never write "Education" at all
+        if current_kind == "education" or _looks_like_education_block(block_lines):
             education.append(_parse_education_entry(block_lines))
             continue
 
-        meta, fact_lines = _parse_entry_header(block_lines)
-        # unwrap only the fact content: rejoins genuinely wrapped sentences
-        # without risking header lines (no terminal punctuation of their
-        # own) being soft-wrap-joined into it first
-        unwrapped_facts = unwrap_text("\n".join(fact_lines)) if fact_lines else ""
-        facts_text: list[str] = []
-        for line in unwrapped_facts.splitlines():
-            facts_text.extend(_split_sentences(BULLET_PATTERN.sub("", line)))
-        facts_text = facts_text[:MAX_FACTS_PER_SECTION]
-        if not facts_text:
-            continue
+        for entry_lines in _split_entries(block_lines, current_kind):
+            meta, fact_lines = _parse_entry_header(entry_lines)
+            # unwrap only the fact content: rejoins genuinely wrapped sentences
+            # without risking header lines (no terminal punctuation of their
+            # own) being soft-wrap-joined into it first
+            unwrapped_facts = unwrap_text("\n".join(fact_lines)) if fact_lines else ""
+            facts_text: list[str] = []
+            for line in unwrapped_facts.splitlines():
+                facts_text.extend(_split_sentences(BULLET_PATTERN.sub("", line)))
+            facts_text = facts_text[:MAX_FACTS_PER_SECTION]
+            if not facts_text:
+                continue
 
-        if current_kind == "project":
-            proj_name, tech = _split_tech(meta["company"])
-            section_id = _entity_prefix(proj_name, used_ids)
-            projects.append(
-                Project(
-                    id=section_id,
-                    name=proj_name,
-                    tech=tech,
-                    facts=[
-                        Fact(id=f"{section_id}-{i:02d}", text=t)
-                        for i, t in enumerate(facts_text, 1)
-                    ],
+            if current_kind == "project":
+                proj_name, tech = _split_tech(meta["company"])
+                section_id = _entity_prefix(proj_name, used_ids)
+                projects.append(
+                    Project(
+                        id=section_id,
+                        name=proj_name,
+                        tech=tech,
+                        facts=[
+                            Fact(id=f"{section_id}-{i:02d}", text=t)
+                            for i, t in enumerate(facts_text, 1)
+                        ],
+                    )
                 )
-            )
-        else:
-            section_id = _entity_prefix(meta["company"], used_ids)
-            experiences.append(
-                Experience(
-                    id=section_id,
-                    company=meta["company"],
-                    title=meta["title"],
-                    location=meta["location"],
-                    start=meta["start"],
-                    end=meta["end"],
-                    facts=[
-                        Fact(id=f"{section_id}-{i:02d}", text=t)
-                        for i, t in enumerate(facts_text, 1)
-                    ],
+            else:
+                section_id = _entity_prefix(meta["company"], used_ids)
+                experiences.append(
+                    Experience(
+                        id=section_id,
+                        company=meta["company"],
+                        title=meta["title"],
+                        location=meta["location"],
+                        start=meta["start"],
+                        end=meta["end"],
+                        facts=[
+                            Fact(id=f"{section_id}-{i:02d}", text=t)
+                            for i, t in enumerate(facts_text, 1)
+                        ],
+                    )
                 )
-            )
+
+    if coursework and education:
+        merged = education[0].coursework + [
+            c for c in coursework if c not in education[0].coursework
+        ]
+        education[0] = education[0].model_copy(update={"coursework": merged})
 
     return MasterResume(
         name=name,
@@ -399,7 +623,7 @@ def _text_master_resume(text: str) -> MasterResume:
         education=education,
         experiences=experiences,
         projects=projects,
-        skills={},
+        skills=skills,
     )
 
 
@@ -545,6 +769,11 @@ def _validated_text_master_resume(text: str) -> MasterResume:
     wrapping, so headers are found on the raw lines first, and only the
     remaining fact lines get unwrapped -- see `_text_master_resume`.
     """
+    # order matters: break runaway "header • first bullet" lines apart first
+    # so a header is a header before dates get reattached to one, and only
+    # then isolate section headers into their own blocks
+    text = split_inline_bullets(text)
+    text = reattach_orphan_dates(text)
     text = _insert_section_breaks(text)
     master = _text_master_resume(text)
     violations = _validate_structure(master)
