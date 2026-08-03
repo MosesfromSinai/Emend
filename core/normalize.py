@@ -8,12 +8,29 @@ rejoins the latter, before either the mock parser or the LLM ever sees the
 text. Pure Python, no LLM calls, no network.
 """
 
+import logging
 import re
 import unicodedata
+
+logger = logging.getLogger("emend.core.normalize")
 
 BULLET_START_PATTERN = re.compile(r"^[•●○◦‣▪∙·\-*]\s*|^\d+[.)]\s")
 TERMINAL_PUNCT = (".", "!", "?", ":")
 HYPHENATION_PATTERN = re.compile(r"(?<=[a-z])-$")
+
+_YEAR = r"(?:19|20)\d{2}"
+BARE_YEAR_LINE_PATTERN = re.compile(rf"^{_YEAR}$")
+BARE_DATE_RANGE_LINE_PATTERN = re.compile(
+    rf"^(?:[A-Za-z]{{3,9}}\.?\s*{_YEAR}|\d{{1,2}}/{_YEAR}|{_YEAR})\s*-\s*"
+    rf"(?:[A-Za-z]{{3,9}}\.?\s*{_YEAR}|\d{{1,2}}/{_YEAR}|{_YEAR}|Present|Current)$",
+    re.IGNORECASE,
+)
+_LINE_HAS_DATE_PATTERN = re.compile(
+    rf"(?:[A-Za-z]{{3,9}}\.?\s*{_YEAR}|\d{{1,2}}/{_YEAR}|{_YEAR})\s*-\s*"
+    rf"(?:[A-Za-z]{{3,9}}\.?\s*{_YEAR}|\d{{1,2}}/{_YEAR}|{_YEAR}|Present|Current)",
+    re.IGNORECASE,
+)
+INLINE_BULLET_PATTERN = re.compile(r"(?<=\S)\s*[•●○◦‣▪∙]\s*")
 
 _UNICODE_BULLETS = "●○◦‣▪∙"
 _QUOTE_MAP = {"“": '"', "”": '"', "‘": "'", "’": "'"}
@@ -58,3 +75,58 @@ def unwrap_text(raw: str) -> str:
     joined = [_join_block_lines(block.splitlines()) for block in blocks]
     result = "\n\n".join(b for b in joined if b)
     return re.sub(r"[ \t]+", " ", result)
+
+
+def reattach_orphan_dates(text: str) -> str:
+    """Merge a bare year/date-range line into the nearest dateless header above it.
+
+    PDF text extraction often emits a right-aligned date on its own line,
+    disconnected from the title/company line it belongs with. Reattaching it
+    before segmentation means date-range detection can find it where it's
+    expected: on the header line itself.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        is_orphan_date = bool(
+            BARE_YEAR_LINE_PATTERN.match(stripped)
+            or BARE_DATE_RANGE_LINE_PATTERN.match(stripped)
+        )
+        if not is_orphan_date:
+            out.append(line)
+            continue
+        for i in range(len(out) - 1, -1, -1):
+            candidate = out[i].strip()
+            if not candidate:
+                continue
+            if _LINE_HAS_DATE_PATTERN.search(candidate) or BARE_YEAR_LINE_PATTERN.match(
+                candidate
+            ):
+                continue
+            out[i] = f"{out[i]} {stripped}"
+            logger.info("reattached orphan date %r to header %r", stripped, candidate)
+            break
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def split_inline_bullets(text: str) -> str:
+    """Break a bullet glyph out onto its own line wherever it appears.
+
+    PDF extraction sometimes runs a header straight into its first bullet
+    with no newline between them ("TermIt | C++, CMake • Developed..."),
+    which then reads as one line neither a clean header nor a clean fact.
+    """
+    out: list[str] = []
+    for line in text.splitlines():
+        leading = BULLET_START_PATTERN.match(line)
+        prefix, rest = (line[: leading.end()], line[leading.end() :]) if leading else ("", line)
+        parts = INLINE_BULLET_PATTERN.split(rest)
+        if len(parts) == 1:
+            out.append(line)
+            continue
+        out.append(prefix + parts[0])
+        out.extend(f"• {part}" for part in parts[1:] if part.strip())
+    return "\n".join(out)
