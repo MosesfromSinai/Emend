@@ -6,17 +6,17 @@ contract work, no formal CS degree. Currently completing an online
 specialization in backend systems.
 
 Freelance Web Developer (Jun 2022 - Present)
-- Delivered 9 small-business websites (WordPress and custom Next.js builds) for local clients
-- Built a booking system for a hair salon client using Next.js and Stripe, now processing ~40 bookings/week
-- Maintain a shared component library reused across 4 client projects
+- Delivered 9 small-business websites (WordPress and custom Next.js builds) for local clients.
+- Built a booking system for a hair salon client using Next.js and Stripe, now processing ~40 bookings/week.
+- Maintain a shared component library reused across 4 client projects.
 
 DeskHive
-- Built a coworking-space desk reservation app (Next.js, Supabase) as a portfolio project
-- Implemented real-time seat availability using Supabase's realtime subscriptions
+- Built a coworking-space desk reservation app (Next.js, Supabase) as a portfolio project.
+- Implemented real-time seat availability using Supabase's realtime subscriptions.
 
 QuietHours
-- Built a Chrome extension that blocks notification-heavy sites during scheduled focus blocks
-- Published to the Chrome Web Store with 300+ installs
+- Built a Chrome extension that blocks notification-heavy sites during scheduled focus blocks.
+- Published to the Chrome Web Store with 300+ installs.
 
 Online coursework: Backend Systems Specialization (in progress), Object-Oriented Design fundamentals
 
