@@ -1,4 +1,6 @@
-# Real pipeline mode (MOCK=0). Under MOCK=1 only pydantic is needed —
-# core/llm.py imports anthropic lazily so mock runs stay key-free.
+# Real pipeline mode (MOCK=0). Under MOCK=1 only pydantic/pypdf/selectolax
+# are needed — core/llm.py imports anthropic lazily so mock runs stay key-free.
 anthropic>=0.69
 pydantic>=2.7
+pypdf>=5.0
+selectolax>=0.4
