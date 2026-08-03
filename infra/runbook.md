@@ -128,16 +128,23 @@ The Dockerfiles / compose / railway.json assume, per the brief's architecture:
 
 If any of these differ, the fix belongs in `infra/` — ping Workflow C.
 
-## Known gaps (updated 2026-07-19, post-Emend scope change)
+## Known gaps (updated 2026-08-03)
 
-- `api/` (Workflow B) and `web/` (Workflow D) don't exist yet: the compose `api`
-  / `web` services and the full `runtime` Docker stage won't build until they
-  land. `docker build --target latex-sandbox` and the `postgres` service work
-  today.
-- Pixel-fidelity check against all four teammates' real resumes is pending
-  Workflow A's `structure_resume` (verification so far uses synthetic fixtures
-  in `latex/tests/fixtures/`).
-- Production deploy has not been executed yet — configs and this runbook are
-  ready; run "Production setup" above when accounts/credentials are available.
+- **Production is deployed** (Vercel + Railway + Neon, `MOCK=1`) — see
+  `00-project-brief.md`'s "Deployment — as built". `api/` and `web/` both
+  exist and build; the paragraph above about them not existing is history,
+  not current state.
+- **CI→Railway auto-deploy is broken**: `.github/workflows/deploy.yml` fails
+  every run with `Invalid RAILWAY_TOKEN` — the secret was never set. The live
+  site was deployed some other way and may not match the latest `main`. Set
+  `RAILWAY_TOKEN` in repo secrets and confirm the next merge redeploys.
+- Branch protection on `main` is not configured on GitHub, despite the brief
+  calling for it.
+- Pixel-fidelity check against a real resume is pending — verification so far
+  uses synthetic fixtures in `latex/tests/fixtures/`.
 - The ~1–2s warm-compile target must be measured in the Linux image (macOS dev
   machines show ~3s of fontconfig/IO overhead not present in the container).
+- PDF upload and job-URL ingestion are contract-decided (brief reconciliation
+  #1) but not implemented anywhere in `api`/`web` — `core.extract.pdf_to_text`
+  and `core.jd_text.html_to_jd_text` exist but nothing calls them outside
+  `core`'s own tests.

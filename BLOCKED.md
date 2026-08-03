@@ -27,19 +27,16 @@ instead of guessing at figures. Everything else in this phase (schema
 validity across fixtures, mock-mode tests, the trace writer itself) does
 not need a key and is done and verified.
 
-## Phase 4 (deploy) needs accounts and credentials
+## RESOLVED: Phase 4 (deploy) — Neon + Railway + Vercel are live
 
-**What's blocked:** the whole deploy phase — Neon (Postgres), Railway (api
-+ volume + secrets + `RAILWAY_TOKEN` for the GitHub Actions deploy
-workflow), Vercel (web) all need accounts only you can create/authorize.
+Deployed and serving: **https://emend-two.vercel.app** (web on Vercel, api on
+Railway, Postgres on Neon; `MOCK=1`, no working key yet — see the item above).
+Details in `00-project-brief.md`'s "Deployment — as built" section and
+`infra/runbook.md`.
 
-**What I need from you:** either create these accounts and share the
-tokens/connection strings for me to wire into `infra/railway.json` /
-`infra/docker-compose.yml` / repo secrets, or tell me to walk you through
-creating them together.
-
-**What I did instead:** built the Railway deploy config
-(`infra/railway.json`, `.github/workflows/deploy.yml`) and the Neon +
-Railway + Vercel production setup steps in `infra/runbook.md` on
-`feat/infra/railway-deploy`, so this is ready to run the moment accounts
-exist. Nothing in the codebase depends on this being resolved before it is.
+**Still open:** the CI→Railway auto-deploy workflow
+(`.github/workflows/deploy.yml`) is failing on every run with `Invalid
+RAILWAY_TOKEN` — the repo has no `RAILWAY_TOKEN` secret set. The live site
+was deployed some other way and isn't guaranteed to track the latest merged
+`main`. Set the secret (Railway dashboard → project → Settings → Tokens) and
+confirm the next merge actually redeploys.

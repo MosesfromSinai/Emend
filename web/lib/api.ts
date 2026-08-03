@@ -4,7 +4,7 @@ import type {
   MasterResume,
 } from "@/lib/types";
 
-// Compose sets this to http://localhost:8000; Vercel sets it to the Fly URL.
+// Compose sets this to http://localhost:8000; Vercel sets it to the Railway URL.
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 

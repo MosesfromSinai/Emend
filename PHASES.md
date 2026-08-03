@@ -44,15 +44,20 @@ and moving on rather than guessing at numbers.
 Phase 3 (Workflow A real-mode hardening + eval harness) is otherwise
 complete. Remaining open item is the blocked real-mode eval numbers above.
 
-## Next
+## Phase 4 — Deploy + finish line
 
+**Deploy is done.** Live at https://emend-two.vercel.app (Vercel + Railway +
+Neon), running `MOCK=1`. See `00-project-brief.md`'s "Deployment — as built".
+
+Still open from this phase:
 - Get a working `ANTHROPIC_API_KEY` (see `BLOCKED.md`) and fill in
-  `docs/evals.md`'s real numbers.
-- **Phase 4 — Deploy + finish line** (blocked on accounts/credentials, see
-  `BLOCKED.md`): Neon (Postgres) + Railway (api, volume, secrets) + Vercel
-  (web) accounts and first deploy with `MOCK=1`; flip to `MOCK=0` once real
-  eval numbers land; branch protection on `main`; README architecture
-  diagram + demo GIF + real eval numbers; phone check of the M1 flow
-  against the deployed URL. Deploy config for Railway (`infra/railway.json`,
-  `.github/workflows/deploy.yml`) is ready on `feat/infra/railway-deploy`.
+  `docs/evals.md`'s real numbers; flip Railway's `MOCK` to `0` once they land.
+- Set `RAILWAY_TOKEN` in repo secrets — the CI→Railway auto-deploy workflow
+  is currently failing on every run (see `BLOCKED.md`), so `main` and
+  production can silently drift.
+- Branch protection on `main` — not yet configured on GitHub.
+- README architecture diagram + demo GIF + real eval numbers; phone check of
+  the M1 flow against the deployed URL.
+- PDF upload and job-URL ingestion — contract-decided (see the brief's
+  reconciliation #1) but not yet implemented anywhere in `api`/`web`.
 
