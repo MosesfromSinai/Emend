@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sourceSerif.variable} ${jetBrainsMono.variable}`}>
       <head>
-        {/* set before paint so a saved color scheme never flashes amber first */}
+        {/* set before paint so a saved color scheme never flashes oxblood first */}
         <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT_SCRIPT }} />
       </head>
       <body>{children}</body>
