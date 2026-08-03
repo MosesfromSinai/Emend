@@ -45,12 +45,13 @@ def test_import_text_required_and_capped(client, stub_structure):
 def test_import_parses_pasted_text_via_real_core(client, monkeypatch):
     # no stubs: the real MOCK=1 pipeline must structure ordinary pasted text
     monkeypatch.setenv("MOCK", "1")
-    text = "Sam Sample\nsam@example.com\n\nAcme Corp\n• Built 25+ integration tests"
+    text = "Sam Sample\nsam@example.com\n\nAcme Corp\n• Built 25+ integration tests."
     r = client.post("/resumes/import", json={"text": text})
     assert r.status_code == 200
     body = r.json()
     assert body["name"] == "Sam Sample"
-    assert body["experiences"][0]["facts"][0]["id"] == "ACME-01"
+    assert body["experiences"][0]["company"] == "Acme Corp"
+    assert body["experiences"][0]["facts"][0]["id"] == "AC-01"
 
 
 def test_import_422_for_invalid_fenced_json(client, monkeypatch):
