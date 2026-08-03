@@ -141,6 +141,7 @@ class JDExtract(BaseModel):
     soft_requirements: list[str]
     responsibilities: list[str]
     keywords: list[str]
+    source_url: str | None = None
 
 
 class TailoredBullet(BaseModel):

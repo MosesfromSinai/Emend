@@ -29,9 +29,10 @@ def test_anthropic_client_builds_separately_per_key():
 
 def test_structured_tool_uses_schema_contract():
     tool = structured_tool(JDExtract)
+    required = [name for name, field in JDExtract.model_fields.items() if field.is_required()]
 
     assert tool["name"] == "emit_schema"
-    assert tool["input_schema"]["required"] == list(JDExtract.model_fields)
+    assert tool["input_schema"]["required"] == required
 
 
 def test_tool_input_extracts_structured_payload():
