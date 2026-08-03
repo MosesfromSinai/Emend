@@ -17,8 +17,8 @@ jobs:
           # deploy exactly the commit CI validated, not whatever main moved to
           ref: ${{ github.event.workflow_run.head_sha }}
       - run: npm i -g @railway/cli
-      # service name must match the api service in the Railway project
-      - run: railway up --service api --ci
+      # service is named "Emend" in the Railway project, not "api"
+      - run: railway up --service Emend --ci
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
