@@ -788,17 +788,44 @@ def _check_input_size(text: str, label: str) -> None:
         raise ValueError(f"{label} exceeds {limit} characters")
 
 
+SEGMENTATION_REPAIR_NOTE = """\
+These facts are entry metadata -- a header, a date, or a location -- which
+means you drew the entry boundaries in the wrong place and let one entry's
+header fall through as another entry's content. Re-segment before you
+re-emit. Every non-bullet line carrying a date range starts a NEW entry;
+the line after it is that entry's organization and location; everything
+after belongs to that entry until the next date-range line. Split the
+collapsed entries apart and give each its own header."""
+
+
+def _is_segmentation_violation(violation: str) -> bool:
+    """Whether a rejected fact is a leaked header rather than a stray fragment."""
+    return any(
+        reason in violation
+        for reason in (
+            "is a bare date range",
+            "is a bare city/state",
+            "restates the entry's company",
+            "restates the entry's title",
+        )
+    ) or bool(DATE_RANGE_PATTERN.search(violation))
+
+
+def _repair_prompt(violations: list[str]) -> str:
+    """The retry message: name the bad facts, and why they're bad if it's structural."""
+    message = "\n\nYour previous response produced invalid facts:\n" + "\n".join(violations)
+    if any(_is_segmentation_violation(v) for v in violations):
+        return f"{message}\n\n{SEGMENTATION_REPAIR_NOTE}"
+    return f"{message}\nFix these specific facts and return a corrected structure."
+
+
 def _real_structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     """Structure with the LLM, repairing once against structural violations."""
     prompt = f"Resume text:\n\n{text}"
     violations: list[str] = []
     for _attempt in range(2):
         if violations:
-            prompt += (
-                "\n\nYour previous response produced invalid facts:\n"
-                + "\n".join(violations)
-                + "\nFix these specific facts and return a corrected structure."
-            )
+            prompt += _repair_prompt(violations)
         result = structured_call_with_usage(
             FAST_MODEL,
             cacheable_system(STRUCTURE_SYSTEM),
