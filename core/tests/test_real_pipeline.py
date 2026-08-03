@@ -92,11 +92,36 @@ def _tailored_payload(master: MasterResume) -> dict:
 # --- request shape -----------------------------------------------------------
 
 
-def test_structure_resume_uses_fast_model_and_caches_system(sample_master):
-    master = sample_master
-    client = FakeClient(master.model_dump())
+def test_structure_resume_uses_fast_model_and_caches_system():
+    # the LLM returns facts with no ids -- core assigns those after
+    raw_payload = {
+        "name": "Ada Lovelace",
+        "email": "ada@example.com",
+        "phone": "555-010-1010",
+        "links": ["linkedin.com/in/ada-lovelace"],
+        "education": [],
+        "experiences": [
+            {
+                "company": "Babbage & Co",
+                "title": "Software Engineer Intern",
+                "location": "London, UK",
+                "start": "Jun 2023",
+                "end": "Aug 2023",
+                "facts": [
+                    {"text": "Wrote the first published algorithm intended for machine execution."}
+                ],
+            }
+        ],
+        "projects": [],
+        "skills": {"Languages": ["Ada"]},
+    }
+    client = FakeClient(raw_payload)
 
-    assert structure_resume("messy resume text", client=client) == master
+    master = structure_resume("messy resume text", client=client)
+
+    assert master.name == "Ada Lovelace"
+    assert master.experiences[0].company == "Babbage & Co"
+    assert master.experiences[0].facts[0].id.endswith("-01")
 
     call = client.calls[0]
     assert call["model"] == FAST_MODEL

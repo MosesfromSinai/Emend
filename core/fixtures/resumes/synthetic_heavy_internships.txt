@@ -8,21 +8,21 @@ Coursework: Distributed Systems, Compilers, Computer Networks, Statistics
 EXPERIENCE
 
 Software Engineering Intern, Fernwood Analytics (May 2025 - Aug 2025)
-* Rewrote a batch ETL job in Go, reducing nightly runtime from 90 to 22 minutes
-* Added structured logging and Prometheus metrics to 3 internal services
-* Paired with 2 senior engineers to design a retry policy for a flaky downstream API
+* Rewrote a batch ETL job in Go, reducing nightly runtime from 90 to 22 minutes.
+* Added structured logging and Prometheus metrics to 3 internal services.
+* Paired with 2 senior engineers to design a retry policy for a flaky downstream API.
 
 Software Engineering Intern, Baywatch Robotics Club Sponsor Program (May 2024 - Aug 2024)
-* Implemented a path-planning module in C++ for a competition robot, tested against 40+ simulated courses
-* Wrote a ROS node bridging LIDAR data to the navigation stack
+* Implemented a path-planning module in C++ for a competition robot, tested against 40+ simulated courses.
+* Wrote a ROS node bridging LIDAR data to the navigation stack.
 
 Teaching Assistant, Intro to Data Structures (Sep 2023 - Dec 2023)
-* Held weekly office hours for 30+ students and graded 6 programming assignments per term
+* Held weekly office hours for 30+ students and graded 6 programming assignments per term.
 
 PROJECTS
 
 Latticework | Rust, WebAssembly
-* Built a WASM-compiled cellular automaton simulator running in the browser at 60fps
-* Wrote 35 unit tests covering the rule engine
+* Built a WASM-compiled cellular automaton simulator running in the browser at 60fps.
+* Wrote 35 unit tests covering the rule engine.
 
 Skills: Go, C++, Rust, Python, ROS, Prometheus, Docker, PostgreSQL

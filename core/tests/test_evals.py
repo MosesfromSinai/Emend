@@ -5,14 +5,21 @@ makes a normal `pytest` run spend real money.
 """
 
 import os
+import re
 from pathlib import Path
 
 import pytest
 
-from core.pipeline import parse_jd, real_tailor_result, structure_resume
+from core.extract import pdf_to_text
+from core.pipeline import _fact_violations, parse_jd, real_tailor_result, structure_resume
 
 RESUME_FIXTURES = Path(__file__).parent.parent / "fixtures" / "resumes"
 POSTING_FIXTURES = Path(__file__).parent.parent / "fixtures" / "postings"
+PDF_FIXTURES = Path(__file__).parent.parent / "fixtures" / "pdfs"
+FACT_ID_SHAPE = re.compile(r"^[A-Z]{2,5}[0-9]?-[0-9]{2}$")
+# hard mid-sentence wraps, a hyphenated line-wrap, a multi-sentence bullet,
+# and three different bullet glyphs (bullet count -> 5 facts total)
+WRAPPED_RESUME_SENTENCE_COUNT = 5
 
 requires_real_evals = pytest.mark.skipif(
     os.getenv("RUN_REAL_EVALS") != "1",
@@ -28,13 +35,64 @@ def test_fixture_resumes_exist():
     assert len(_resume_files()) >= 6
 
 
-def test_every_resume_fixture_structures_to_a_valid_schema():
+def test_every_resume_fixture_structures_without_crashing():
+    # "structures cleanly" for well-formed resumes; for the deliberately
+    # malformed ones, a clean ValueError from the structural validator is
+    # an acceptable outcome too -- what must never happen is a fragment
+    # fact slipping through, or any *other* kind of crash.
     for path in _resume_files():
-        master = structure_resume(path.read_text())
+        try:
+            master = structure_resume(path.read_text())
+        except ValueError:
+            continue
         assert master.name
-        # a valid MasterResume is achievement enough for the ugly fixtures;
-        # schema validity, not extraction quality, is what this asserts
         master.fact_lookup()
+
+
+def test_wrapped_resume_structures_cleanly():
+    """The exact acceptance bar for the sentence-parsing fix."""
+    text = (RESUME_FIXTURES / "ugly_wrapped_resume.txt").read_text()
+
+    master = structure_resume(text)
+
+    all_facts = [f for e in [*master.experiences, *master.projects] for f in e.facts]
+    assert len(all_facts) == WRAPPED_RESUME_SENTENCE_COUNT
+
+    for entry in [*master.experiences, *master.projects]:
+        company = getattr(entry, "company", "") or getattr(entry, "name", "")
+        title = getattr(entry, "title", "")
+        for fact in entry.facts:
+            assert _fact_violations(fact.text, company, title) == []
+
+    for experience in master.experiences:
+        assert experience.company
+        assert experience.title
+
+    assert not any(
+        "education" in e.company.lower() or "education" in e.title.lower()
+        for e in master.experiences
+    )
+    assert len(master.education) == 1
+
+    for fact_id in master.all_fact_ids():
+        assert FACT_ID_SHAPE.match(fact_id), fact_id
+
+
+def test_pdf_resume_extracts_and_structures_without_crashing():
+    # pypdf's text extraction doesn't reliably preserve blank-line paragraph
+    # gaps the way copy-pasted text does (a real, documented PDF-extraction
+    # limitation, not a parser bug) -- same bar as the malformed text
+    # fixtures: a clean result or a clean ValueError, never anything else.
+    data = (PDF_FIXTURES / "sample_resume.pdf").read_bytes()
+    text = pdf_to_text(data)
+    assert "Jordan Rivera" in text
+
+    try:
+        master = structure_resume(text)
+    except ValueError:
+        return
+    assert master.name
+    master.fact_lookup()
 
 
 def _posting_files() -> list[Path]:

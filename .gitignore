@@ -23,6 +23,7 @@ out/
 *.aux
 *.log
 !latex/tests/fixtures/**/*.pdf
+!core/fixtures/pdfs/**/*.pdf
 .tectonic-cache/
 
 # OS / editor

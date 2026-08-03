@@ -2,6 +2,8 @@ import pytest
 
 from core.llm import LLMUnavailableError
 from core.pipeline import (
+    _entity_prefix,
+    _fact_violations,
     mock_refactor_result,
     mock_refactor_resume,
     mock_tailor_resume,
@@ -12,6 +14,50 @@ from core.pipeline import (
 )
 from core.schemas import JDExtract
 from core.validation import validate_grounding
+
+
+def test_entity_prefix_uses_initials_for_multiword_names():
+    assert _entity_prefix("General Atomics", set()) == "GA"
+
+
+def test_entity_prefix_prefers_an_existing_acronym():
+    assert _entity_prefix("ACM @ UCR", set()) == "ACM"
+    assert _entity_prefix("NASA California Space Grant Consortium", set()) == "NASA"
+
+
+def test_entity_prefix_truncates_a_single_word_name():
+    assert _entity_prefix("TrailScout", set()) == "TRAIL"
+
+
+def test_entity_prefix_adds_numeric_suffix_on_collision():
+    used: set[str] = set()
+    assert _entity_prefix("General Atomics", used) == "GA"
+    assert _entity_prefix("General Atomics", used) == "GA2"
+
+
+def test_fact_violations_flags_missing_terminal_punctuation():
+    assert _fact_violations("Shipped a feature", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_fragment_continuation():
+    assert _fact_violations("and validated the results.", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_bare_date_range():
+    assert _fact_violations("Jun 2025 - Present", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_bare_city_state():
+    assert _fact_violations("San Diego, CA", "Acme", "Engineer")
+
+
+def test_fact_violations_flags_restated_company_or_title():
+    assert _fact_violations("Acme.", "Acme", "Engineer")
+    assert _fact_violations("Engineer.", "Acme", "Engineer")
+
+
+def test_fact_violations_accepts_a_clean_sentence():
+    assert _fact_violations("Shipped a feature used by 100+ customers.", "Acme", "Engineer") == []
 
 
 def test_structure_resume_accepts_master_resume_json(sample_master):
@@ -31,11 +77,11 @@ Sam Sample
 (555) 010-1010 | sam@example.com | linkedin.com/in/sam-sample
 
 Software Engineer Intern, Acme Corp (Jun 2025 - Present)
-• Built 25+ integration tests across 5 microservices
-• Automated a 12-step dev setup into one-click scripts
+• Built 25+ integration tests across 5 microservices.
+• Automated a 12-step dev setup into one-click scripts.
 
 Falcon Tracker
-- Live-demoed an object detection app to 750+ attendees
+- Live-demoed an object detection app to 750+ attendees.
 """
 
 
@@ -45,10 +91,15 @@ def test_structure_resume_parses_pasted_text():
     assert master.name == "Sam Sample"
     assert master.email == "sam@example.com"
     assert master.links == ["linkedin.com/in/sam-sample"]
-    assert [e.company for e in master.experiences] == [
-        "Software Engineer Intern, Acme Corp (Jun 2025 - Present)",
-        "Falcon Tracker",
-    ]
+    assert len(master.experiences) == 2
+    acme, falcon = master.experiences
+    # a single combined header line can't be split further -- title and
+    # company end up mirrored, but the date range is still pulled out
+    assert acme.company == "Software Engineer Intern, Acme Corp"
+    assert acme.start == "Jun 2025"
+    assert acme.end == "Present"
+    assert falcon.company == "Falcon Tracker"
+    assert falcon.title == "Falcon Tracker"
     facts = master.fact_lookup()
     assert len(facts) == 3
     # bullets are stripped and the schema's id format holds end to end
@@ -65,33 +116,36 @@ def test_structure_resume_rejects_invalid_fenced_json():
 
 
 def test_structure_resume_ignores_incidental_braces():
-    master = structure_resume("Sam Sample\n\nAcme\n• Shipped {feature flags} to prod")
+    master = structure_resume("Sam Sample\n\nAcme\n• Shipped {feature flags} to prod.")
 
-    assert master.experiences[0].facts[0].text == "Shipped {feature flags} to prod"
+    assert master.experiences[0].facts[0].text == "Shipped {feature flags} to prod."
 
 
 def test_structure_resume_splits_sections_without_blank_lines():
     # PDF copy-paste often collapses the blank lines between sections; a
-    # known header should still start a new section on its own.
+    # known header should still start a new section on its own, and route to
+    # the right list rather than becoming a fake "Education"/"Skills" entry.
     text = (
         "Sam Sample\n"
         "sam@example.com\n"
         "Education\n"
         "Riverside State University\n"
+        "Expected 2027\n"
         "Experience\n"
-        "Software Engineer Intern, Acme Corp\n"
+        "Software Engineer Intern\n"
+        "Acme Corp, Riverside, CA\n"
+        "Built an internal tool for the support team.\n"
         "Skills\n"
         "Python, Docker\n"
     )
 
     master = structure_resume(text)
 
-    assert [e.company for e in master.experiences] == [
-        "Education",
-        "Experience",
-        "Skills",
-    ]
-    assert master.experiences[1].facts[0].text == "Software Engineer Intern, Acme Corp"
+    assert len(master.education) == 1
+    assert master.education[0].school == "Riverside State University"
+    assert [e.company for e in master.experiences] == ["Acme Corp"]
+    assert master.experiences[0].title == "Software Engineer Intern"
+    assert master.experiences[0].facts[0].text == "Built an internal tool for the support team."
 
 
 def test_structure_resume_rejects_oversized_text(monkeypatch):

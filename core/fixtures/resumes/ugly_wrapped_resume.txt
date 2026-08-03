@@ -1,0 +1,24 @@
+Jamie Chen
+(555) 402-8891 | jamie.chen.dev@example.com | github.com/jchen-dev
+
+Software Engineer Intern
+Nimbus Data Systems San Diego, CA
+Jun 2025 - Aug 2025
+▪ Wrote 30+ integration tests in Python covering the billing
+service, catching 12 regressions before release. Refactored the
+retry logic for the payment webhook handler, cutting failed-web-
+hook volume by half.
+* Paired with two senior engineers to design a caching layer for the
+product catalog API.
+
+Education
+Cedar Ridge University
+B.S. Computer Science
+Expected May 2026
+
+Projects
+
+RouteWise | Python, Flask, PostgreSQL
+- Built a Flask API that recomputes delivery routes when traffic
+conditions change. Deployed it with Docker Compose alongside a
+PostgreSQL database.
