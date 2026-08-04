@@ -74,6 +74,28 @@ class RenderPreviewResponse(BaseModel):
     tex: str
 
 
+class JdPreviewRequest(BaseModel):
+    jd_text: str | None = Field(
+        default=None, min_length=1, max_length=settings.max_text_chars
+    )
+    jd_url: str | None = Field(default=None, min_length=1, max_length=2048)
+
+    @model_validator(mode="after")
+    def validate_exactly_one_source(self) -> "JdPreviewRequest":
+        if self.jd_text is not None and self.jd_url is not None:
+            raise ValueError("jd_text and jd_url cannot both be set")
+        if self.jd_text is None and self.jd_url is None:
+            raise ValueError("jd_text or jd_url is required")
+        return self
+
+
+class JdPreviewResponse(BaseModel):
+    score: float
+    matched_keywords: list[str]
+    missing_keywords: list[str]
+    resolved_jd_text: str
+
+
 class ApplicationListItem(BaseModel):
     id: uuid.UUID
     mode: str
