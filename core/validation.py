@@ -73,18 +73,21 @@ def _validate_sections(
             raise GroundingError(f"unknown section ref_id: {section.ref_id}")
         for bullet in section.bullets:
             if not bullet.source_fact_ids:
-                raise GroundingError(f"sourceless bullet: {bullet.text}")
+                raise GroundingError(f"sourceless bullet: {bullet.variants[0]}")
             unknown_ids = set(bullet.source_fact_ids) - set(facts)
             if unknown_ids:
                 raise GroundingError(
                     f"unknown fact ids or outside-section ids: {sorted(unknown_ids)}"
                 )
             cited_text = " ".join(facts[fact_id] for fact_id in bullet.source_fact_ids)
-            new_numbers = _numeric_tokens(bullet.text) - _numeric_tokens(cited_text)
-            if new_numbers:
-                raise GroundingError(f"unsupported numbers: {sorted(new_numbers)}")
-            if not _has_fact_word_overlap(bullet.text, cited_text):
-                raise GroundingError(f"low fact overlap: {bullet.text}")
+            # every variant is a real candidate for what ships -- each must
+            # independently pass, not just one of the three
+            for variant in bullet.variants:
+                new_numbers = _numeric_tokens(variant) - _numeric_tokens(cited_text)
+                if new_numbers:
+                    raise GroundingError(f"unsupported numbers: {sorted(new_numbers)}")
+                if not _has_fact_word_overlap(variant, cited_text):
+                    raise GroundingError(f"low fact overlap: {variant}")
 
 
 def _validate_skills(
@@ -125,7 +128,7 @@ def build_grounding_report(
     ]
     verdicts = [
         BulletVerdict(
-            bullet=bullet.text,
+            bullet=bullet.variants[0],
             supported=True,
             reason="Passed deterministic grounding checks.",
             source_fact_ids=bullet.source_fact_ids,
@@ -141,17 +144,17 @@ def build_grounding_report(
     )
 
 
-def _judge_prompt(bullet: TailoredBullet, facts: dict[str, str]) -> str:
-    cited = "\n".join(f"- {fact_id}: {facts[fact_id]}" for fact_id in bullet.source_fact_ids)
-    return f"Confirmed source facts:\n{cited}\n\nRewritten bullet:\n{bullet.text}"
+def _judge_prompt(variant: str, source_fact_ids: list[str], facts: dict[str, str]) -> str:
+    cited = "\n".join(f"- {fact_id}: {facts[fact_id]}" for fact_id in source_fact_ids)
+    return f"Confirmed source facts:\n{cited}\n\nRewritten bullet:\n{variant}"
 
 
-def _judge_one(args: tuple[TailoredBullet, dict[str, str], Any]) -> BulletVerdict:
-    bullet, facts, client = args
+def _judge_one(args: tuple[str, list[str], dict[str, str], Any]) -> BulletVerdict:
+    variant, source_fact_ids, facts, client = args
     result = structured_call_with_usage(
         FAST_MODEL,
         cacheable_system(JUDGE_SYSTEM),
-        _judge_prompt(bullet, facts),
+        _judge_prompt(variant, source_fact_ids, facts),
         BulletVerdict,
         client=client,
     )
@@ -164,13 +167,13 @@ def _judge_one(args: tuple[TailoredBullet, dict[str, str], Any]) -> BulletVerdic
         cache_creation_input_tokens=result.cache_creation_input_tokens,
     )
     verdict = result.value
-    # Trust the judgement, not the echo: keep our own bullet text and fact
+    # Trust the judgement, not the echo: keep our own variant text and fact
     # ids so a paraphrased echo cannot misattribute a verdict.
     return BulletVerdict(
-        bullet=bullet.text,
+        bullet=variant,
         supported=verdict.supported,
         reason=verdict.reason,
-        source_fact_ids=bullet.source_fact_ids,
+        source_fact_ids=source_fact_ids,
     )
 
 
