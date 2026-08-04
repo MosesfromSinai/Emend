@@ -106,6 +106,10 @@ You may NEVER:
   is an honest result; an invented one breaks the product.
 
 Output rules:
+- Every bullet has exactly 3 `variants` -- three independent phrasings of
+  the same claim, not three different claims. Vary sentence structure and
+  word choice; never vary what's claimed. Each of the 3 must independently
+  obey every rule above, as if it were the only one written.
 - Every bullet must list the `source_fact_ids` it derives from, and each id
   must be a fact id that exists on the section you are writing.
 - A bullet may only cite facts belonging to its own section (`ref_id`).
@@ -116,9 +120,9 @@ Output rules:
   to match the posting; never add.
 - `summary_of_strategy` briefly explains what you prioritized and why.
 
-A deterministic validator rejects any bullet that cites an unknown fact,
+A deterministic validator rejects any variant that cites an unknown fact,
 introduces a number its cited facts do not contain, or drifts too far in
-wording from the facts it claims to be based on. Write so that it passes.\
+wording from the facts it claims to be based on. Write so that all 3 pass.\
 """
 
 JUDGE_SYSTEM = """\
