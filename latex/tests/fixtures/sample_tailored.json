@@ -4,8 +4,26 @@
     {
       "ref_id": "BAB",
       "bullets": [
-        {"text": "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals", "source_fact_ids": ["BAB-01"]},
-        {"text": "Boosted processing throughput 40% through systematic R&D practices", "source_fact_ids": ["BAB-02"]}
+        {
+          "source_fact_ids": [
+            "BAB-01"
+          ],
+          "variants": [
+            "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals",
+            "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals",
+            "Authored the first machine-executable algorithm, demonstrating strong CS fundamentals"
+          ]
+        },
+        {
+          "source_fact_ids": [
+            "BAB-02"
+          ],
+          "variants": [
+            "Boosted processing throughput 40% through systematic R&D practices",
+            "Boosted processing throughput 40% through systematic R&D practices",
+            "Boosted processing throughput 40% through systematic R&D practices"
+          ]
+        }
       ]
     }
   ],
@@ -13,12 +31,28 @@
     {
       "ref_id": "BERN",
       "bullets": [
-        {"text": "Built a mechanical Bernoulli number program with reusable subroutines", "source_fact_ids": ["BERN-01", "BERN-02"]}
+        {
+          "source_fact_ids": [
+            "BERN-01",
+            "BERN-02"
+          ],
+          "variants": [
+            "Built a mechanical Bernoulli number program with reusable subroutines",
+            "Built a mechanical Bernoulli number program with reusable subroutines",
+            "Built a mechanical Bernoulli number program with reusable subroutines"
+          ]
+        }
       ]
     }
   ],
   "skills": {
-    "Languages": ["Python", "Ada"],
-    "Tools": ["Git", "Docker"]
+    "Languages": [
+      "Python",
+      "Ada"
+    ],
+    "Tools": [
+      "Git",
+      "Docker"
+    ]
   }
 }

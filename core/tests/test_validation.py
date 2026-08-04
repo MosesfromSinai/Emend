@@ -51,7 +51,11 @@ def _one_bullet_resume(bullet_text: str) -> TailoredResume:
         experiences=[
             TailoredSection(
                 ref_id="ACME",
-                bullets=[TailoredBullet(text=bullet_text, source_fact_ids=["ACME-01"])],
+                bullets=[
+                    TailoredBullet(
+                        variants=[bullet_text] * 3, source_fact_ids=["ACME-01"]
+                    )
+                ],
             )
         ],
         projects=[],
@@ -83,7 +87,9 @@ def test_validate_grounding_rejects_unknown_fact_id(sample_master, sample_tailor
 
 def test_tailored_bullet_rejects_duplicate_source_fact_ids():
     with pytest.raises(ValidationError, match="source_fact_ids must be unique"):
-        TailoredBullet(text="Repeated receipt", source_fact_ids=["BAB-01", "BAB-01"])
+        TailoredBullet(
+            variants=["Repeated receipt"] * 3, source_fact_ids=["BAB-01", "BAB-01"]
+        )
 
 
 def test_validate_grounding_rejects_project_fact_on_experience(sample_master, sample_tailored):
@@ -104,7 +110,7 @@ def test_validate_grounding_rejects_duplicate_tailored_ref_id(sample_master, sam
 
 def test_validate_grounding_rejects_unsupported_numbers(sample_master, sample_tailored):
     master, tailored = sample_master, sample_tailored
-    tailored.experiences[0].bullets[1].text = "Boosted processing throughput 95%"
+    tailored.experiences[0].bullets[1].variants = ["Boosted processing throughput 95%"] * 3
 
     with pytest.raises(GroundingError, match="unsupported numbers"):
         validate_grounding(master, tailored)
@@ -112,9 +118,9 @@ def test_validate_grounding_rejects_unsupported_numbers(sample_master, sample_ta
 
 def test_validate_grounding_rejects_unsupported_plus_numbers(sample_master, sample_tailored):
     master, tailored = sample_master, sample_tailored
-    tailored.experiences[0].bullets[
-        0
-    ].text = "Authored the first algorithm for 20+ users"
+    tailored.experiences[0].bullets[0].variants = [
+        "Authored the first algorithm for 20+ users"
+    ] * 3
 
     with pytest.raises(GroundingError, match="unsupported numbers"):
         validate_grounding(master, tailored)
@@ -122,7 +128,7 @@ def test_validate_grounding_rejects_unsupported_plus_numbers(sample_master, samp
 
 def test_validate_grounding_accepts_supported_plus_numbers(sample_master, sample_tailored):
     master, tailored = sample_master, sample_tailored
-    tailored.experiences[0].bullets[0].text = "Documented the module for 100+ users"
+    tailored.experiences[0].bullets[0].variants = ["Documented the module for 100+ users"] * 3
     tailored.experiences[0].bullets[0].source_fact_ids = ["BAB-03"]
 
     validate_grounding(master, tailored)
@@ -130,9 +136,9 @@ def test_validate_grounding_accepts_supported_plus_numbers(sample_master, sample
 
 def test_validate_grounding_rejects_low_fact_overlap(sample_master, sample_tailored):
     master, tailored = sample_master, sample_tailored
-    tailored.experiences[0].bullets[
-        0
-    ].text = "Led Kubernetes migrations for payment systems"
+    tailored.experiences[0].bullets[0].variants = [
+        "Led Kubernetes migrations for payment systems"
+    ] * 3
 
     with pytest.raises(GroundingError, match="low fact overlap"):
         validate_grounding(master, tailored)
