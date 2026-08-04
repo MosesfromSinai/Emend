@@ -49,7 +49,7 @@ def pipeline(monkeypatch, tmp_path):
                     ref_id="ACME",
                     bullets=[
                         TailoredBullet(
-                            text="Built a reporting dashboard",
+                            variants=["Built a reporting dashboard"] * 3,
                             source_fact_ids=["ACME-01"],
                         )
                     ],
