@@ -34,7 +34,20 @@ _STOPWORDS = {
     "is", "are", "be", "as", "at", "by", "from", "this", "that", "our",
     "we", "you", "your", "will", "who", "role", "team", "job", "work",
     "about", "overview", "responsibilities", "requirements", "qualifications",
-    "why", "what", "us", "here", "join",
+    "why", "what", "us", "here", "join", "every", "each", "any", "all",
+    "it", "its", "i", "experience", "familiarity", "proficiency",
+    "expertise", "background", "knowledge", "skill", "skills",
+}
+
+# A JD flattened to one line (see core/jd_text.py) still has real sentences
+# in it -- "...open Monday through Friday" reads as a Capitalized run
+# indistinguishable from a real term unless day/month names are excluded
+# outright. These are never a keyword on their own merits, so any phrase
+# containing one is dropped regardless of position.
+_CALENDAR_WORDS = {
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+    "sunday", "january", "february", "march", "april", "june", "july",
+    "august", "september", "october", "november", "december",
 }
 
 # Boilerplate section headers a flattened JD page runs straight into the
@@ -163,7 +176,13 @@ def _proper_noun_phrases(text: str) -> list[str]:
         if len(phrase) <= 1:
             continue
         words = phrase.split()
-        if words[0].lower() in _SECTION_HEADING_STARTS:
+        # a Capitalized run that opens with a pronoun/article/quantifier
+        # ("You Have", "Every", "The") is a sentence fragment that only
+        # looks like a proper noun because it happens to sit mid-sentence
+        # in flattened text -- no real skill or product name starts this way
+        if words[0].lower() in _SECTION_HEADING_STARTS or words[0].lower() in _STOPWORDS:
+            continue
+        if any(w.lower() in _CALENDAR_WORDS for w in words):
             continue
         # a single capitalized word is ambiguous (a real term, or just a
         # sentence-starter); only trust it away from a sentence boundary --

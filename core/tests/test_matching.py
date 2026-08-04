@@ -113,6 +113,24 @@ def test_extract_keywords_ignores_capitalized_sentence_starters():
     assert "Python" in keywords
 
 
+def test_extract_keywords_ignores_calendar_words():
+    # a flattened posting mentioning office days must not surface the day
+    # names themselves as keywords
+    text = "Our office is open Monday through Friday, with flexible hours on Tuesday and Wednesday."
+    keywords = extract_keywords(text)
+    for day in ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"):
+        assert day not in keywords
+
+
+def test_extract_keywords_ignores_pronoun_led_fragments():
+    # "You Have"/"You Will" are sentence fragments, not proper nouns, even
+    # though both words happen to be Capitalized in the flattened text
+    text = "You Have strong communication skills. You Will contribute to design systems."
+    keywords = extract_keywords(text)
+    assert "You Have" not in keywords
+    assert "You Will" not in keywords
+
+
 def test_extract_keywords_does_not_shred_a_whole_flattened_page():
     # a URL-fetched posting has no real line breaks (core/jd_text.py joins
     # every block into one line) -- a long line with no terminal punctuation
