@@ -109,6 +109,9 @@ def _run(session, app_row: Application) -> None:
         tex=tex,  # verbatim — the % grounded: receipts are the product
         pdf_path="",
         report=report.model_dump() if report is not None else None,
+        # the 3-variants-per-bullet resume, so Export can re-render with a
+        # different one picked -- None in refactor mode, nothing to cycle
+        tailored=tailored.model_dump() if tailored is not None else None,
     )
     session.add(version)
     session.flush()  # assign version.id before naming the artifact
