@@ -35,7 +35,7 @@ export function AppStepper() {
             className={
               "flex items-center gap-1.75 rounded-full px-3.25 py-1.75 text-xs font-semibold transition-colors " +
               (isActive
-                ? "bg-ink text-paper"
+                ? "bg-em-accent text-paper"
                 : isDone
                   ? "text-ink"
                   : "text-em-faint") +
