@@ -56,6 +56,30 @@ def test_preview_scores_a_url(client, master, monkeypatch):
     assert r.json()["resolved_jd_text"] == "Python backend role."
 
 
+def test_url_fetch_sends_a_browser_user_agent(client, master, monkeypatch):
+    # bot-protection CDNs in front of major careers sites (confirmed against
+    # a real posting) silently hang/drop requests with no browser-like UA
+    confirm_master(client, master)
+    _stub_parse_and_match(monkeypatch)
+    seen_headers = {}
+
+    class FakeResponse:
+        text = "<html><body><main>Role.</main></body></html>"
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, **kwargs):
+        seen_headers.update(kwargs.get("headers") or {})
+        return FakeResponse()
+
+    monkeypatch.setattr(core_bridge.httpx, "get", fake_get)
+
+    client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
+
+    assert "Mozilla" in seen_headers.get("User-Agent", "")
+
+
 def test_preview_rejects_both_sources(client, master):
     confirm_master(client, master)
     r = client.post(
