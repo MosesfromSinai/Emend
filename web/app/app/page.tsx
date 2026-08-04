@@ -290,7 +290,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex h-full flex-col gap-4">
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -298,10 +298,10 @@ export default function OnboardingPage() {
             }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={
-              "rounded-xl border-[1.5px] border-dashed p-5 text-center transition-colors " +
-              (dragOver ? "border-ink bg-em-soft/40" : "border-em-line-2 bg-white")
-            }
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center rounded-xl border-[1.5px] border-dashed p-5 text-center transition-colors",
+              dragOver ? "border-ink bg-em-soft/40" : "border-em-line-2 bg-white"
+            )}
           >
             <p className="text-sm font-semibold text-ink">Drop a PDF here</p>
             <p className="mt-1 text-xs text-em-muted">or</p>
@@ -321,7 +321,7 @@ export default function OnboardingPage() {
             </label>
           </div>
 
-          <div className="rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
+          <div className="flex-1 rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
             <p className="text-xs font-semibold tracking-wide text-em-accent uppercase">
               What happens next
             </p>
