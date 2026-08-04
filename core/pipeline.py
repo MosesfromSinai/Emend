@@ -18,7 +18,7 @@ from core.llm import (
     cacheable_system,
     structured_call_with_usage,
 )
-from core.matching import drop_company_name, extract_keywords, keyword_match
+from core.matching import drop_known_names, extract_keywords, keyword_match
 from core.normalize import (
     BULLET_START_PATTERN,
     reattach_orphan_dates,
@@ -898,7 +898,9 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
             cache_read_input_tokens=result.cache_read_input_tokens,
             cache_creation_input_tokens=result.cache_creation_input_tokens,
         )
-        keywords = drop_company_name(extract_keywords(text), result.value.company)
+        keywords = drop_known_names(
+            extract_keywords(text), result.value.company, result.value.title
+        )
         return result.value.model_copy(update={"keywords": keywords})
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()

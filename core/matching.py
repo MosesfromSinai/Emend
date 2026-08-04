@@ -38,7 +38,8 @@ _STOPWORDS = {
     "it", "its", "i", "experience", "familiarity", "proficiency",
     "expertise", "background", "knowledge", "skill", "skills",
     "strong", "contribute", "company", "polished", "united", "states",
-    "usd", "u.s", "annual",
+    "usd", "u.s", "annual", "professional", "training", "location",
+    "business", "needs", "demand", "market", "career", "id",
 }
 
 # A JD flattened to one line (see core/jd_text.py) still has real sentences
@@ -73,7 +74,7 @@ _LIST_LEAD_IN = re.compile(
     r"requirements?\s*:|qualifications?\s*:|preferred\s+qualifications?\s*:|"
     r"you\s+(?:have|will|are|bring|need)\s*:|"
     r"what\s+you(?:'ll|\s+will)\s+(?:do|need|bring)\s*:|"
-    r"nice\s+to\s+have\s*:|must\s+have\s*:",
+    r"nice\s+to\s+have\s*:|must\s+have\s*:|such\s+as",
     re.IGNORECASE,
 )
 
@@ -99,6 +100,12 @@ _PROPER_NOUN = re.compile(
     r"(?:[ \t]+[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*){0,2}\b"
 )
 _SENTENCE_BOUNDARY = re.compile(r"[.!?\n]\s*$")
+
+# A career-page header's "City, ST" (e.g. "San Mateo, CA") reads as two
+# separate Capitalized runs once split on the comma -- neither the city
+# name nor the bare state code is ever a job-posting keyword.
+_FOLLOWED_BY_STATE_CODE = re.compile(r"^,\s*[A-Z]{2}(?:\s|[,.:]|$)")
+_PRECEDED_BY_COMMA = re.compile(r",\s*$")
 
 
 def _clean_phrase(phrase: str) -> str:
@@ -196,6 +203,15 @@ def _proper_noun_phrases(text: str) -> list[str]:
             continue
         if any(w.lower() in _CALENDAR_WORDS for w in words):
             continue
+        if _FOLLOWED_BY_STATE_CODE.match(text[match.end() : match.end() + 6]):
+            continue  # "San Mateo, CA" -- this run is the city half of an address
+        if (
+            len(words) == 1
+            and len(phrase) == 2
+            and phrase.isupper()
+            and _PRECEDED_BY_COMMA.search(text[: match.start()])
+        ):
+            continue  # the state-code half of the same address
         # a single capitalized word is ambiguous (a real term, or just a
         # sentence-starter); only trust it away from a sentence boundary --
         # a 2-3 word Capitalized run is a strong enough signal on its own
@@ -242,14 +258,14 @@ def extract_keywords(text: str) -> list[str]:
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
 
 
-def drop_company_name(keywords: list[str], company: str) -> list[str]:
-    """The posting's own employer name is not a skill a candidate could ever
-    claim on a resume -- filtered out wherever the posting's own prose
-    mentions itself (e.g. "At Roblox, we're building...")."""
-    if not company:
-        return keywords
-    company_lower = company.lower()
-    return [k for k in keywords if k.lower() not in company_lower]
+def drop_known_names(keywords: list[str], *names: str) -> list[str]:
+    """Neither the posting's own employer name nor its own job title is a
+    skill a candidate could ever claim -- filtered out wherever the
+    posting's own prose mentions itself ("At Roblox, we're building...")
+    or its header repeats the title ("Software Engineer, User Frameworks
+    San Mateo, CA...")."""
+    blocked = [name.lower() for name in names if name]
+    return [k for k in keywords if not any(k.lower() in name for name in blocked)]
 
 
 def _tokens(text: str) -> set[str]:

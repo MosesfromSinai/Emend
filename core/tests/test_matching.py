@@ -1,6 +1,6 @@
 from core.matching import (
     MAX_PHRASE_WORDS,
-    drop_company_name,
+    drop_known_names,
     extract_keywords,
     keyword_match,
 )
@@ -159,13 +159,39 @@ def test_extract_keywords_does_not_truncate_mid_word_at_the_window_cutoff():
     assert not any(k.endswith("langu") or k == "langu" for k in keywords)
 
 
-def test_extract_keywords_drops_the_employers_own_name():
-    keywords = drop_company_name(
-        extract_keywords("At Roblox, we build immersive experiences with Lua."),
+def test_extract_keywords_drops_the_employers_own_name_and_title():
+    keywords = drop_known_names(
+        extract_keywords(
+            "Software Engineer at Roblox. At Roblox, we build immersive experiences with Lua."
+        ),
         "Roblox",
+        "Software Engineer",
     )
     assert "Roblox" not in keywords
+    assert "Software Engineer" not in keywords
     assert "Lua" in keywords
+
+
+def test_extract_keywords_ignores_city_state_addresses():
+    text = "Software Engineer San Mateo, CA, United States. Experience with Kubernetes required."
+    keywords = extract_keywords(text)
+    assert "Mateo" not in keywords
+    assert "CA" not in keywords
+    assert "Kubernetes" in keywords
+
+
+def test_extract_keywords_reads_such_as_lists_in_prose():
+    # a "such as" clause mid-sentence is as reliable a list signal as an
+    # explicit "Requirements:" heading, and often the only place lowercase
+    # quality-adjacent terms like "accessibility" ever show up literally
+    text = (
+        "An understanding of software quality fundamentals such as "
+        "performance, accessibility, and maintainability."
+    )
+    keywords = extract_keywords(text)
+    assert "performance" in keywords
+    assert "accessibility" in keywords
+    assert "maintainability" in keywords
 
 
 def test_extract_keywords_does_not_shred_a_whole_flattened_page():
