@@ -53,7 +53,7 @@ function usedSectionIds(master: MasterResume): Set<string> {
   return new Set([...master.experiences, ...master.projects].map((s) => s.id));
 }
 
-function ConfirmPill({
+export function ConfirmPill({
   confirmed,
   onToggle,
 }: {
