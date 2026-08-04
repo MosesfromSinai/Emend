@@ -30,7 +30,7 @@ const SAMPLE_RESUME = `Jordan Diaz
 jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
 
 EDUCATION
-University of Michigan - B.S. Computer Science, May 2022
+University of Michigan - Bachelor of Science in Computer Science, May 2022
 Coursework: Data Structures, Operating Systems, Distributed Systems
 
 EXPERIENCE
