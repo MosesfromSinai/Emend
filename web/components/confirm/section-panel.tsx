@@ -648,7 +648,9 @@ export function SectionPanel({
               onClick={() => onChangeSection(heading)}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
-                heading === activeSection ? "bg-ink text-paper" : "text-ink/60 hover:bg-em-soft"
+                heading === activeSection
+                  ? "bg-em-accent text-paper"
+                  : "text-ink/60 hover:bg-em-soft"
               )}
             >
               {complete && "✓ "}
@@ -684,7 +686,9 @@ export function SectionPanel({
               onClick={() => setFilter(f)}
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                filter === f ? "border-ink bg-ink text-paper" : "border-em-softb text-ink/60 hover:border-ink"
+                filter === f
+                  ? "border-em-accent bg-em-accent text-paper"
+                  : "border-em-softb text-ink/60 hover:border-ink"
               )}
             >
               {FILTER_LABELS[f]}

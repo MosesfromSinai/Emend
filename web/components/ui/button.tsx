@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type Variant = "primary" | "secondary" | "ghost";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary: "bg-ink text-paper hover:bg-em-deep disabled:bg-ink/40",
+  primary: "bg-em-accent text-paper hover:bg-em-deep disabled:bg-em-accent/40",
   secondary:
     "border border-em-softb bg-white text-ink hover:border-ink disabled:opacity-50",
   ghost: "text-em-deep hover:underline disabled:opacity-50",

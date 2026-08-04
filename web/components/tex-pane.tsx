@@ -60,14 +60,14 @@ export function TexPane({
   }
 
   return (
-    <div className="flex h-full flex-col bg-code-pane">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+    <div className="flex h-full flex-col bg-[#4a2823]">
+      <div className="flex items-center justify-between border-b border-white/10 bg-[#5e352c] px-4 py-2">
         <span className="font-mono text-xs text-white/60">resume.tex</span>
         <Button variant="ghost" className="px-2 py-1 text-em-bright" onClick={copy}>
           {copied ? "Copied ✓" : "Copy .tex"}
         </Button>
       </div>
-      <div className="flex-1 overflow-auto py-2 font-mono text-xs leading-relaxed">
+      <div className="flex-1 overflow-auto py-2 font-mono text-xs leading-[1.85]">
         {lines.map((line, i) => (
           <div
             key={i}
@@ -78,7 +78,7 @@ export function TexPane({
               hoveredFactId != null && line.factIds.includes(hoveredFactId) && "bg-white/10"
             )}
           >
-            <span className="w-7 shrink-0 select-none text-right text-white/25">{i + 1}</span>
+            <span className="w-6.5 shrink-0 select-none text-right text-white/25">{i + 1}</span>
             <span className={cn("whitespace-pre-wrap break-all", lineClass(line.text))}>
               {line.text || " "}
             </span>

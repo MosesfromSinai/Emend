@@ -10,12 +10,20 @@ import { ProvenancePanel } from "@/components/provenance-panel";
 import { ResumePaper } from "@/components/resume-paper";
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
 import type { BulletSelection, MasterResume } from "@/lib/types";
 
 const PREVIEW_DEBOUNCE_MS = 400;
+
+type View = "resume" | "tex";
+
+const VIEW_HINTS: Record<View, string> = {
+  resume: "Click any line to swap in a different rewrite or your original.",
+  tex: "Every generated line carries a % grounded receipt.",
+};
 
 export default function ApplicationPage({
   params,
@@ -28,6 +36,7 @@ export default function ApplicationPage({
   const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [view, setView] = useState<View>("resume");
   const [showReport, setShowReport] = useState(false);
   const [livePreviewTex, setLivePreviewTex] = useState<string | null>(null);
   const [downloadBusy, setDownloadBusy] = useState<"pdf" | "tex" | null>(null);
@@ -74,6 +83,11 @@ export default function ApplicationPage({
 
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
+  }
+
+  function changeView(next: View) {
+    setView(next);
+    setActiveFactId(null);
   }
 
   async function download(kind: "pdf" | "tex") {
@@ -123,14 +137,13 @@ export default function ApplicationPage({
 
   const report = version.report;
   const tex = livePreviewTex ?? version.tex;
-  const activeBullet = activeFactId ? bulletsByFactId.get(activeFactId) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
       {downloadError && <p className="text-sm text-red-700">{downloadError}</p>}
 
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
-        {report && (
+        {report ? (
           <>
             <MatchScoreRing score={report.match_score} />
             <KeywordChips matched={report.matched_keywords} missing={report.missing_keywords} />
@@ -146,12 +159,22 @@ export default function ApplicationPage({
               {showReport ? "Hide grounding report" : "Show grounding report"}
             </button>
           </>
-        )}
-        {!report && (
+        ) : (
           <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
             0 rewrites
           </span>
         )}
+
+        <SegmentedControl
+          value={view}
+          onChange={changeView}
+          options={[
+            { value: "resume", label: "Resume" },
+            { value: "tex", label: "LaTeX source" },
+          ]}
+        />
+        <span className="text-xs text-ink/50">{VIEW_HINTS[view]}</span>
+
         <div className="ml-auto flex gap-2">
           <Button onClick={() => download("pdf")} disabled={downloadBusy !== null}>
             {downloadBusy === "pdf" ? "Preparing…" : "Download PDF"}
@@ -166,39 +189,47 @@ export default function ApplicationPage({
         </div>
       </div>
 
-      {activeFactId && activeBullet && (
-        <RewriteBar
-          key={activeFactId}
-          bullet={activeBullet}
-          selection={selections[activeFactId]}
-          originalText={originalTextByFactId.get(activeFactId) ?? activeBullet.variants[0]}
-          onChangeSelection={(sel) => updateSelection(activeFactId, sel)}
-          onClose={() => setActiveFactId(null)}
-        />
-      )}
-
-      <div className="grid h-[70vh] grid-cols-2 overflow-hidden rounded-lg border border-em-softb">
-        <div className="overflow-y-auto bg-[#eceadf] p-6">
+      {view === "resume" ? (
+        <div className="max-h-[calc(100vh-190px)] overflow-auto rounded-[10px] bg-em-line p-6.5">
           {renderResume && (
-            <div className="mx-auto max-w-md rounded-md bg-white p-6 shadow-md">
+            <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
               <ResumePaper
                 master={renderResume}
                 name={renderResume.name}
                 contact={[renderResume.email, renderResume.phone, ...renderResume.links]
                   .filter(Boolean)
                   .join(" | ")}
-                compact
+                size="export"
                 hoveredKey={hoveredKey}
                 onHoverRow={setHoveredKey}
+                activeFactId={activeFactId}
                 onClickRow={(row) => {
-                  if (row.factId && bulletsByFactId.has(row.factId)) setActiveFactId(row.factId);
+                  const factId = row.factId;
+                  if (!factId || !bulletsByFactId.has(factId)) return;
+                  setActiveFactId((prev) => (prev === factId ? null : factId));
+                }}
+                renderRowControl={(row) => {
+                  const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
+                  if (!bullet || !row.factId) return null;
+                  return (
+                    <RewriteBar
+                      key={row.factId}
+                      bullet={bullet}
+                      selection={selections[row.factId]}
+                      originalText={originalTextByFactId.get(row.factId) ?? bullet.variants[0]}
+                      onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
+                    />
+                  );
                 }}
               />
             </div>
           )}
         </div>
-        <TexPane tex={tex} hoveredFactId={hoveredKey} onHoverFactId={setHoveredKey} />
-      </div>
+      ) : (
+        <div className="h-[calc(100vh-190px)] overflow-hidden rounded-lg border border-em-softb">
+          <TexPane tex={tex} hoveredFactId={hoveredKey} onHoverFactId={setHoveredKey} />
+        </div>
+      )}
 
       {showReport && report && <ProvenancePanel verdicts={report.verdicts} />}
     </div>

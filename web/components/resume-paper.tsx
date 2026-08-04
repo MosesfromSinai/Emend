@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { FactTag } from "@/components/ui/fact-tag";
@@ -100,8 +100,10 @@ export function ResumePaper({
   onHoverRow,
   onClickRow,
   activeSectionHeading,
-  compact = false,
+  size = "default",
   confirmedKeys,
+  activeFactId,
+  renderRowControl,
   renderRowExtra,
 }: {
   master: MasterResume;
@@ -111,110 +113,85 @@ export function ResumePaper({
   onHoverRow?: (key: string | null) => void;
   onClickRow?: (row: PaperRow) => void;
   activeSectionHeading?: string;
-  compact?: boolean;
+  size?: "default" | "export";
   confirmedKeys?: Set<string>;
+  activeFactId?: string | null;
+  renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
 }) {
   const sections = masterToSections(master);
+  const isExport = size === "export";
 
   return (
     <div>
       <div
         className={cn(
           "text-center font-serif font-bold text-[#111]",
-          compact ? "text-lg" : "text-2xl"
+          isExport ? "text-[27px]" : "text-2xl"
         )}
       >
         {name}
       </div>
-      <div
-        className={cn(
-          "text-center font-mono text-[#555]",
-          compact ? "mt-0.5 mb-3 text-[8.5px]" : "mt-1 mb-4.5 text-[10.5px]"
-        )}
-      >
-        {contact}
-      </div>
+      <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
 
       {sections.map((section) => (
         <div key={section.heading}>
-          <div
-            className={cn(
-              "border-b border-[#111] font-serif font-bold tracking-widest text-[#111]",
-              compact ? "mt-2.75 mb-1.5 pb-px text-[10px]" : "mt-3.5 mb-2.5 pb-0.5 text-[13px]"
-            )}
-          >
+          <div className="mt-3.5 mb-2.5 border-b border-[#111] pb-0.5 font-serif text-[13px] font-bold tracking-widest text-[#111]">
             {section.heading}
           </div>
           {section.blocks.map((block) => (
             <div
               key={block.key}
               className={cn(
-                "rounded-lg border-[1.5px] border-transparent transition-colors",
-                compact ? "mb-1.75 px-1 py-1" : "mb-2.5 px-4 py-3",
-                !compact && activeSectionHeading === section.heading && "border-em-softb bg-em-soft/40",
-                !compact && activeSectionHeading && activeSectionHeading !== section.heading && "opacity-100"
+                "mb-2.5 rounded-lg border-[1.5px] border-transparent px-4 py-3 transition-colors",
+                activeSectionHeading === section.heading && "border-em-softb bg-em-soft/40"
               )}
             >
               {block.title && (
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span
-                    className={cn(
-                      "font-semibold text-ink",
-                      compact ? "text-[10px]" : "text-[13.5px]"
-                    )}
-                  >
-                    {block.title}
-                  </span>
+                  <span className="text-[13.5px] font-semibold text-ink">{block.title}</span>
                   {block.dates && (
-                    <span
-                      className={cn(
-                        "font-mono text-[#8f8874]",
-                        compact ? "text-[8.5px]" : "text-[11.5px]"
-                      )}
-                    >
-                      {block.dates}
-                    </span>
+                    <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
                   )}
                 </div>
               )}
               {block.sub && (
-                <div
-                  className={cn(
-                    "font-serif text-ink/70 italic",
-                    compact ? "text-[9.5px]" : "mt-0.5 mb-1.5 text-xs"
-                  )}
-                >
+                <div className="mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic">
                   {block.sub}
                 </div>
               )}
               {block.rows.map((row) => (
-                <div
-                  key={row.key}
-                  onMouseEnter={() => onHoverRow?.(row.key)}
-                  onMouseLeave={() => onHoverRow?.(null)}
-                  onClick={() => onClickRow?.(row)}
-                  className={cn(
-                    "-mx-1.75 flex items-baseline gap-1.75 rounded-md px-1.75 py-0.5 transition-colors",
-                    onClickRow && "cursor-pointer",
-                    confirmedKeys?.has(row.key) && "bg-em-ok-wash",
-                    hoveredKey === row.key && "bg-em-soft"
-                  )}
-                >
-                  <span className={compact ? "text-[9.5px] text-[#666]" : "text-[12.5px] text-[#666]"}>
-                    •
-                  </span>
-                  <span
+                <Fragment key={row.key}>
+                  <div
+                    onMouseEnter={() => onHoverRow?.(row.key)}
+                    onMouseLeave={() => onHoverRow?.(null)}
+                    onClick={() => onClickRow?.(row)}
                     className={cn(
-                      "flex-1 text-[#333]",
-                      compact ? "text-[9.5px] leading-relaxed" : "text-[13px] leading-relaxed"
+                      "-mx-1.75 flex items-baseline gap-1.75 rounded-md px-1.75 py-0.5 transition-colors",
+                      onClickRow && "cursor-pointer",
+                      confirmedKeys?.has(row.key) && "bg-em-ok-wash",
+                      hoveredKey === row.key && "bg-em-soft"
                     )}
                   >
-                    {row.text}
-                  </span>
-                  {row.factId && !compact && <FactTag id={row.factId} className="shrink-0" />}
-                  {renderRowExtra?.(row)}
-                </div>
+                    <span className="text-[12.5px] text-[#666]">•</span>
+                    <span
+                      className={cn(
+                        "flex-1 text-[#333]",
+                        isExport ? "text-[12.5px] leading-[1.6]" : "text-[13px] leading-relaxed"
+                      )}
+                    >
+                      {row.text}
+                    </span>
+                    {row.factId && (
+                      <FactTag
+                        id={row.factId}
+                        className={cn("shrink-0", isExport && "text-[9.5px]")}
+                      />
+                    )}
+                    {renderRowExtra?.(row)}
+                  </div>
+                  {activeFactId === row.factId && renderRowControl?.(row)}
+                </Fragment>
               ))}
             </div>
           ))}

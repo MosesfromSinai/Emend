@@ -26,29 +26,6 @@ import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
 
-const SAMPLE_RESUME = `Jordan Diaz
-jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
-
-EDUCATION
-University of Michigan - Bachelor of Science in Computer Science, May 2022
-Coursework: Data Structures, Operating Systems, Distributed Systems
-
-EXPERIENCE
-Backend Engineer (Jun 2022 - Present)
-Nimbus Logistics, Ann Arbor, MI
-- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%.
-- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns.
-- Wrote the on-call runbook adopted by all 6 engineers on the team.
-
-PROJECTS
-Routewise | Python, PostgreSQL, Redis
-- Built a route-optimization service handling 10k+ requests/day.
-- Added Redis caching that cut average response time from 800ms to 120ms.
-
-TECHNICAL SKILLS
-Languages: Python, TypeScript, SQL
-Frameworks/Libraries: FastAPI, React, SQLAlchemy`;
-
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("paste");
@@ -215,7 +192,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-em-line bg-paper/95 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-310 items-center gap-4 px-7 py-3">
+          <div className="mx-auto flex max-w-390 items-center gap-4 px-7 py-3">
             <div className="flex-1">
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-em-line-2">
                 <div
@@ -236,7 +213,9 @@ export default function OnboardingPage() {
               disabled={busySave}
               className={cn(
                 "rounded-lg px-4 py-2 text-sm font-medium text-paper transition-colors disabled:cursor-not-allowed",
-                allConfirmed ? "bg-ink hover:bg-em-deep" : "bg-ink/35 hover:bg-ink/45"
+                allConfirmed
+                  ? "bg-em-accent hover:bg-em-deep"
+                  : "bg-em-accent/35 hover:bg-em-accent/45"
               )}
             >
               {busySave ? "Saving…" : "Continue to tailoring →"}
@@ -342,24 +321,24 @@ export default function OnboardingPage() {
             </label>
           </div>
 
-          <div className="rounded-xl bg-ink px-4.5 py-4 text-paper">
-            <p className="text-xs font-semibold tracking-wide text-paper/60 uppercase">
+          <div className="rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
+            <p className="text-xs font-semibold tracking-wide text-em-accent uppercase">
               What happens next
             </p>
-            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-paper/85">
-              <li>1. We split your resume into individual facts</li>
-              <li>2. You confirm what&apos;s accurate</li>
-              <li>3. We tailor and typeset a PDF from those facts only</li>
+            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-ink">
+              <li>
+                <span className="text-em-accent">1.</span> We split your resume into individual
+                facts
+              </li>
+              <li>
+                <span className="text-em-accent">2.</span>{" "}You confirm what&apos;s accurate
+              </li>
+              <li>
+                <span className="text-em-accent">3.</span> We tailor and typeset a PDF from those
+                facts only
+              </li>
             </ul>
           </div>
-
-          <Button
-            variant="secondary"
-            onClick={() => extractFacts(SAMPLE_RESUME)}
-            disabled={busyPaste || busyPdf}
-          >
-            Use a sample resume
-          </Button>
         </div>
       </div>
     </div>
