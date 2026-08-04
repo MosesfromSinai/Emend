@@ -57,6 +57,13 @@ export interface Report {
   verdicts: BulletVerdict[];
 }
 
+export interface JdPreview {
+  score: number;
+  matched_keywords: string[];
+  missing_keywords: string[];
+  resolved_jd_text: string;
+}
+
 export type ApplicationMode = "refactor" | "tailor";
 export type ApplicationStatus = "queued" | "running" | "done" | "failed";
 

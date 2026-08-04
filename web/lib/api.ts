@@ -1,6 +1,7 @@
 import type {
   ApplicationListItem,
   ApplicationOut,
+  JdPreview,
   MasterResume,
 } from "@/lib/types";
 
@@ -89,6 +90,17 @@ export function createApplication(options?: {
     body: JSON.stringify({
       jd_text: options?.jdText ?? null,
       jd_url: options?.jdUrl ?? null,
+    }),
+  });
+}
+
+// jdText and jdUrl are mutually exclusive — exactly one is required.
+export function previewJd(options: { jdText?: string; jdUrl?: string }): Promise<JdPreview> {
+  return apiFetch("/jd/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      jd_text: options.jdText ?? null,
+      jd_url: options.jdUrl ?? null,
     }),
   });
 }
