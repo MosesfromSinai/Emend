@@ -19,11 +19,26 @@ deterministic and not validation's business). If core prefers returning a
 full `Report`, only `validate` below changes.
 """
 
+import httpx
+
 from core.schemas import JDExtract, MasterResume, Report, TailoredResume
+
+JD_FETCH_TIMEOUT_SECONDS = 10
 
 
 class CoreUnavailableError(RuntimeError):
     """core's pipeline functions have not landed yet (pre-MOCK=1 merge)."""
+
+
+def fetch_jd_text(url: str) -> str:
+    """Fetch a job-posting URL server-side and extract its JD text.
+
+    Shared by the async tailor job and /jd/preview's live score card, so a
+    fetch/extract fix lands in exactly one place.
+    """
+    response = httpx.get(url, timeout=JD_FETCH_TIMEOUT_SECONDS, follow_redirects=True)
+    response.raise_for_status()
+    return html_to_jd_text(response.text)
 
 
 def _core_fn(name: str):

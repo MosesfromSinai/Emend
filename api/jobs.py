@@ -19,15 +19,6 @@ from core.schemas import MasterResume, Report
 
 logger = logging.getLogger("emend.jobs")
 
-JD_FETCH_TIMEOUT_SECONDS = 10
-
-
-def _fetch_jd_text(url: str) -> str:
-    """Fetch a job-posting URL server-side and extract its JD text."""
-    response = httpx.get(url, timeout=JD_FETCH_TIMEOUT_SECONDS, follow_redirects=True)
-    response.raise_for_status()
-    return core_bridge.html_to_jd_text(response.text)
-
 
 def run_application(application_id: uuid.UUID) -> None:
     session = db.SessionLocal()
@@ -69,7 +60,7 @@ def _run(session, app_row: Application) -> None:
     jd_text: str | None = None
     if app_row.jd_url is not None:
         try:
-            jd_text = _fetch_jd_text(app_row.jd_url)
+            jd_text = core_bridge.fetch_jd_text(app_row.jd_url)
         except httpx.HTTPError as e:
             app_row.status = "failed"
             app_row.error = f"Could not fetch job posting URL: {e}"

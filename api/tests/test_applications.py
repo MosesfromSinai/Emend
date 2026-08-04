@@ -291,8 +291,6 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
 
 
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
-    from api import jobs
-
     class FakeResponse:
         text = (
             "<html><body><nav>skip me</nav>"
@@ -302,7 +300,7 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
         def raise_for_status(self):
             pass
 
-    monkeypatch.setattr(jobs.httpx, "get", lambda *a, **k: FakeResponse())
+    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
 
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
@@ -318,12 +316,10 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
 def test_jd_url_fetch_failure_fails_the_job(client, master, pipeline, monkeypatch):
     import httpx
 
-    from api import jobs
-
     def failing_get(*a, **k):
         raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(jobs.httpx, "get", failing_get)
+    monkeypatch.setattr(core_bridge.httpx, "get", failing_get)
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
     got = client.get(f"/applications/{r.json()['id']}").json()
