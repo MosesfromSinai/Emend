@@ -52,15 +52,21 @@ export default function ApplicationPage({
 
   useEffect(() => {
     if (!version) return;
+    // Same stale-response guard as Tailor's JD preview -- a slower request
+    // for an older set of selections must never overwrite a faster, newer one.
+    let stale = false;
     const timer = setTimeout(async () => {
       try {
         const result = await previewApplication(id, selections);
-        setLivePreviewTex(result.tex);
+        if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
       }
     }, PREVIEW_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
   }, [id, version, selections]);
 
   const bulletsByFactId = useMemo(

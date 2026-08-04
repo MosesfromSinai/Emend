@@ -39,3 +39,15 @@ def test_garbage_cookie_gets_fresh_session(client):
     client.cookies.set(settings.session_cookie_name, "not-a-uuid")
     r = client.get("/resumes/master")
     assert r.status_code == 404
+
+
+def test_new_session_cookie_sticks_even_when_the_request_fails(client):
+    # A cookie-less visitor's very first request can easily be one that
+    # errors (e.g. no master resume yet) -- the session created for them
+    # must still reach the browser, not get silently dropped because the
+    # response happened to be a 404 instead of a 200.
+    r = client.get("/resumes/master")
+    assert r.status_code == 404
+    cookie = r.headers.get("set-cookie", "")
+    assert settings.session_cookie_name in cookie
+    uuid.UUID(client.cookies[settings.session_cookie_name])

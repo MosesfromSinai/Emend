@@ -34,6 +34,25 @@ def create_app() -> FastAPI:
             )
         return await call_next(request)
 
+    @app.middleware("http")
+    async def attach_session_cookie(request: Request, call_next):
+        # Runs after routing/exception handling either way, so a brand-new
+        # visitor's session cookie lands even when the request that created
+        # it goes on to fail (see api/sessions.py's current_session).
+        response = await call_next(request)
+        new_session_id = getattr(request.state, "new_session_id", None)
+        if new_session_id is not None:
+            response.set_cookie(
+                key=settings.session_cookie_name,
+                value=str(new_session_id),
+                max_age=settings.session_cookie_max_age,
+                httponly=True,
+                secure=settings.session_cookie_secure,
+                samesite=settings.session_cookie_samesite,
+                path="/",
+            )
+        return response
+
     register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(resumes.router)
