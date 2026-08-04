@@ -14,6 +14,7 @@ const STATS = [
     value: `${DEMO_SENTENCE_COUNT}/${DEMO_SENTENCE_COUNT}`,
     label: "demo lines grounded in confirmed facts, above",
   },
+  { value: "< 60s", label: "posting to typeset PDF" },
   { value: ".tex", label: "full LaTeX source — your resume is yours" },
   { value: "0", label: "LLM calls in your match score — pure keyword math" },
 ];
@@ -65,11 +66,11 @@ export function WhatItIs() {
           </p>
         </Reveal>
 
-        <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <Reveal className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
           {STATS.map((stat) => (
             <div
               key={stat.value}
-              className="flex-1 rounded-[10px] border border-em-softb bg-paper px-5 py-4.5"
+              className="min-w-37 flex-1 rounded-[10px] border border-em-softb bg-paper px-5 py-4.5"
             >
               <div className="font-serif text-2xl font-bold text-ink">{stat.value}</div>
               <div className="text-[12.5px] text-ink/70">{stat.label}</div>

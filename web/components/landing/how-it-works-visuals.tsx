@@ -39,9 +39,14 @@ export function MatchScoreVisual() {
       <div className="mb-2 font-mono text-[10.5px] font-semibold tracking-wide text-[#9a927f]">
         JOB DESCRIPTION
       </div>
-      <div className="mb-3 rounded-lg border border-em-softb bg-white px-3.5 py-3 font-mono text-xs text-[#3a372f]">
+      <div className="mb-2 rounded-lg border border-em-softb bg-white px-3.5 py-3 font-mono text-xs text-[#3a372f]">
         &quot;New-grad software engineer with Python, React, CI/CD pipelines,
         AWS…&quot;
+      </div>
+      <div className="mb-3.5 rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-3.5 py-2.5">
+        <span className="text-xs text-[#9a927f]">
+          Have a link to the posting? Paste it here instead
+        </span>
       </div>
       <div className="mb-3.5 flex flex-wrap gap-1.5 font-mono text-[11px]">
         {["Python", "React", "CI/CD", "AWS", "Docker"].map((kw) => (
