@@ -874,9 +874,10 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     """Extract structure from a job posting.
 
     `keywords` (the only field the match score actually uses, per
-    core/matching.py) always comes from extract_keywords's fixed dictionary,
-    never from the LLM -- overriding whatever the real branch's model
-    returns for that one field, so re-parsing the same text always yields
+    core/matching.py) always comes from extract_keywords's literal,
+    text-derived heuristics, never from the LLM -- overriding whatever the
+    real branch's model returns for that one field, so re-parsing the same
+    text always yields
     the same score.
     """
     _check_input_size(text, "job posting text")

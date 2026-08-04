@@ -326,9 +326,9 @@ def test_parse_jd_derives_keywords_from_plain_text():
     parsed = parse_jd("Python backend role using Docker and Python.")
 
     assert parsed.responsibilities == ["Python backend role using Docker and Python."]
-    # deterministic dictionary match, not a raw token dump -- "backend" and
-    # "role" aren't curated skills, so only the real terms survive
-    assert parsed.keywords == ["Python", "Docker"]
+    # literal phrases pulled from the text itself, not a raw token dump --
+    # "backend" and "role" are lowercase prose, not Capitalized proper nouns
+    assert parsed.keywords == ["Docker", "Python"]
 
 
 def test_parse_jd_rejects_near_empty_text():
