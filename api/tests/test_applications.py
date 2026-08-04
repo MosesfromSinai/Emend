@@ -75,7 +75,7 @@ def pipeline(monkeypatch, tmp_path):
             ],
         )
 
-    def render_and_compile(master, tailored):
+    def render_and_compile(master, tailored, selections=None):
         calls.append("render_and_compile")
         pdf = tmp_path / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
@@ -339,6 +339,49 @@ def test_jd_text_and_jd_url_together_is_422(client, master, pipeline):
         "/applications", json={"jd_text": "a posting", "jd_url": "https://example.com/job"}
     )
     assert r.status_code == 422
+
+
+def test_preview_renders_the_selected_variant(client, master, pipeline, monkeypatch):
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(
+                            variants=["first phrasing", "second phrasing", "third phrasing"],
+                            source_fact_ids=["ACME-01"],
+                        )
+                    ],
+                )
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    default = client.post(f"/applications/{app_id}/preview", json={})
+    assert "first phrasing" in default.json()["tex"]
+
+    picked = client.post(
+        f"/applications/{app_id}/preview",
+        json={"selections": {"ACME-01": {"variant_idx": 2}}},
+    )
+    assert "third phrasing" in picked.json()["tex"]
+    assert "first phrasing" not in picked.json()["tex"]
+
+
+def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 200
+    assert r.json()["tex"] == FAKE_TEX
 
 
 def test_jd_text_capped(client, master, pipeline):
