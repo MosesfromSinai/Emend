@@ -18,7 +18,7 @@ from core.llm import (
     cacheable_system,
     structured_call_with_usage,
 )
-from core.matching import keyword_match
+from core.matching import extract_keywords, keyword_match
 from core.normalize import (
     BULLET_START_PATTERN,
     reattach_orphan_dates,
@@ -41,8 +41,7 @@ from core.schemas import (
 from core.trace import record_call
 from core.validation import build_grounding_report, judge_bullets, validate_grounding
 
-JD_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9+#]*(?:[.-][A-Za-z0-9+#]+)*")
-JD_STOP_WORDS = {"and", "for", "the", "to", "using", "with"}
+MIN_JD_CHARS = 40
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 PHONE_PATTERN = re.compile(r"\(?\+?\d[\d\s().-]{7,}\d")
 LINK_PATTERN = re.compile(r"(?:https?://|www\.|linkedin\.com/|github\.com/)\S+")
@@ -858,10 +857,31 @@ def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     return _real_structure_resume(unwrap_text(text), client=client)
 
 
+def _reject_if_too_short_to_score(text: str) -> None:
+    """A near-empty JD -- an unrendered SPA shell after a failed extraction,
+    a login/block page, or a field left almost blank -- can't produce a
+    meaningful score. Fail clearly instead of silently returning
+    keywords=[] and a fake 0% match."""
+    if len(text.strip()) < MIN_JD_CHARS:
+        raise ValueError(
+            "job posting text is too short to score -- this usually means "
+            "the posting couldn't be read from its page; try pasting the "
+            "job description text directly instead of a link"
+        )
+
+
 def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
-    """Extract structure from a job posting."""
+    """Extract structure from a job posting.
+
+    `keywords` (the only field the match score actually uses, per
+    core/matching.py) always comes from extract_keywords's fixed dictionary,
+    never from the LLM -- overriding whatever the real branch's model
+    returns for that one field, so re-parsing the same text always yields
+    the same score.
+    """
     _check_input_size(text, "job posting text")
     if not mock_enabled():
+        _reject_if_too_short_to_score(text)
         result = structured_call_with_usage(
             FAST_MODEL,
             cacheable_system(PARSE_JD_SYSTEM),
@@ -877,7 +897,7 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
             cache_read_input_tokens=result.cache_read_input_tokens,
             cache_creation_input_tokens=result.cache_creation_input_tokens,
         )
-        return result.value
+        return result.value.model_copy(update={"keywords": extract_keywords(text)})
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()
     try:
@@ -885,18 +905,14 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     except json.JSONDecodeError as exc:
         if is_json_hint or json_text != text:
             raise ValueError("MOCK parse_jd found invalid JDExtract JSON") from exc
-        keywords = [
-            token
-            for token in dict.fromkeys(JD_TOKEN_PATTERN.findall(text))
-            if token.lower() not in JD_STOP_WORDS
-        ]
+        _reject_if_too_short_to_score(text)
         return JDExtract(
             company="",
             title="",
             hard_skills=[],
             soft_requirements=[],
             responsibilities=[text.strip()] if text.strip() else [],
-            keywords=keywords,
+            keywords=extract_keywords(text),
         )
     return JDExtract(**data)
 

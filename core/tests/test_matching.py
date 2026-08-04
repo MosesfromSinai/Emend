@@ -1,4 +1,4 @@
-from core.matching import keyword_match
+from core.matching import extract_keywords, keyword_match
 from core.schemas import JDExtract
 
 
@@ -70,3 +70,18 @@ def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):
     )
 
     assert keyword_match(jd, sample_master) == (1.0, ["Python"], [])
+
+
+def test_extract_keywords_is_deterministic_across_calls():
+    text = "We need a backend engineer with Python and PostgreSQL experience."
+    assert extract_keywords(text) == extract_keywords(text)
+
+
+def test_extract_keywords_ignores_generic_words():
+    keywords = extract_keywords("We need a great team player for this role.")
+    assert keywords == []
+
+
+def test_extract_keywords_matches_multiword_terms_and_aliases():
+    keywords = extract_keywords("Experience with machine learning and k8s required.")
+    assert keywords == ["Machine Learning", "Kubernetes"]

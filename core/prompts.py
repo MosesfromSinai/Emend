@@ -70,12 +70,9 @@ Rules:
 - `soft_requirements` are non-technical expectations (communication,
   collaboration, autonomy).
 - `responsibilities` are the duties the role performs.
-- `keywords` drive a deterministic match score computed outside this call.
-  Include the specific, matchable terms a resume screen would look for —
-  technologies, methods, and domain nouns. Exclude generic filler
-  ("teamwork", "fast-paced"), the company name, and boilerplate.
-- Normalize each keyword to the form a resume would use, deduplicate them,
-  and do not invent requirements the posting does not state.\
+- `keywords` is always an empty list. The match score is computed
+  separately, deterministically, against a fixed skills dictionary — not
+  from this call — so this field is ignored; do not spend effort on it.\
 """
 
 TAILOR_SYSTEM = """\

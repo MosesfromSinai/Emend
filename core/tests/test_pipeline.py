@@ -326,7 +326,16 @@ def test_parse_jd_derives_keywords_from_plain_text():
     parsed = parse_jd("Python backend role using Docker and Python.")
 
     assert parsed.responsibilities == ["Python backend role using Docker and Python."]
-    assert parsed.keywords == ["Python", "backend", "role", "Docker"]
+    # deterministic dictionary match, not a raw token dump -- "backend" and
+    # "role" aren't curated skills, so only the real terms survive
+    assert parsed.keywords == ["Python", "Docker"]
+
+
+def test_parse_jd_rejects_near_empty_text():
+    # e.g. a JS-rendered posting page that failed to yield real content --
+    # this must fail loudly, not silently score as a fake 0% match
+    with pytest.raises(ValueError, match="too short to score"):
+        parse_jd("enable JavaScript")
 
 
 def test_mock_refactor_preserves_fact_text_and_ids(sample_master):

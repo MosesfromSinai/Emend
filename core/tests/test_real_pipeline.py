@@ -133,7 +133,13 @@ def test_parse_jd_uses_fast_model():
     jd = _jd()
     client = FakeClient(jd.model_dump())
 
-    assert parse_jd("We need a Python engineer.", client=client) == jd
+    assert (
+        parse_jd(
+            "We need a Python engineer to join our growing backend team.",
+            client=client,
+        )
+        == jd
+    )
     assert client.calls[0]["model"] == FAST_MODEL
 
 
