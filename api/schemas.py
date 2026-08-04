@@ -58,6 +58,22 @@ class ApplicationOut(BaseModel):
     jd_source_url: str | None = None
 
 
+class BulletSelection(BaseModel):
+    """Which of a bullet's 3 variants renders -- keyed by fact id on the
+    request. Neither field set: the first variant renders."""
+
+    variant_idx: int | None = Field(default=None, ge=0, le=2)
+    custom_text: str | None = None
+
+
+class RenderRequest(BaseModel):
+    selections: dict[str, BulletSelection] = {}
+
+
+class RenderPreviewResponse(BaseModel):
+    tex: str
+
+
 class ApplicationListItem(BaseModel):
     id: uuid.UUID
     mode: str
