@@ -71,7 +71,7 @@ def _tailored_payload(master: MasterResume) -> dict:
             {
                 "ref_id": e.id,
                 "bullets": [
-                    {"text": f.text, "source_fact_ids": [f.id]} for f in e.facts
+                    {"variants": [f.text] * 3, "source_fact_ids": [f.id]} for f in e.facts
                 ],
             }
             for e in master.experiences
@@ -80,7 +80,7 @@ def _tailored_payload(master: MasterResume) -> dict:
             {
                 "ref_id": p.id,
                 "bullets": [
-                    {"text": f.text, "source_fact_ids": [f.id]} for f in p.facts
+                    {"variants": [f.text] * 3, "source_fact_ids": [f.id]} for f in p.facts
                 ],
             }
             for p in master.projects
@@ -165,7 +165,7 @@ def test_tailor_rejects_output_citing_unknown_fact_ids(sample_master):
 def test_tailor_rejects_output_inventing_numbers(sample_master):
     master = sample_master
     payload = _tailored_payload(master)
-    payload["experiences"][0]["bullets"][0]["text"] += " across 47 teams"
+    payload["experiences"][0]["bullets"][0]["variants"][0] += " across 47 teams"
 
     with pytest.raises(GroundingError):
         tailor(master, _jd(), client=FakeClient(payload))
@@ -188,7 +188,7 @@ def test_real_tailor_result_reports_judge_verdicts(sample_master):
     assert report.match_score == 1.0
 
 
-def test_judge_runs_once_per_bullet_on_the_fast_model(sample_master):
+def test_judge_runs_once_per_variant_on_the_fast_model(sample_master):
     master = sample_master
     tailored = TailoredResume(**_tailored_payload(master))
     supported = BulletVerdict(bullet="", supported=True, reason="Traceable.").model_dump()
@@ -199,8 +199,9 @@ def test_judge_runs_once_per_bullet_on_the_fast_model(sample_master):
     bullet_count = sum(
         len(s.bullets) for s in [*tailored.experiences, *tailored.projects]
     )
+    # one verdict per bullet, but every one of its 3 variants got judged
     assert len(verdicts) == bullet_count
-    assert len(client.calls) == bullet_count
+    assert len(client.calls) == bullet_count * 3
     assert {call["model"] for call in client.calls} == {FAST_MODEL}
 
 
