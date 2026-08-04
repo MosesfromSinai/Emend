@@ -1,17 +1,21 @@
 """Deterministic keyword matching for job descriptions.
 
-Keywords themselves are also deterministic: `extract_keywords` below matches
-a job posting's text against a fixed, curated dictionary of real CS/tech
-terms rather than asking an LLM to judge "the important keywords." An LLM
-given the same text twice can legitimately choose a different subset or
-phrasing each time (no temperature is pinned, and "normalize this to the
-form a resume would use" invites paraphrase, not extraction) -- which made
-the match score visibly change across identical re-submissions. A literal,
-dictionary-gated match is slower to gain new terms (someone has to add
-"Rust" or a new framework by hand) but is reproducible by construction, and
-keeps the score to something checkable ("this exact term is or isn't in
-the posting"), consistent with the brief's own rule that the match score is
-normalized keyword overlap, never the LLM.
+Keywords are pulled straight out of the posting's own text via a few
+literal, non-ML heuristics below -- never asked of an LLM (unpinned, it
+answers differently call to call for the same text, which made the score
+visibly change across identical re-submissions) and never gated behind a
+fixed dictionary (which caps coverage at whatever someone thought to add
+ahead of time, and misses ordinary phrases like "cross-functional
+collaboration" that never make anyone's tech-skills list).
+
+The tradeoff every keyword tool built this way runs into: a phrase only
+counts if the posting states it as its own short, literal unit -- a bullet
+line, an item in a comma-separated list after a lead-in like "experience
+with", or a Capitalized proper-noun-looking phrase. We do not paraphrase,
+normalize, or infer a requirement the posting doesn't literally state,
+because that's exactly the class of bug where a keyword "clearly in the
+resume" still gets flagged as missing -- the extraction and the matching
+stop agreeing on what the phrase actually looked like.
 """
 
 import re
@@ -20,102 +24,191 @@ from core.schemas import JDExtract, MasterResume
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
-# Canonical display form for each recognized term, grouped for readability.
-# Not exhaustive -- a deliberately bounded, reviewable list beats an
-# LLM guessing, but it does mean a brand-new tool/framework needs to be
-# added by hand before it can ever show up as a matched or missing keyword.
-SKILLS: list[str] = [
-    # Languages
-    "Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust",
-    "Ruby", "PHP", "Swift", "Kotlin", "Scala", "R", "MATLAB", "Perl",
-    "Haskell", "Elixir", "Dart", "Objective-C", "Bash", "Shell Scripting",
-    "SQL", "HTML", "CSS",
-    # Frontend
-    "React", "Angular", "Vue", "Svelte", "Next.js", "Nuxt.js", "jQuery",
-    "Redux", "Tailwind CSS", "Bootstrap", "Sass", "Webpack", "Vite",
-    # Backend
-    "Node.js", "Express", "Django", "Flask", "FastAPI", "Spring",
-    "Spring Boot", "Ruby on Rails", "Laravel", "ASP.NET", ".NET",
-    # Databases
-    "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis", "Cassandra",
-    "DynamoDB", "Elasticsearch", "Oracle", "SQL Server", "MariaDB",
-    "Firebase", "Supabase",
-    # Cloud / infra
-    "AWS", "Azure", "Google Cloud", "Docker", "Kubernetes", "Terraform",
-    "Ansible", "Jenkins", "CircleCI", "GitHub Actions", "CI/CD", "Nginx",
-    "Apache", "Linux", "Unix",
-    # Tools
-    "Git", "GitHub", "GitLab", "Bitbucket", "Jira", "Confluence",
-    # ML / AI
-    "Machine Learning", "Deep Learning", "Neural Networks",
-    "Computer Vision", "Natural Language Processing", "TensorFlow",
-    "PyTorch", "Scikit-learn", "Keras", "Pandas", "NumPy", "OpenCV",
-    # Concepts / methodologies
-    "Agile", "Scrum", "Kanban", "Test-Driven Development", "REST",
-    "RESTful APIs", "GraphQL", "gRPC", "Microservices",
-    "Object-Oriented Programming", "Functional Programming",
-    "Data Structures", "Algorithms", "System Design", "Distributed Systems",
-    "Real-time Systems", "Embedded Systems", "Networking", "TCP/IP",
-    "HTTP", "JSON", "XML", "YAML", "OAuth", "JWT", "WebSockets",
-    # Mobile
-    "iOS", "Android", "React Native", "Flutter", "SwiftUI",
-    # Testing
-    "Unit Testing", "Integration Testing", "Selenium", "Jest", "PyTest",
-    "JUnit", "Cypress",
-    # Data / other domains
-    "Data Engineering", "Data Science", "Big Data", "Spark", "Hadoop",
-    "Kafka", "RabbitMQ", "Blockchain", "Cybersecurity", "DevOps",
-    "Site Reliability Engineering", "API Design",
-]
+MAX_PHRASE_WORDS = 5
+MAX_KEYWORDS = 30
 
-# Common variant spellings/abbreviations that should count as the canonical
-# term on the right when found in JD text -- keeps recall reasonable
-# without letting the dictionary itself sprawl into every possible spelling.
-ALIASES: dict[str, str] = {
-    "postgres": "PostgreSQL",
-    "js": "JavaScript",
-    "k8s": "Kubernetes",
-    "ml": "Machine Learning",
-    "nlp": "Natural Language Processing",
-    "ci/cd pipelines": "CI/CD",
-    "oop": "Object-Oriented Programming",
-    "gcp": "Google Cloud",
-    "nextjs": "Next.js",
-    "vuejs": "Vue",
-    "reactjs": "React",
-    "golang": "Go",
-    "csharp": "C#",
-    "dotnet": ".NET",
-    "restful": "RESTful APIs",
-    "sre": "Site Reliability Engineering",
-    "tdd": "Test-Driven Development",
+# Words too generic to ever stand alone as a keyword, and too common as
+# sentence-starters for the proper-noun heuristic below to trust on their own.
+_STOPWORDS = {
+    "a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "with",
+    "is", "are", "be", "as", "at", "by", "from", "this", "that", "our",
+    "we", "you", "your", "will", "who", "role", "team", "job", "work",
+    "about", "overview", "responsibilities", "requirements", "qualifications",
+    "why", "what", "us", "here", "join",
 }
 
+# Boilerplate section headers a flattened JD page runs straight into the
+# next sentence with no punctuation between them (html_to_jd_text collapses
+# block-level breaks to a single space) -- without this, "Role Summary The
+# Software..." reads as one Capitalized run. Checked against a phrase's
+# first word only, so it doesn't also swallow a real term like "Team
+# Foundation Server" that happens to contain one of these words later on.
+_SECTION_HEADING_STARTS = {
+    "role", "summary", "overview", "about", "responsibilities",
+    "qualifications", "requirements", "benefits", "rewards", "total",
+    "equal", "opportunity", "compensation", "perks",
+}
 
-def _term_pattern(term: str) -> re.Pattern[str]:
-    # Word-boundary via lookaround rather than \b: \b doesn't fire correctly
-    # around symbol-only edges (e.g. "C++", "CI/CD", ".NET"), since \b needs
-    # a word/non-word transition and punctuation-to-space is non-word on
-    # both sides.
-    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
+# "Requirements: Python, Docker, strong communication skills" -- a lead-in
+# phrase followed by a list is one of the most reliable structural signals
+# a posting gives for "these specifically are the keywords."
+_LIST_LEAD_IN = re.compile(
+    r"(?:experience|proficiency|expertise|background)\s+(?:with|in)|"
+    r"knowledge\s+of|familiarity\s+with|skills?\s*(?:in|with)?\s*:|"
+    r"requirements?\s*:|qualifications?\s*:",
+    re.IGNORECASE,
+)
+
+_LIST_SPLIT = re.compile(r",|/|\band\b|\bor\b", re.IGNORECASE)
+
+# Trailing/leading filler that commonly rides along a listed skill
+# ("Docker required", "strongly preferred: Python") but isn't part of it.
+_FILLER_EDGES = {
+    "required", "preferred", "needed", "necessary", "mandatory", "strongly",
+    "ideally", "must", "plus",
+}
+
+# A run of Capitalized Words -- catches named technologies/products
+# ("Node.js", "Google Cloud Platform") wherever they appear in prose,
+# without needing a lead-in phrase at all. A period only continues the
+# match when followed by more of a word (so "Node.js" stays one token but
+# a sentence-final "Python." doesn't drag its period along). The connector
+# is horizontal whitespace only -- plain \s+ crosses newlines, which would
+# fuse three separate bullet items ("Python\nDocker\nStrong") into one fake
+# multi-word phrase.
+_PROPER_NOUN = re.compile(
+    r"\b[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*"
+    r"(?:[ \t]+[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*){0,2}\b"
+)
+_SENTENCE_BOUNDARY = re.compile(r"[.!?\n]\s*$")
+
+
+def _clean_phrase(phrase: str) -> str:
+    return phrase.strip(" \t.,;:-•").strip()
+
+
+def _trim_filler(phrase: str) -> str:
+    words = phrase.split()
+    while words and words[-1].lower().strip(".,") in _FILLER_EDGES:
+        words.pop()
+    while words and words[0].lower().strip(".,") in _FILLER_EDGES:
+        words.pop(0)
+    return " ".join(words)
+
+
+def _is_plausible_keyword(phrase: str) -> bool:
+    words = phrase.split()
+    if not words or len(words) > MAX_PHRASE_WORDS:
+        return False
+    return not all(w.lower().strip(".,") in _STOPWORDS for w in words)
+
+
+def _candidate(raw_item: str) -> str | None:
+    phrase = _trim_filler(_clean_phrase(raw_item))
+    return phrase if _is_plausible_keyword(phrase) else None
+
+
+def _phrases_from_lead_in_lists(text: str) -> list[str]:
+    found = []
+    for match in _LIST_LEAD_IN.finditer(text):
+        window = text[match.end() : match.end() + 120]
+        # stop at the first sentence end OR line break -- a cue phrase
+        # immediately followed by its own newline-separated bullet list
+        # (handled by _phrases_from_short_lines instead) must not bleed
+        # into whatever comes after those newlines.
+        tail = re.split(r"[.\n]", window, maxsplit=1)[0]
+        for item in _LIST_SPLIT.split(tail):
+            candidate = _candidate(item)
+            # a genuine list item is short; anything longer without ever
+            # hitting a comma/and/or is more likely a prose continuation
+            # than a keyword ("an interest in building practical" vs "Python")
+            if candidate and len(candidate.split()) <= 4:
+                found.append(candidate)
+    return found
+
+
+_MAX_LINE_CHARS = 100
+
+
+def _phrases_from_short_lines(text: str) -> list[str]:
+    """A pasted JD's own line breaks usually survive (a URL fetch's don't --
+    see core/jd_text.py's flattening, which joins every block into one
+    line) -- a short line with no sentence-ending punctuation is almost
+    always its own bulleted requirement.
+
+    The length cap matters more than it looks: text with zero newlines at
+    all is exactly ONE "line" per splitlines(), so without it, a whole
+    multi-thousand-character flattened page that simply doesn't happen to
+    end in a period would get treated as one giant bullet and shredded on
+    every comma/and/or in the entire document.
+    """
+    found = []
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or len(stripped) > _MAX_LINE_CHARS:
+            continue
+        if stripped.endswith((".", "!", "?", ":")):
+            continue
+        for item in _LIST_SPLIT.split(stripped):
+            candidate = _candidate(item)
+            if candidate:
+                found.append(candidate)
+    return found
+
+
+def _proper_noun_phrases(text: str) -> list[str]:
+    found = []
+    for match in _PROPER_NOUN.finditer(text):
+        phrase = match.group(0)
+        if len(phrase) <= 1:
+            continue
+        words = phrase.split()
+        if words[0].lower() in _SECTION_HEADING_STARTS:
+            continue
+        # a single capitalized word is ambiguous (a real term, or just a
+        # sentence-starter); only trust it away from a sentence boundary --
+        # a 2-3 word Capitalized run is a strong enough signal on its own
+        if len(words) == 1 and _SENTENCE_BOUNDARY.search(text[: match.start()] or "."):
+            continue
+        found.append(phrase)
+    return found
+
+
+def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
+    """Different heuristics above can surface both "cross-functional
+    collaboration" and the noisier "experience with cross-functional
+    collaboration" for the same posting -- keep the shorter, cleaner phrase
+    (also the one more likely to appear verbatim on a resume) and drop any
+    phrase that's just a wrapper around one already kept."""
+    lowered = [p.lower() for p in phrases]
+    return [
+        phrase
+        for i, phrase in enumerate(phrases)
+        if not any(
+            i != j and lowered[j] != lowered[i] and lowered[j] in lowered[i]
+            for j in range(len(phrases))
+        )
+    ]
 
 
 def extract_keywords(text: str) -> list[str]:
-    """Which curated skills/CS terms literally appear in `text` -- verbatim
-    (case-insensitively) or via a known alias. Deterministic: the same text
-    always yields the same list, in the same order, every time."""
-    normalized = " ".join(text.split())
-    found: list[str] = []
+    """Candidate keyword phrases straight out of the posting's own text.
+    Deterministic (the same text always yields the same list) and literal
+    (every result is a real substring of `text`, first-seen order, capped
+    at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
+    candidates = [
+        *_phrases_from_lead_in_lists(text),
+        *_phrases_from_short_lines(text),
+        *_proper_noun_phrases(text),
+    ]
     seen: set[str] = set()
-    for term in sorted(SKILLS, key=len, reverse=True):
-        if term not in seen and _term_pattern(term).search(normalized):
-            found.append(term)
-            seen.add(term)
-    for alias, canonical in ALIASES.items():
-        if canonical not in seen and _term_pattern(alias).search(normalized):
-            found.append(canonical)
-            seen.add(canonical)
-    return found
+    deduped: list[str] = []
+    for phrase in candidates:
+        key = phrase.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(phrase)
+    return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
 
 
 def _tokens(text: str) -> set[str]:
