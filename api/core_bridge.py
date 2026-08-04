@@ -25,6 +25,21 @@ from core.schemas import JDExtract, MasterResume, Report, TailoredResume
 
 JD_FETCH_TIMEOUT_SECONDS = 10
 
+# Without a browser-like User-Agent, httpx's default ("python-httpx/...")
+# gets silently dropped by bot-protection CDNs in front of major ATS/careers
+# sites (confirmed against a real Roblox/Akamai-fronted posting: no UA hangs
+# until the client times out, a normal browser UA returns instantly). This
+# doesn't claim to *be* a browser beyond the one header those systems key
+# on -- it's still a plain HTML fetch, no JS execution.
+JD_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
 
 class CoreUnavailableError(RuntimeError):
     """core's pipeline functions have not landed yet (pre-MOCK=1 merge)."""
@@ -36,7 +51,12 @@ def fetch_jd_text(url: str) -> str:
     Shared by the async tailor job and /jd/preview's live score card, so a
     fetch/extract fix lands in exactly one place.
     """
-    response = httpx.get(url, timeout=JD_FETCH_TIMEOUT_SECONDS, follow_redirects=True)
+    response = httpx.get(
+        url,
+        timeout=JD_FETCH_TIMEOUT_SECONDS,
+        follow_redirects=True,
+        headers=JD_FETCH_HEADERS,
+    )
     response.raise_for_status()
     return html_to_jd_text(response.text)
 
