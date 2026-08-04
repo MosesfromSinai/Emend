@@ -46,3 +46,35 @@ def test_caps_at_max_length():
     html = f"<body><main>{'word ' * 10_000}</main></body>"
 
     assert len(html_to_jd_text(html)) <= MAX_JD_CHARS
+
+
+def test_prefers_json_ld_job_posting_over_js_only_shell():
+    # a React/SPA shell: the only visible DOM text is a noscript notice, but
+    # the real posting is embedded as schema.org JobPosting for SEO
+    html = """
+    <html><body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script type="application/ld+json">
+    {"@context": "https://schema.org/", "@type": "JobPosting",
+     "title": "Backend Engineer",
+     "description": "<p>We need a <b>Python</b> engineer with SQL experience.</p>"}
+    </script>
+    <div id="root"></div>
+    </body></html>
+    """
+    text = html_to_jd_text(html)
+
+    assert "Python" in text
+    assert "enable JavaScript" not in text
+
+
+def test_ignores_json_ld_when_dom_text_is_already_longer():
+    html = """
+    <body>
+    <script type="application/ld+json">
+    {"@type": "JobPosting", "description": "short"}
+    </script>
+    <main>A much longer, real job posting body with plenty of relevant detail.</main>
+    </body>
+    """
+    assert "much longer" in html_to_jd_text(html)
