@@ -7,7 +7,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-em-line bg-paper/94 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-310 items-center gap-6 px-7 py-3">
+        <div className="mx-auto flex max-w-390 items-center gap-6 px-7 py-3">
           <Link href="/app" className="flex items-center gap-2.25">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink font-serif text-[13px] font-bold text-paper">
               E
@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-310 px-7 py-8">{children}</main>
+      <main className="mx-auto max-w-390 px-7 py-8">{children}</main>
     </div>
   );
 }

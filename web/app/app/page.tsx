@@ -192,7 +192,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-em-line bg-paper/95 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-310 items-center gap-4 px-7 py-3">
+          <div className="mx-auto flex max-w-390 items-center gap-4 px-7 py-3">
             <div className="flex-1">
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-em-line-2">
                 <div
@@ -213,7 +213,9 @@ export default function OnboardingPage() {
               disabled={busySave}
               className={cn(
                 "rounded-lg px-4 py-2 text-sm font-medium text-paper transition-colors disabled:cursor-not-allowed",
-                allConfirmed ? "bg-ink hover:bg-em-deep" : "bg-ink/35 hover:bg-ink/45"
+                allConfirmed
+                  ? "bg-em-accent hover:bg-em-deep"
+                  : "bg-em-accent/35 hover:bg-em-accent/45"
               )}
             >
               {busySave ? "Saving…" : "Continue to tailoring →"}
