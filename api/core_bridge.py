@@ -19,11 +19,26 @@ deterministic and not validation's business). If core prefers returning a
 full `Report`, only `validate` below changes.
 """
 
+import httpx
+
 from core.schemas import JDExtract, MasterResume, Report, TailoredResume
+
+JD_FETCH_TIMEOUT_SECONDS = 10
 
 
 class CoreUnavailableError(RuntimeError):
     """core's pipeline functions have not landed yet (pre-MOCK=1 merge)."""
+
+
+def fetch_jd_text(url: str) -> str:
+    """Fetch a job-posting URL server-side and extract its JD text.
+
+    Shared by the async tailor job and /jd/preview's live score card, so a
+    fetch/extract fix lands in exactly one place.
+    """
+    response = httpx.get(url, timeout=JD_FETCH_TIMEOUT_SECONDS, follow_redirects=True)
+    response.raise_for_status()
+    return html_to_jd_text(response.text)
 
 
 def _core_fn(name: str):
@@ -87,9 +102,22 @@ def validate(
 
 
 def render_and_compile(
-    master: MasterResume, tailored: TailoredResume | None
+    master: MasterResume,
+    tailored: TailoredResume | None,
+    selections: dict[str, dict] | None = None,
 ) -> tuple[str, str, str]:
     """(tex, pdf_path, log); pdf_path == "" means compile failure, log says why."""
     import latex
 
-    return latex.render_and_compile(master, tailored)
+    return latex.render_and_compile(master, tailored, selections)
+
+
+def render_tex(
+    master: MasterResume,
+    tailored: TailoredResume | None,
+    selections: dict[str, dict] | None = None,
+) -> str:
+    """Cheap tex-only render (no compile) -- used for the live Export preview."""
+    import latex.render
+
+    return latex.render.render_tex(master, tailored, selections)

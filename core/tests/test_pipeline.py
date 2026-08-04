@@ -335,7 +335,7 @@ def test_mock_refactor_preserves_fact_text_and_ids(sample_master):
 
     bullet = refactored.experiences[0].bullets[0]
     fact = master.experiences[0].facts[0]
-    assert bullet.text == fact.text
+    assert bullet.variants == [fact.text] * 3
     assert bullet.source_fact_ids == [fact.id]
 
 

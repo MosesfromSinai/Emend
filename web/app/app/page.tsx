@@ -1,10 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 
-import { MasterResumeEditor } from "@/components/master-resume-editor";
+import {
+  ConfirmPill,
+  SectionPanel,
+  SECTION_HEADINGS,
+  allRowKeys,
+  type SectionHeading,
+} from "@/components/confirm/section-panel";
 import { ParseError } from "@/components/parse-error";
+import { ResumePaper, masterToSections } from "@/components/resume-paper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,16 +21,50 @@ import {
   importResumeFromFile,
   saveMaster,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
+
+const SAMPLE_RESUME = `Jordan Diaz
+jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
+
+EDUCATION
+University of Michigan - Bachelor of Science in Computer Science, May 2022
+Coursework: Data Structures, Operating Systems, Distributed Systems
+
+EXPERIENCE
+Backend Engineer (Jun 2022 - Present)
+Nimbus Logistics, Ann Arbor, MI
+- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%.
+- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns.
+- Wrote the on-call runbook adopted by all 6 engineers on the team.
+
+PROJECTS
+Routewise | Python, PostgreSQL, Redis
+- Built a route-optimization service handling 10k+ requests/day.
+- Added Redis caching that cut average response time from 800ms to 120ms.
+
+TECHNICAL SKILLS
+Languages: Python, TypeScript, SQL
+Frameworks/Libraries: FastAPI, React, SQLAlchemy`;
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("paste");
   const [text, setText] = useState("");
   const [master, setMaster] = useState<MasterResume | null>(null);
-  const [busy, setBusy] = useState(false);
+  // split so uploading a PDF doesn't gray out the paste side and vice versa
+  const [busyPaste, setBusyPaste] = useState(false);
+  const [busyPdf, setBusyPdf] = useState(false);
+  const [busySave, setBusySave] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  // which facts a person has checked off -- ephemeral, never persisted; the
+  // only real save is the PUT /resumes/master on confirm
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionHeading>("EDUCATION");
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
   const [error, setError] = useState<unknown>(null);
@@ -31,16 +72,16 @@ export default function OnboardingPage() {
   // from the api, so ParseError's api-error-shaped messaging doesn't apply
   const [fileError, setFileError] = useState<string | null>(null);
 
-  async function extractFacts() {
-    setBusy(true);
+  async function extractFacts(source: string) {
+    setBusyPaste(true);
     setError(null);
     try {
-      setMaster(await importResume(text));
+      setMaster(await importResume(source));
       setStep("confirm");
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusyPaste(false);
     }
   }
 
@@ -54,7 +95,7 @@ export default function OnboardingPage() {
       setFileError("That PDF is too large — please upload one under 5 MB.");
       return;
     }
-    setBusy(true);
+    setBusyPdf(true);
     setError(null);
     try {
       setMaster(await importResumeFromFile(file));
@@ -62,13 +103,20 @@ export default function OnboardingPage() {
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusyPdf(false);
     }
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) extractFromFile(file);
   }
 
   async function confirm() {
     if (!master) return;
-    setBusy(true);
+    setBusySave(true);
     setError(null);
     try {
       await saveMaster(master);
@@ -76,13 +124,49 @@ export default function OnboardingPage() {
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusySave(false);
     }
   }
 
+  function toggleConfirm(key: string) {
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function confirmMany(keys: string[], value: boolean) {
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      for (const key of keys) {
+        if (value) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  function sectionForKey(key: string): SectionHeading | null {
+    if (!master) return null;
+    for (const section of masterToSections(master)) {
+      if (section.blocks.some((b) => b.rows.some((r) => r.key === key))) {
+        return section.heading as SectionHeading;
+      }
+    }
+    return null;
+  }
+
   if (step === "confirm" && master) {
+    const contact = [master.email, master.phone, ...master.links].filter(Boolean).join(" | ");
+    const allKeys = allRowKeys(master);
+    const doneCount = allKeys.filter((k) => confirmed.has(k)).length;
+    const allConfirmed = allKeys.length > 0 && doneCount === allKeys.length;
+    const remaining = allKeys.length - doneCount;
+
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 pb-28">
         <div>
           <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
           <p className="mt-1 text-sm text-ink/70">
@@ -91,15 +175,99 @@ export default function OnboardingPage() {
           </p>
         </div>
         <ParseError error={error} />
-        <MasterResumeEditor master={master} onChange={setMaster} />
-        <div className="flex items-center gap-3">
-          <Button onClick={confirm} disabled={busy}>
-            {busy ? "Saving…" : "Looks right — confirm"}
-          </Button>
-          <Button variant="ghost" onClick={() => setStep("paste")} disabled={busy}>
-            Back
-          </Button>
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+          <div className="sticky top-20 h-[calc(100vh-110px)] self-start overflow-y-auto rounded-xl border border-em-line bg-white p-6">
+            <ResumePaper
+              master={master}
+              name={master.name}
+              contact={contact}
+              hoveredKey={hoveredKey}
+              onHoverRow={setHoveredKey}
+              onClickRow={(row) => {
+                const section = sectionForKey(row.key);
+                if (section) setActiveSection(section);
+              }}
+              activeSectionHeading={activeSection}
+              confirmedKeys={confirmed}
+              renderRowExtra={(row) => (
+                <span onClick={(e) => e.stopPropagation()}>
+                  <ConfirmPill
+                    confirmed={confirmed.has(row.key)}
+                    onToggle={() => toggleConfirm(row.key)}
+                  />
+                </span>
+              )}
+            />
+          </div>
+
+          <SectionPanel
+            master={master}
+            onChange={setMaster}
+            confirmed={confirmed}
+            onToggleConfirm={toggleConfirm}
+            onConfirmMany={confirmMany}
+            activeSection={activeSection}
+            onChangeSection={setActiveSection}
+            hoveredKey={hoveredKey}
+            onHoverRow={setHoveredKey}
+          />
         </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-em-line bg-paper/95 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-310 items-center gap-4 px-7 py-3">
+            <div className="flex-1">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-em-line-2">
+                <div
+                  className="h-full bg-em-bright transition-all"
+                  style={{ width: `${allKeys.length ? (doneCount / allKeys.length) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-em-muted">
+                {doneCount} of {allKeys.length} facts confirmed
+              </p>
+            </div>
+            <Button variant="ghost" onClick={() => setStep("paste")} disabled={busySave}>
+              Back
+            </Button>
+            <button
+              type="button"
+              onClick={() => (allConfirmed ? confirm() : setShowLeaveModal(true))}
+              disabled={busySave}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-medium text-paper transition-colors disabled:cursor-not-allowed",
+                allConfirmed ? "bg-ink hover:bg-em-deep" : "bg-ink/35 hover:bg-ink/45"
+              )}
+            >
+              {busySave ? "Saving…" : "Continue to tailoring →"}
+            </button>
+          </div>
+        </div>
+
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+              <h2 className="font-serif text-lg font-semibold">Keep reviewing?</h2>
+              <p className="mt-2 text-sm text-ink/70">
+                {remaining} fact{remaining === 1 ? "" : "s"} still need confirmation. You can
+                confirm the rest later, but nothing unconfirmed gets a second look.
+              </p>
+              <div className="mt-4 flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setShowLeaveModal(false)}>
+                  Keep reviewing
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    confirm();
+                  }}
+                >
+                  Continue anyway
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -115,41 +283,85 @@ export default function OnboardingPage() {
       </div>
       <ParseError error={error} />
       {fileError && <p className="text-sm text-red-700">{fileError}</p>}
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
-        rows={14}
-        placeholder="Paste your resume here…"
-      />
-      <div className="flex items-center justify-between">
-        <Button onClick={extractFacts} disabled={busy || text.trim().length === 0}>
-          {busy ? "Extracting…" : "Extract my facts →"}
-        </Button>
-        {text.length > MAX_TEXT_CHARS * 0.9 && (
-          <span className="font-mono text-xs text-ink/50">
-            {text.length.toLocaleString()} / {MAX_TEXT_CHARS.toLocaleString()}
-          </span>
-        )}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+        <div className="overflow-hidden rounded-xl border border-em-line bg-white">
+          <div className="border-b border-em-line bg-em-panel px-4.5 py-2.5 text-xs font-semibold tracking-wide text-em-muted-2 uppercase">
+            Paste your resume
+          </div>
+          <div className="flex flex-col gap-3 p-4.5">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
+              rows={16}
+              placeholder="Paste your resume here…"
+            />
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={() => extractFacts(text)}
+                disabled={busyPaste || busyPdf || text.trim().length === 0}
+              >
+                {busyPaste ? "Extracting…" : "Extract my facts →"}
+              </Button>
+              <span className="font-mono text-xs text-em-faint">
+                {text.length.toLocaleString()} chars ·{" "}
+                {(text.length === 0 ? 0 : text.split("\n").length).toLocaleString()} lines
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={
+              "rounded-xl border-[1.5px] border-dashed p-5 text-center transition-colors " +
+              (dragOver ? "border-ink bg-em-soft/40" : "border-em-line-2 bg-white")
+            }
+          >
+            <p className="text-sm font-semibold text-ink">Drop a PDF here</p>
+            <p className="mt-1 text-xs text-em-muted">or</p>
+            <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border-[1.5px] border-em-softb bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink">
+              {busyPdf ? "Extracting…" : "Browse for a PDF"}
+              <input
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                disabled={busyPaste || busyPdf}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = ""; // allow re-selecting the same file after an error
+                  if (file) extractFromFile(file);
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="rounded-xl bg-ink px-4.5 py-4 text-paper">
+            <p className="text-xs font-semibold tracking-wide text-paper/60 uppercase">
+              What happens next
+            </p>
+            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-paper/85">
+              <li>1. We split your resume into individual facts</li>
+              <li>2. You confirm what&apos;s accurate</li>
+              <li>3. We tailor and typeset a PDF from those facts only</li>
+            </ul>
+          </div>
+
+          <Button
+            variant="secondary"
+            onClick={() => extractFacts(SAMPLE_RESUME)}
+            disabled={busyPaste || busyPdf}
+          >
+            Use a sample resume
+          </Button>
+        </div>
       </div>
-      <div className="flex items-center gap-3 text-xs text-ink/50">
-        <div className="h-px flex-1 bg-em-softb" />
-        or
-        <div className="h-px flex-1 bg-em-softb" />
-      </div>
-      <label className="flex cursor-pointer items-center justify-center rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-5.5 py-3 text-[15px] font-semibold text-ink hover:border-ink">
-        {busy ? "Extracting…" : "Upload a PDF instead"}
-        <input
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          disabled={busy}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = ""; // allow re-selecting the same file after an error
-            if (file) extractFromFile(file);
-          }}
-        />
-      </label>
     </div>
   );
 }

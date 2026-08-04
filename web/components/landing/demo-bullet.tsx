@@ -88,6 +88,9 @@ function DemoBulletToolbar({
   onPatch: (next: Partial<BulletState>) => void;
 }) {
   const hasCustom = state.custom != null;
+  // shows the moment typing starts, not just after blur saves it -- dirty
+  // covers the in-progress keystroke, hasCustom covers the saved edit
+  const showDiscard = state.dirty || hasCustom;
   const cycle = (delta: 1 | -1) =>
     onPatch({ idx: (state.idx + delta + 3) % 3, orig: false, custom: null, dirty: false, rev: state.rev + 1 });
 
@@ -143,7 +146,7 @@ function DemoBulletToolbar({
       <span className="text-[10.5px] text-[#8f887a]">
         · click text to edit — your words are kept
       </span>
-      {hasCustom && (
+      {showDiscard && (
         <button
           onClick={() => onPatch({ custom: null, orig: false, dirty: false, rev: state.rev + 1 })}
           className="rounded px-1.5 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#a89f8c] hover:bg-[#3a372f] hover:text-paper"

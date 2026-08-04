@@ -18,6 +18,21 @@
   --color-em-bright: var(--em-bright, #d99483);
   --color-em-deep: var(--em-deep, #5c2620);
 
+  /* Neutral/semantic -- same across all four color schemes, unlike the
+     accent family above. Used by the app screens (Import/Confirm/Tailor/Export). */
+  --color-em-ink-2: #3a372f;
+  --color-em-muted: #6b6558;
+  --color-em-muted-2: #7d7666;
+  --color-em-faint: #9a927f;
+  --color-em-line: #e7dcd4;
+  --color-em-line-2: #eee5de;
+  --color-em-panel: #f6efe9;
+  --color-em-ok-bg: #eef0e2;
+  --color-em-ok-fg: #5a6a34;
+  --color-em-ok-wash: #f2f5ea;
+  --color-em-warn-bg: #f4e6e2;
+  --color-em-warn-fg: #9a4a34;
+
   --font-serif: "Source Serif 4", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-sans: system-ui, -apple-system, sans-serif;

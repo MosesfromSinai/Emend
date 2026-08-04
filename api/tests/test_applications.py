@@ -49,7 +49,7 @@ def pipeline(monkeypatch, tmp_path):
                     ref_id="ACME",
                     bullets=[
                         TailoredBullet(
-                            text="Built a reporting dashboard",
+                            variants=["Built a reporting dashboard"] * 3,
                             source_fact_ids=["ACME-01"],
                         )
                     ],
@@ -75,7 +75,7 @@ def pipeline(monkeypatch, tmp_path):
             ],
         )
 
-    def render_and_compile(master, tailored):
+    def render_and_compile(master, tailored, selections=None):
         calls.append("render_and_compile")
         pdf = tmp_path / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
@@ -291,8 +291,6 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
 
 
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
-    from api import jobs
-
     class FakeResponse:
         text = (
             "<html><body><nav>skip me</nav>"
@@ -302,7 +300,7 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
         def raise_for_status(self):
             pass
 
-    monkeypatch.setattr(jobs.httpx, "get", lambda *a, **k: FakeResponse())
+    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
 
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
@@ -318,12 +316,10 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
 def test_jd_url_fetch_failure_fails_the_job(client, master, pipeline, monkeypatch):
     import httpx
 
-    from api import jobs
-
     def failing_get(*a, **k):
         raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(jobs.httpx, "get", failing_get)
+    monkeypatch.setattr(core_bridge.httpx, "get", failing_get)
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
     got = client.get(f"/applications/{r.json()['id']}").json()
@@ -339,6 +335,49 @@ def test_jd_text_and_jd_url_together_is_422(client, master, pipeline):
         "/applications", json={"jd_text": "a posting", "jd_url": "https://example.com/job"}
     )
     assert r.status_code == 422
+
+
+def test_preview_renders_the_selected_variant(client, master, pipeline, monkeypatch):
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(
+                            variants=["first phrasing", "second phrasing", "third phrasing"],
+                            source_fact_ids=["ACME-01"],
+                        )
+                    ],
+                )
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    default = client.post(f"/applications/{app_id}/preview", json={})
+    assert "first phrasing" in default.json()["tex"]
+
+    picked = client.post(
+        f"/applications/{app_id}/preview",
+        json={"selections": {"ACME-01": {"variant_idx": 2}}},
+    )
+    assert "third phrasing" in picked.json()["tex"]
+    assert "first phrasing" not in picked.json()["tex"]
+
+
+def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 200
+    assert r.json()["tex"] == FAKE_TEX
 
 
 def test_jd_text_capped(client, master, pipeline):

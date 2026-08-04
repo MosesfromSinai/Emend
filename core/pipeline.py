@@ -902,7 +902,12 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
 
 
 def _fact_bullets(facts) -> list[TailoredBullet]:
-    return [TailoredBullet(text=fact.text, source_fact_ids=[fact.id]) for fact in facts]
+    # mock mode never rewrites, so there's nothing to cycle to that isn't
+    # already the confirmed fact -- 3 identical variants is the honest answer
+    return [
+        TailoredBullet(variants=[fact.text] * 3, source_fact_ids=[fact.id])
+        for fact in facts
+    ]
 
 
 def experience_section(experience: Experience) -> TailoredSection:

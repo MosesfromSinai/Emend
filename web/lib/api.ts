@@ -1,8 +1,19 @@
 import type {
   ApplicationListItem,
   ApplicationOut,
+  BulletSelection,
+  JdPreview,
   MasterResume,
+  VersionOut,
 } from "@/lib/types";
+
+function wireSelections(selections: Record<string, BulletSelection>) {
+  const wire: Record<string, { variant_idx?: number; custom_text?: string }> = {};
+  for (const [factId, sel] of Object.entries(selections)) {
+    wire[factId] = { variant_idx: sel.variantIdx, custom_text: sel.customText };
+  }
+  return wire;
+}
 
 // Compose sets this to http://localhost:8000; Vercel sets it to the Railway URL.
 export const API_BASE_URL =
@@ -93,8 +104,39 @@ export function createApplication(options?: {
   });
 }
 
+// jdText and jdUrl are mutually exclusive — exactly one is required.
+export function previewJd(options: { jdText?: string; jdUrl?: string }): Promise<JdPreview> {
+  return apiFetch("/jd/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      jd_text: options.jdText ?? null,
+      jd_url: options.jdUrl ?? null,
+    }),
+  });
+}
+
 export function getApplication(id: string): Promise<ApplicationOut> {
   return apiFetch(`/applications/${id}`);
+}
+
+export function previewApplication(
+  id: string,
+  selections: Record<string, BulletSelection>
+): Promise<{ tex: string }> {
+  return apiFetch(`/applications/${id}/preview`, {
+    method: "POST",
+    body: JSON.stringify({ selections: wireSelections(selections) }),
+  });
+}
+
+export function finalizeApplication(
+  id: string,
+  selections: Record<string, BulletSelection>
+): Promise<VersionOut> {
+  return apiFetch(`/applications/${id}/finalize`, {
+    method: "POST",
+    body: JSON.stringify({ selections: wireSelections(selections) }),
+  });
 }
 
 export function listApplications(): Promise<ApplicationListItem[]> {

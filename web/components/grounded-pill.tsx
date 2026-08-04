@@ -10,7 +10,7 @@ export function GroundedPill({
     <span
       className={
         "rounded-full px-3 py-1 font-mono text-xs font-semibold " +
-        (allGrounded ? "bg-[#eef0e2] text-[#5a6a34]" : "bg-[#f4e6e2] text-[#9a4a34]")
+        (allGrounded ? "bg-em-ok-bg text-em-ok-fg" : "bg-em-warn-bg text-em-warn-fg")
       }
     >
       {allGrounded ? "✓" : "⚠"} grounded {supportedCount}/{total}

@@ -61,8 +61,27 @@ def _project_row(proj: Project, bullets: list[dict]) -> dict:
     }
 
 
+def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
+    """Which of a bullet's 3 variants (or a user edit) actually renders.
+
+    Keyed by the bullet's first cited fact -- in practice a bullet almost
+    always cites exactly one, and Export's per-line picker treats a bullet
+    as one unit regardless. No selection for it: the first variant.
+    """
+    sel = selections.get(bullet.source_fact_ids[0]) if selections else None
+    if not sel:
+        return bullet.variants[0]
+    custom = sel.get("custom_text")
+    if custom:
+        return custom
+    return bullet.variants[sel.get("variant_idx", 0)]
+
+
 def _tailored_rows(
-    sections: list[TailoredSection], by_id: dict[str, Experience | Project], kind: str
+    sections: list[TailoredSection],
+    by_id: dict[str, Experience | Project],
+    kind: str,
+    selections: dict[str, dict] | None = None,
 ) -> list:
     rows = []
     for section in sections:
@@ -71,7 +90,10 @@ def _tailored_rows(
             raise ValueError(
                 f"tailored {kind} section references unknown id {section.ref_id!r}"
             )
-        bullets = [_bullet_row(b.text, b.source_fact_ids) for b in section.bullets]
+        bullets = [
+            _bullet_row(_resolve_variant(b, selections), b.source_fact_ids)
+            for b in section.bullets
+        ]
         if isinstance(source, Experience):
             rows.append(_experience_row(source, bullets))
         else:
@@ -79,7 +101,11 @@ def _tailored_rows(
     return rows
 
 
-def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
+def render_tex(
+    master: MasterResume,
+    tailored: TailoredResume | None,
+    selections: dict[str, dict] | None = None,
+) -> str:
     """Render the resume to LaTeX source.
 
     Refactor mode (tailored=None): every master experience/project renders with its
@@ -87,6 +113,11 @@ def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
     (by ref_id) render, with tailored bullets substituting the master facts —
     structural fields (company, title, dates, location, tech) always come from
     master, so the tailor can never alter them. Unknown ref_ids raise ValueError.
+
+    Each tailored bullet carries 3 grounded variants; `selections` (keyed by
+    fact id) picks which one renders -- `{"variant_idx": 1}` or
+    `{"custom_text": "..."}` for a user's own edit. No entry for a bullet:
+    its first variant renders. Ignored in refactor mode (nothing to pick between).
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
@@ -110,8 +141,8 @@ def render_tex(master: MasterResume, tailored: TailoredResume | None) -> str:
             e.id: e for e in master.experiences
         }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
-        experiences = _tailored_rows(tailored.experiences, exp_by_id, "experience")
-        projects = _tailored_rows(tailored.projects, proj_by_id, "project")
+        experiences = _tailored_rows(tailored.experiences, exp_by_id, "experience", selections)
+        projects = _tailored_rows(tailored.projects, proj_by_id, "project", selections)
         skills = tailored.skills or master.skills
 
     links = [

@@ -42,6 +42,23 @@ export interface MasterResume {
   skills: Record<string, string[]>;
 }
 
+export interface TailoredBullet {
+  variants: string[];
+  source_fact_ids: string[];
+}
+
+export interface TailoredSection {
+  ref_id: string;
+  bullets: TailoredBullet[];
+}
+
+export interface TailoredResume {
+  summary_of_strategy: string;
+  experiences: TailoredSection[];
+  projects: TailoredSection[];
+  skills: Record<string, string[]>;
+}
+
 export interface BulletVerdict {
   bullet: string;
   supported: boolean;
@@ -57,13 +74,27 @@ export interface Report {
   verdicts: BulletVerdict[];
 }
 
+export interface JdPreview {
+  score: number;
+  matched_keywords: string[];
+  missing_keywords: string[];
+  resolved_jd_text: string;
+}
+
 export type ApplicationMode = "refactor" | "tailor";
 export type ApplicationStatus = "queued" | "running" | "done" | "failed";
+
+// keyed by a bullet's first source_fact_id, mirrors api's BulletSelection
+export interface BulletSelection {
+  variantIdx?: number;
+  customText?: string;
+}
 
 export interface VersionOut {
   id: string;
   tex: string;
   report: Report | null;
+  tailored: TailoredResume | null;
   pdf_url: string;
   tex_url: string;
   created_at: string;

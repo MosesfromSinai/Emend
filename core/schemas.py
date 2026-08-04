@@ -145,7 +145,9 @@ class JDExtract(BaseModel):
 
 
 class TailoredBullet(BaseModel):
-    text: str
+    # 3 independent rewrites of the same cited fact(s), not 3 different
+    # claims -- Export lets the user pick which one ships.
+    variants: list[str]
     source_fact_ids: list[str]
 
     @model_validator(mode="after")
@@ -153,6 +155,13 @@ class TailoredBullet(BaseModel):
         if len(self.source_fact_ids) != len(set(self.source_fact_ids)):
             raise ValueError("source_fact_ids must be unique")
         return self
+
+    @field_validator("variants")
+    @classmethod
+    def validate_three_variants(cls, value: list[str]) -> list[str]:
+        if len(value) != 3 or any(not v.strip() for v in value):
+            raise ValueError("variants must be exactly 3 non-empty rewrites")
+        return value
 
 
 class TailoredSection(BaseModel):

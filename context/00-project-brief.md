@@ -105,18 +105,28 @@ production actually exercises is the deterministic parser and the mock
 tailorer. Flipping to `MOCK=0` is a Railway variable change once the key
 works and the evals in `docs/evals.md` have real numbers.
 
-**Auto-deploy is currently broken.** `.github/workflows/deploy.yml` runs
-`railway up` after every green CI run on `main`, but every run since at least
-2026-08-03 has failed with `Invalid RAILWAY_TOKEN` (`gh run list --workflow
-deploy.yml`) — the repo has no `RAILWAY_TOKEN` secret set (`gh secret list`
-returns empty). Whatever the live URL is currently serving was deployed some
-other way (Railway's own GitHub integration, or a manual `railway up`) and is
-**not guaranteed to match the latest merged `main`.** Fix: set `RAILWAY_TOKEN`
-in repo secrets (Railway dashboard → project → Settings → Tokens), then
-confirm the next merge actually redeploys.
+**Auto-deploy:** fixed 2026-08-03 (`RAILWAY_TOKEN` set, service name
+corrected in `.github/workflows/deploy.yml` to match Railway's actual
+service name `Emend`). Verified green end to end: CI → Deploy → `/health`.
 
 Operational detail — secrets map, migrations, rollback per service, rebuilding
 the Tectonic cache layer — lives in `infra/runbook.md`.
+
+## App screens rebuild — done on branch `import-tailor`, not yet merged to main
+
+Full plan at `/Users/mosesavila/.claude/plans/glowing-popping-giraffe.md`
+(local machine, not in-repo) — all 7 parts complete as of 2026-08-04: 3 real
+grounded rewrite variants per tailored bullet (`TailoredBullet.text` →
+`.variants: list[str]`, a contract change — validation/judging run per
+variant, `render_tex`/`render_and_compile` take a `selections` override map),
+the app shell + design tokens, and all four post-"Get started" screens
+(Import, Confirm facts, Tailor, Export) rebuilt per `Emend App.dc.html` in
+the Claude Design project — Confirm has real per-fact confirmation with a
+bidirectional paper↔panel hover sync, Tailor has a live debounced
+`/jd/preview` score card, Export has real 3-variant rewrite cycling backed
+by `/applications/{id}/preview` (live) and `/finalize` (on download).
+Accounts stay explicitly deferred per this brief's existing scope — nothing
+in this work adds auth. Single branch, phased commits, not yet PR'd/merged.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
@@ -131,7 +141,7 @@ MasterResume{name, email, phone, links: list[str], education: list[Education],
              skills: dict[str, list[str]]}
 JDExtract{company, title, hard_skills, soft_requirements, responsibilities,
           keywords: list[str], source_url: str | None = None}
-TailoredBullet{text, source_fact_ids: list[str]}
+TailoredBullet{variants: list[str] (exactly 3, non-empty), source_fact_ids: list[str]}
 TailoredSection{ref_id, bullets: list[TailoredBullet]}
 TailoredResume{summary_of_strategy, experiences: list[TailoredSection],
                projects: list[TailoredSection], skills: dict[str, list[str]]}
@@ -146,16 +156,22 @@ POST /resumes/import {text} | multipart file=<pdf>
                                       -> proposed MasterResume (not saved), either way
 PUT  /resumes/master {MasterResume}  -> save confirmed   |   GET /resumes/master
 POST /applications {jd_text?, jd_url?} -> {id}   (both null = refactor mode; both set = 422)
-GET  /applications/{id}              -> status, match data, report, inline tex, artifact URLs,
-                                         jd_source_url (null unless tailored from a URL)
+GET  /applications/{id}              -> status, match data, report, inline tex, tailored resume,
+                                         artifact URLs, jd_source_url (null unless from a URL)
+POST /applications/{id}/preview {selections} -> {tex}  cheap re-render, no compile (Export's live pane)
+POST /applications/{id}/finalize {selections} -> version out, real compile (runs once, on download)
 GET  /applications                   -> session's history
 GET  /artifacts/{version_id}.pdf|.tex -> session-checked file response
+POST /jd/preview {jd_text?, jd_url?} -> {score, matched_keywords, missing_keywords, resolved_jd_text}
+                                         parse_jd + keyword_match only, no tailor call (Tailor's live score card)
 ```
+`selections` is `dict[fact_id, {variant_idx?: 0-2, custom_text?}]` — keyed by a bullet's first
+`source_fact_ids` entry; no entry for a bullet renders its first variant.
 `POST /resumes/import`'s multipart path and `jd_url` fetch/extraction are contract-documented here now; implementation is a later task, not part of this change — see reconciliation #1 above for exactly what's built vs. not.
 
 LaTeX entrypoint: `latex.render_and_compile(master: MasterResume, tailored: TailoredResume | None) -> (tex: str, pdf_path: str, log: str)` — `tailored=None` renders the full master resume; rendered bullets carry `% grounded: <fact ids>` comments.
 
-Database tables: `sessions(id, created_at)` · `master_resumes(id, session_id, data JSONB, updated_at)` · `applications(id, session_id, mode, jd_text NULL, jd_url TEXT NULL, status queued|running|done|failed, match_score, matched_keywords JSONB, missing_keywords JSONB, error, created_at)` · `resume_versions(id, application_id, tex TEXT, pdf_path, report JSONB, created_at)`.
+Database tables: `sessions(id, created_at)` · `master_resumes(id, session_id, data JSONB, updated_at)` · `applications(id, session_id, mode, jd_text NULL, jd_url TEXT NULL, status queued|running|done|failed, match_score, matched_keywords JSONB, missing_keywords JSONB, error, created_at)` · `resume_versions(id, application_id, tex TEXT, pdf_path, report JSONB, tailored JSONB NULL, created_at)`.
 
 **Mock rule:** `core` ships `MOCK=1` (deterministic pass-through, no API key). Every other workflow builds against mock first, real later.
 

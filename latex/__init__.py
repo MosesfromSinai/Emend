@@ -7,12 +7,15 @@ __all__ = ["render_and_compile"]
 
 
 def render_and_compile(
-    master: MasterResume, tailored: TailoredResume | None
+    master: MasterResume,
+    tailored: TailoredResume | None,
+    selections: dict[str, dict] | None = None,
 ) -> tuple[str, str, str]:
     """Render to .tex and compile to PDF. Returns (tex, pdf_path, log).
 
     pdf_path is "" when compilation fails; the log always explains the failure.
+    `selections` picks which of a bullet's 3 variants renders -- see render_tex.
     """
-    tex = render_tex(master, tailored)
+    tex = render_tex(master, tailored, selections)
     pdf_path, log = compile_tex(tex)
     return tex, pdf_path, log

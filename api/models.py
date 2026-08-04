@@ -79,6 +79,10 @@ class ResumeVersion(Base):
     tex: Mapped[str] = mapped_column(Text, nullable=False)
     pdf_path: Mapped[str] = mapped_column(String(512), nullable=False)
     report: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True)
+    # the full TailoredResume (3 variants per bullet), not just the rendered
+    # tex -- needed so Export can re-render with a different variant picked.
+    # None in refactor mode, where there's nothing to cycle between.
+    tailored: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

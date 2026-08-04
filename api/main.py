@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
 from api.errors import error_response, register_error_handlers
-from api.routers import applications, artifacts, health, resumes
+from api.routers import applications, artifacts, health, jd, resumes
 
 
 def create_app() -> FastAPI:
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(resumes.router)
     app.include_router(applications.router)
+    app.include_router(jd.router)
     app.include_router(artifacts.router)
     return app
 

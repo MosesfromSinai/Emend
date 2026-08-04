@@ -1,16 +1,21 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
+import { RewriteBar } from "@/components/export/rewrite-bar";
 import { GroundedPill } from "@/components/grounded-pill";
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
-import { PdfViewer } from "@/components/pdf-viewer";
 import { ProvenancePanel } from "@/components/provenance-panel";
+import { ResumePaper } from "@/components/resume-paper";
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
-import { artifactUrl } from "@/lib/api";
+import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
+import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
+import type { BulletSelection, MasterResume } from "@/lib/types";
+
+const PREVIEW_DEBOUNCE_MS = 400;
 
 export default function ApplicationPage({
   params,
@@ -19,6 +24,71 @@ export default function ApplicationPage({
 }) {
   const { id } = use(params);
   const { application, error } = usePollApplication(id);
+  const [master, setMaster] = useState<MasterResume | null>(null);
+  const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
+  const [activeFactId, setActiveFactId] = useState<string | null>(null);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
+  const [livePreviewTex, setLivePreviewTex] = useState<string | null>(null);
+  const [downloadBusy, setDownloadBusy] = useState<"pdf" | "tex" | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMaster()
+      .then(setMaster)
+      .catch(() => setMaster(null));
+  }, []);
+
+  const version = application?.version ?? null;
+
+  useEffect(() => {
+    if (!version) return;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await previewApplication(id, selections);
+        setLivePreviewTex(result.tex);
+      } catch {
+        // keep showing the last good tex rather than blanking the pane
+      }
+    }, PREVIEW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [id, version, selections]);
+
+  const bulletsByFactId = useMemo(
+    () => tailoredBulletsByFactId(version?.tailored ?? null),
+    [version]
+  );
+
+  const originalTextByFactId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!master) return map;
+    for (const exp of master.experiences) for (const f of exp.facts) map.set(f.id, f.text);
+    for (const proj of master.projects) for (const f of proj.facts) map.set(f.id, f.text);
+    return map;
+  }, [master]);
+
+  const renderResume = useMemo(
+    () => (master ? tailoredToRenderResume(master, version?.tailored ?? null, selections) : null),
+    [master, version, selections]
+  );
+
+  function updateSelection(factId: string, selection: BulletSelection) {
+    setSelections((prev) => ({ ...prev, [factId]: selection }));
+  }
+
+  async function download(kind: "pdf" | "tex") {
+    setDownloadBusy(kind);
+    setDownloadError(null);
+    try {
+      const updated = await finalizeApplication(id, selections);
+      const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
+      window.open(`${artifactUrl(url)}?v=${Date.now()}`, "_blank");
+    } catch (e) {
+      setDownloadError(e instanceof ApiError ? e.message : "Couldn't prepare that file.");
+    } finally {
+      setDownloadBusy(null);
+    }
+  }
 
   if (error) return <p className="text-sm text-red-700">{error}</p>;
   if (!application) return <p className="text-sm text-ink/60">Loading…</p>;
@@ -47,44 +117,90 @@ export default function ApplicationPage({
     );
   }
 
-  const { version } = application;
   if (!version) {
     return <p className="text-sm text-ink/60">Done, but no artifact was recorded.</p>;
   }
 
   const report = version.report;
+  const tex = livePreviewTex ?? version.tex;
+  const activeBullet = activeFactId ? bulletsByFactId.get(activeFactId) : undefined;
 
   return (
-    <div className="flex flex-col gap-5">
-      {report && (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
-          <MatchScoreRing score={report.match_score} />
-          <KeywordChips matched={report.matched_keywords} missing={report.missing_keywords} />
-          <GroundedPill
-            supportedCount={report.verdicts.filter((v) => v.supported).length}
-            total={report.verdicts.length}
-          />
+    <div className="flex flex-col gap-4">
+      {downloadError && <p className="text-sm text-red-700">{downloadError}</p>}
+
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
+        {report && (
+          <>
+            <MatchScoreRing score={report.match_score} />
+            <KeywordChips matched={report.matched_keywords} missing={report.missing_keywords} />
+            <GroundedPill
+              supportedCount={report.verdicts.filter((v) => v.supported).length}
+              total={report.verdicts.length}
+            />
+            <button
+              type="button"
+              onClick={() => setShowReport((v) => !v)}
+              className="text-xs font-medium text-em-deep underline hover:text-ink"
+            >
+              {showReport ? "Hide grounding report" : "Show grounding report"}
+            </button>
+          </>
+        )}
+        {!report && (
+          <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
+            0 rewrites
+          </span>
+        )}
+        <div className="ml-auto flex gap-2">
+          <Button onClick={() => download("pdf")} disabled={downloadBusy !== null}>
+            {downloadBusy === "pdf" ? "Preparing…" : "Download PDF"}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => download("tex")}
+            disabled={downloadBusy !== null}
+          >
+            {downloadBusy === "tex" ? "Preparing…" : "Download .tex"}
+          </Button>
         </div>
+      </div>
+
+      {activeFactId && activeBullet && (
+        <RewriteBar
+          key={activeFactId}
+          bullet={activeBullet}
+          selection={selections[activeFactId]}
+          originalText={originalTextByFactId.get(activeFactId) ?? activeBullet.variants[0]}
+          onChangeSelection={(sel) => updateSelection(activeFactId, sel)}
+          onClose={() => setActiveFactId(null)}
+        />
       )}
 
-      <div className="flex gap-2">
-        <Button onClick={() => window.open(artifactUrl(version.pdf_url), "_blank")}>
-          Download PDF
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => window.open(artifactUrl(version.tex_url), "_blank")}
-        >
-          Download .tex
-        </Button>
-      </div>
-
       <div className="grid h-[70vh] grid-cols-2 overflow-hidden rounded-lg border border-em-softb">
-        <PdfViewer url={artifactUrl(version.pdf_url)} />
-        <TexPane tex={version.tex} />
+        <div className="overflow-y-auto bg-[#eceadf] p-6">
+          {renderResume && (
+            <div className="mx-auto max-w-md rounded-md bg-white p-6 shadow-md">
+              <ResumePaper
+                master={renderResume}
+                name={renderResume.name}
+                contact={[renderResume.email, renderResume.phone, ...renderResume.links]
+                  .filter(Boolean)
+                  .join(" | ")}
+                compact
+                hoveredKey={hoveredKey}
+                onHoverRow={setHoveredKey}
+                onClickRow={(row) => {
+                  if (row.factId && bulletsByFactId.has(row.factId)) setActiveFactId(row.factId);
+                }}
+              />
+            </div>
+          )}
+        </div>
+        <TexPane tex={tex} hoveredFactId={hoveredKey} onHoverFactId={setHoveredKey} />
       </div>
 
-      {report && <ProvenancePanel verdicts={report.verdicts} />}
+      {showReport && report && <ProvenancePanel verdicts={report.verdicts} />}
     </div>
   );
 }
