@@ -118,41 +118,49 @@ export default function OnboardingPage() {
       </div>
       <ParseError error={error} />
       {fileError && <p className="text-sm text-red-700">{fileError}</p>}
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
-        rows={14}
-        placeholder="Paste your resume here…"
-      />
-      <div className="flex items-center justify-between">
-        <Button onClick={extractFacts} disabled={busyPaste || busyPdf || text.trim().length === 0}>
-          {busyPaste ? "Extracting…" : "Extract my facts →"}
-        </Button>
-        {text.length > MAX_TEXT_CHARS * 0.9 && (
-          <span className="font-mono text-xs text-ink/50">
-            {text.length.toLocaleString()} / {MAX_TEXT_CHARS.toLocaleString()}
-          </span>
-        )}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+        <div className="overflow-hidden rounded-xl border border-em-line bg-white">
+          <div className="border-b border-em-line bg-em-panel px-4.5 py-2.5 text-xs font-semibold tracking-wide text-em-muted-2 uppercase">
+            Paste your resume
+          </div>
+          <div className="flex flex-col gap-3 p-4.5">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_CHARS))}
+              rows={16}
+              placeholder="Paste your resume here…"
+            />
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={extractFacts}
+                disabled={busyPaste || busyPdf || text.trim().length === 0}
+              >
+                {busyPaste ? "Extracting…" : "Extract my facts →"}
+              </Button>
+              <span className="font-mono text-xs text-em-faint">
+                {text.length.toLocaleString()} chars ·{" "}
+                {(text.length === 0 ? 0 : text.split("\n").length).toLocaleString()} lines
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <label className="flex cursor-pointer items-center justify-center rounded-xl border-[1.5px] border-dashed border-em-softb bg-white px-5.5 py-3 text-[15px] font-semibold text-ink hover:border-ink">
+          {busyPdf ? "Extracting…" : "Upload a PDF instead"}
+          <input
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            disabled={busyPaste || busyPdf}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = ""; // allow re-selecting the same file after an error
+              if (file) extractFromFile(file);
+            }}
+          />
+        </label>
       </div>
-      <div className="flex items-center gap-3 text-xs text-ink/50">
-        <div className="h-px flex-1 bg-em-softb" />
-        or
-        <div className="h-px flex-1 bg-em-softb" />
-      </div>
-      <label className="flex cursor-pointer items-center justify-center rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-5.5 py-3 text-[15px] font-semibold text-ink hover:border-ink">
-        {busyPdf ? "Extracting…" : "Upload a PDF instead"}
-        <input
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          disabled={busyPaste || busyPdf}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = ""; // allow re-selecting the same file after an error
-            if (file) extractFromFile(file);
-          }}
-        />
-      </label>
     </div>
   );
 }
