@@ -30,17 +30,18 @@ const SAMPLE_RESUME = `Jordan Diaz
 jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
 
 EDUCATION
-University of Michigan — B.S. Computer Science, May 2022
+University of Michigan - B.S. Computer Science, May 2022
 Coursework: Data Structures, Operating Systems, Distributed Systems
 
 EXPERIENCE
-Backend Engineer, Nimbus Logistics — Ann Arbor, MI (Jun 2022 – Present)
+Backend Engineer (Jun 2022 - Present)
+Nimbus Logistics, Ann Arbor, MI
 - Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%.
 - Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns.
 - Wrote the on-call runbook adopted by all 6 engineers on the team.
 
 PROJECTS
-Routewise (Python, PostgreSQL, Redis)
+Routewise | Python, PostgreSQL, Redis
 - Built a route-optimization service handling 10k+ requests/day.
 - Added Redis caching that cut average response time from 800ms to 120ms.
 
