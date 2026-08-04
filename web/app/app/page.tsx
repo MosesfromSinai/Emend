@@ -27,18 +27,18 @@ Coursework: Data Structures, Operating Systems, Distributed Systems
 
 EXPERIENCE
 Backend Engineer, Nimbus Logistics — Ann Arbor, MI (Jun 2022 – Present)
-- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%
-- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns
-- Wrote the on-call runbook adopted by all 6 engineers on the team
+- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%.
+- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns.
+- Wrote the on-call runbook adopted by all 6 engineers on the team.
 
 PROJECTS
 Routewise (Python, PostgreSQL, Redis)
-- Built a route-optimization service handling 10k+ requests/day
-- Added Redis caching that cut average response time from 800ms to 120ms
+- Built a route-optimization service handling 10k+ requests/day.
+- Added Redis caching that cut average response time from 800ms to 120ms.
 
 TECHNICAL SKILLS
 Languages: Python, TypeScript, SQL
-Frameworks: FastAPI, React, SQLAlchemy`;
+Frameworks/Libraries: FastAPI, React, SQLAlchemy`;
 
 export default function OnboardingPage() {
   const router = useRouter();
