@@ -10,7 +10,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
 
 from api.config import settings
-from core.schemas import Report
+from core.schemas import Report, TailoredResume
 
 TextField = Field(min_length=1, max_length=settings.max_text_chars)
 
@@ -40,6 +40,9 @@ class VersionOut(BaseModel):
     id: uuid.UUID
     tex: str
     report: Report | None
+    # the 3-variants-per-bullet resume Export cycles through -- None in
+    # refactor mode, nothing tailored to pick between
+    tailored: TailoredResume | None
     pdf_url: str
     tex_url: str
     created_at: datetime

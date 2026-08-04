@@ -95,6 +95,7 @@ def _version_out(version: ResumeVersion) -> VersionOut:
         id=version.id,
         tex=version.tex,
         report=version.report,
+        tailored=_tailored_from(version),
         pdf_url=f"/artifacts/{version.id}.pdf",
         tex_url=f"/artifacts/{version.id}.tex",
         created_at=version.created_at,
