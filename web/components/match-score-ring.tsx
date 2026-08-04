@@ -1,5 +1,5 @@
 // conic-gradient ring matching the design component's JD-match card.
-export function MatchScoreRing({ score }: { score: number }) {
+export function MatchScoreRing({ score, dark = false }: { score: number; dark?: boolean }) {
   const pct = Math.round(score * 100);
   return (
     <div className="flex items-center gap-2">
@@ -13,7 +13,7 @@ export function MatchScoreRing({ score }: { score: number }) {
           {pct}
         </div>
       </div>
-      <span className="text-sm font-semibold text-ink">
+      <span className={`text-sm font-semibold ${dark ? "text-paper" : "text-ink"}`}>
         {pct >= 70 ? "Strong match" : pct >= 40 ? "Fair match" : "Needs work"}
       </span>
     </div>
