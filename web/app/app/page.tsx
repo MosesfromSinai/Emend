@@ -26,29 +26,6 @@ import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
 
-const SAMPLE_RESUME = `Jordan Diaz
-jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
-
-EDUCATION
-University of Michigan - Bachelor of Science in Computer Science, May 2022
-Coursework: Data Structures, Operating Systems, Distributed Systems
-
-EXPERIENCE
-Backend Engineer (Jun 2022 - Present)
-Nimbus Logistics, Ann Arbor, MI
-- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%.
-- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns.
-- Wrote the on-call runbook adopted by all 6 engineers on the team.
-
-PROJECTS
-Routewise | Python, PostgreSQL, Redis
-- Built a route-optimization service handling 10k+ requests/day.
-- Added Redis caching that cut average response time from 800ms to 120ms.
-
-TECHNICAL SKILLS
-Languages: Python, TypeScript, SQL
-Frameworks/Libraries: FastAPI, React, SQLAlchemy`;
-
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("paste");
@@ -342,24 +319,24 @@ export default function OnboardingPage() {
             </label>
           </div>
 
-          <div className="rounded-xl bg-ink px-4.5 py-4 text-paper">
-            <p className="text-xs font-semibold tracking-wide text-paper/60 uppercase">
+          <div className="rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
+            <p className="text-xs font-semibold tracking-wide text-em-accent uppercase">
               What happens next
             </p>
-            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-paper/85">
-              <li>1. We split your resume into individual facts</li>
-              <li>2. You confirm what&apos;s accurate</li>
-              <li>3. We tailor and typeset a PDF from those facts only</li>
+            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-ink">
+              <li>
+                <span className="text-em-accent">1.</span> We split your resume into individual
+                facts
+              </li>
+              <li>
+                <span className="text-em-accent">2.</span> You confirm what&apos;s accurate
+              </li>
+              <li>
+                <span className="text-em-accent">3.</span> We tailor and typeset a PDF from those
+                facts only
+              </li>
             </ul>
           </div>
-
-          <Button
-            variant="secondary"
-            onClick={() => extractFacts(SAMPLE_RESUME)}
-            disabled={busyPaste || busyPdf}
-          >
-            Use a sample resume
-          </Button>
         </div>
       </div>
     </div>
