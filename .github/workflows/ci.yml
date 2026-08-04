@@ -65,8 +65,11 @@ jobs:
             uv venv --python 3.12
             # api now calls core.extract/core.jd_text (PDF upload, job-URL
             # ingestion) -- their deps live in core/requirements.txt, same
-            # as the real Docker image installs both files together.
-            uv pip install -r api/requirements.txt -r core/requirements.txt pytest
+            # as the real Docker image installs both files together. The
+            # preview/finalize endpoints also call latex.render directly, so
+            # jinja2 (latex's only extra dep, installed inline in the
+            # Dockerfile since there's no latex/requirements.txt) comes too.
+            uv pip install -r api/requirements.txt -r core/requirements.txt jinja2 pytest
             .venv/bin/python -m pytest api/tests -q
           else
             echo "api/tests not present yet — skipping"
