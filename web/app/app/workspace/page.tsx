@@ -3,16 +3,33 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { allRowKeys } from "@/components/confirm/section-panel";
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, MAX_TEXT_CHARS, createApplication, previewJd } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import type { JdPreview } from "@/lib/types";
+import { ApiError, MAX_TEXT_CHARS, createApplication, getMaster, previewJd } from "@/lib/api";
+import type { JdPreview, MasterResume } from "@/lib/types";
 
 type Mode = "tailor" | "refactor";
+
+const SAMPLE_POSTING = `Backend Engineer — Nimbus Logistics
+
+We're looking for a Backend Engineer to join our platform team.
+
+Responsibilities:
+- Build and maintain REST APIs in Python (FastAPI or similar)
+- Design PostgreSQL schemas and write migrations
+- Containerize services with Docker and support CI/CD pipelines
+- Collaborate with frontend engineers building React interfaces
+
+Requirements:
+- 2+ years of experience with Python backend development
+- Experience with relational databases (PostgreSQL preferred)
+- Familiarity with Docker and cloud deployment
+- Strong communication and code review habits`;
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -24,6 +41,13 @@ export default function WorkspacePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [master, setMaster] = useState<MasterResume | null>(null);
+
+  useEffect(() => {
+    getMaster()
+      .then(setMaster)
+      .catch(() => setMaster(null));
+  }, []);
 
   useEffect(() => {
     const text = jdText.trim();
@@ -69,30 +93,20 @@ export default function WorkspacePage() {
     }
   }
 
+  const totalFacts = master ? allRowKeys(master).length : 0;
+
   return (
     <div className="flex flex-col gap-6">
       {error && <p className="text-sm text-red-700">{error}</p>}
 
-      <div className="inline-flex w-fit rounded-full border border-em-line bg-white p-1">
-        {(
-          [
-            { key: "tailor", label: "Tailor to a posting" },
-            { key: "refactor", label: "Just typeset it" },
-          ] as const
-        ).map((option) => (
-          <button
-            key={option.key}
-            type="button"
-            onClick={() => setMode(option.key)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
-              mode === option.key ? "bg-ink text-paper" : "text-ink/60 hover:text-ink"
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: "tailor", label: "Tailor to a posting" },
+          { value: "refactor", label: "Just typeset it" },
+        ]}
+      />
 
       {mode === "refactor" ? (
         <section className="rounded-xl border border-em-line bg-white p-5">
@@ -110,7 +124,7 @@ export default function WorkspacePage() {
           </Button>
         </section>
       ) : (
-        <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr_1fr]">
           <div className="rounded-xl border border-em-line bg-white p-5">
             <h2 className="mb-1 font-serif text-xl font-semibold">Tailor to a posting</h2>
             <p className="mb-4 text-sm text-ink/70">
@@ -126,7 +140,7 @@ export default function WorkspacePage() {
               }}
               rows={10}
               placeholder="Paste the job description here…"
-              className="mb-3"
+              className="mb-3 min-h-75"
               disabled={jdUrl.trim().length > 0}
             />
             <div className="mb-3 flex items-center gap-3 text-xs text-ink/50">
@@ -134,17 +148,29 @@ export default function WorkspacePage() {
               or
               <div className="h-px flex-1 bg-em-softb" />
             </div>
-            <Input
-              type="url"
-              value={jdUrl}
-              onChange={(e) => {
-                setJdUrl(e.target.value);
-                if (e.target.value) setJdText("");
-              }}
-              placeholder="Paste a link to the posting instead…"
-              className="mb-4"
-              disabled={jdText.trim().length > 0}
-            />
+            <div className="mb-4 flex items-center gap-3">
+              <Input
+                type="url"
+                value={jdUrl}
+                onChange={(e) => {
+                  setJdUrl(e.target.value);
+                  if (e.target.value) setJdText("");
+                }}
+                placeholder="Paste a link to the posting instead…"
+                disabled={jdText.trim().length > 0}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setJdUrl("");
+                  setJdText(SAMPLE_POSTING);
+                }}
+                className="shrink-0 text-sm font-medium text-em-accent hover:text-em-deep"
+              >
+                Use a sample posting
+              </button>
+            </div>
             <Button
               onClick={start}
               disabled={busy || (jdText.trim().length === 0 && jdUrl.trim().length === 0)}
@@ -153,23 +179,41 @@ export default function WorkspacePage() {
             </Button>
           </div>
 
-          <div className="rounded-xl bg-ink p-5 text-paper">
-            {previewBusy && !preview && (
-              <p className="text-sm text-paper/70">Scoring against your resume…</p>
-            )}
-            {!previewBusy && !preview && !previewError && (
-              <p className="text-sm text-paper/60">
-                Paste a posting to see your match score here.
-              </p>
-            )}
-            {previewError && <p className="text-sm text-red-300">{previewError}</p>}
-            {preview && (
+          <div className="rounded-xl border border-em-softb bg-white p-5">
+            {preview ? (
               <div className="flex flex-col gap-4">
-                <MatchScoreRing score={preview.score} dark />
+                <MatchScoreRing score={preview.score} />
                 <KeywordChips
                   matched={preview.matched_keywords}
                   missing={preview.missing_keywords}
                 />
+              </div>
+            ) : previewError ? (
+              <p className="text-sm text-red-700">{previewError}</p>
+            ) : previewBusy ? (
+              <p className="text-sm text-ink/60">Scoring against your resume…</p>
+            ) : (
+              <div>
+                <h3 className="font-serif text-lg font-semibold">
+                  Your match score appears here
+                </h3>
+                <p className="mt-2 text-sm text-ink/70">
+                  Paste a posting on the left and we&apos;ll score it against your
+                  confirmed facts, then show which keywords you already cover and
+                  which are genuine gaps.
+                </p>
+                <div className="mt-4 flex flex-col gap-2 border-t border-em-softb pt-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink/70">Facts we&apos;ll write from</span>
+                    <span className="font-mono font-semibold text-em-accent">
+                      {totalFacts} facts
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink/70">Invented from thin air</span>
+                    <span className="font-mono font-semibold text-em-ok-fg">none, ever</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
