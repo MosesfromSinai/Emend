@@ -105,18 +105,23 @@ production actually exercises is the deterministic parser and the mock
 tailorer. Flipping to `MOCK=0` is a Railway variable change once the key
 works and the evals in `docs/evals.md` have real numbers.
 
-**Auto-deploy is currently broken.** `.github/workflows/deploy.yml` runs
-`railway up` after every green CI run on `main`, but every run since at least
-2026-08-03 has failed with `Invalid RAILWAY_TOKEN` (`gh run list --workflow
-deploy.yml`) — the repo has no `RAILWAY_TOKEN` secret set (`gh secret list`
-returns empty). Whatever the live URL is currently serving was deployed some
-other way (Railway's own GitHub integration, or a manual `railway up`) and is
-**not guaranteed to match the latest merged `main`.** Fix: set `RAILWAY_TOKEN`
-in repo secrets (Railway dashboard → project → Settings → Tokens), then
-confirm the next merge actually redeploys.
+**Auto-deploy:** fixed 2026-08-03 (`RAILWAY_TOKEN` set, service name
+corrected in `.github/workflows/deploy.yml` to match Railway's actual
+service name `Emend`). Verified green end to end: CI → Deploy → `/health`.
 
 Operational detail — secrets map, migrations, rollback per service, rebuilding
 the Tectonic cache layer — lives in `infra/runbook.md`.
+
+## In progress — app screens rebuild (branch `import-tailor`)
+
+Full plan at `/Users/mosesavila/.claude/plans/glowing-popping-giraffe.md`
+(local machine, not in-repo). Building: 3 real grounded rewrite variants per
+tailored bullet (`TailoredBullet.text` → `.variants: list[str]`, a contract
+change — validation and judging now run per-variant), plus the four
+post-"Get started" screens (Import, Confirm facts, Tailor, Export)
+redesigned per `Emend App.dc.html` in the Claude Design project. Accounts
+stay explicitly deferred per this brief's existing scope — nothing in this
+work adds auth. Single branch, phased commits.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
