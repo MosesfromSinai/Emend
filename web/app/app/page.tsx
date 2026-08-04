@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 
 import { MasterResumeEditor } from "@/components/master-resume-editor";
 import { ParseError } from "@/components/parse-error";
@@ -18,6 +18,28 @@ import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
 
+const SAMPLE_RESUME = `Jordan Diaz
+jordan.diaz@email.com | (555) 019-2231 | linkedin.com/in/jordandiaz
+
+EDUCATION
+University of Michigan — B.S. Computer Science, May 2022
+Coursework: Data Structures, Operating Systems, Distributed Systems
+
+EXPERIENCE
+Backend Engineer, Nimbus Logistics — Ann Arbor, MI (Jun 2022 – Present)
+- Rebuilt the shipment-tracking API on FastAPI, cutting p95 latency 40%
+- Migrated 12 cron jobs to an event-driven queue, removing 3 hours/week of manual reruns
+- Wrote the on-call runbook adopted by all 6 engineers on the team
+
+PROJECTS
+Routewise (Python, PostgreSQL, Redis)
+- Built a route-optimization service handling 10k+ requests/day
+- Added Redis caching that cut average response time from 800ms to 120ms
+
+TECHNICAL SKILLS
+Languages: Python, TypeScript, SQL
+Frameworks: FastAPI, React, SQLAlchemy`;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("paste");
@@ -27,6 +49,7 @@ export default function OnboardingPage() {
   const [busyPaste, setBusyPaste] = useState(false);
   const [busyPdf, setBusyPdf] = useState(false);
   const [busySave, setBusySave] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
   const [error, setError] = useState<unknown>(null);
@@ -34,11 +57,11 @@ export default function OnboardingPage() {
   // from the api, so ParseError's api-error-shaped messaging doesn't apply
   const [fileError, setFileError] = useState<string | null>(null);
 
-  async function extractFacts() {
+  async function extractFacts(source: string) {
     setBusyPaste(true);
     setError(null);
     try {
-      setMaster(await importResume(text));
+      setMaster(await importResume(source));
       setStep("confirm");
     } catch (e) {
       setError(e);
@@ -67,6 +90,13 @@ export default function OnboardingPage() {
     } finally {
       setBusyPdf(false);
     }
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) extractFromFile(file);
   }
 
   async function confirm() {
@@ -133,7 +163,7 @@ export default function OnboardingPage() {
             />
             <div className="flex items-center justify-between">
               <Button
-                onClick={extractFacts}
+                onClick={() => extractFacts(text)}
                 disabled={busyPaste || busyPdf || text.trim().length === 0}
               >
                 {busyPaste ? "Extracting…" : "Extract my facts →"}
@@ -146,20 +176,56 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center justify-center rounded-xl border-[1.5px] border-dashed border-em-softb bg-white px-5.5 py-3 text-[15px] font-semibold text-ink hover:border-ink">
-          {busyPdf ? "Extracting…" : "Upload a PDF instead"}
-          <input
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            disabled={busyPaste || busyPdf}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = ""; // allow re-selecting the same file after an error
-              if (file) extractFromFile(file);
+        <div className="flex flex-col gap-4">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
             }}
-          />
-        </label>
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={
+              "rounded-xl border-[1.5px] border-dashed p-5 text-center transition-colors " +
+              (dragOver ? "border-ink bg-em-soft/40" : "border-em-line-2 bg-white")
+            }
+          >
+            <p className="text-sm font-semibold text-ink">Drop a PDF here</p>
+            <p className="mt-1 text-xs text-em-muted">or</p>
+            <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border-[1.5px] border-em-softb bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink">
+              {busyPdf ? "Extracting…" : "Browse for a PDF"}
+              <input
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                disabled={busyPaste || busyPdf}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = ""; // allow re-selecting the same file after an error
+                  if (file) extractFromFile(file);
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="rounded-xl bg-ink px-4.5 py-4 text-paper">
+            <p className="text-xs font-semibold tracking-wide text-paper/60 uppercase">
+              What happens next
+            </p>
+            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-paper/85">
+              <li>1. We split your resume into individual facts</li>
+              <li>2. You confirm what&apos;s accurate</li>
+              <li>3. We tailor and typeset a PDF from those facts only</li>
+            </ul>
+          </div>
+
+          <Button
+            variant="secondary"
+            onClick={() => extractFacts(SAMPLE_RESUME)}
+            disabled={busyPaste || busyPdf}
+          >
+            Use a sample resume
+          </Button>
+        </div>
       </div>
     </div>
   );
