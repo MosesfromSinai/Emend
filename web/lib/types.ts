@@ -84,6 +84,12 @@ export interface JdPreview {
 export type ApplicationMode = "refactor" | "tailor";
 export type ApplicationStatus = "queued" | "running" | "done" | "failed";
 
+// keyed by a bullet's first source_fact_id, mirrors api's BulletSelection
+export interface BulletSelection {
+  variantIdx?: number;
+  customText?: string;
+}
+
 export interface VersionOut {
   id: string;
   tex: string;
