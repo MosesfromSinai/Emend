@@ -37,6 +37,8 @@ _STOPWORDS = {
     "why", "what", "us", "here", "join", "every", "each", "any", "all",
     "it", "its", "i", "experience", "familiarity", "proficiency",
     "expertise", "background", "knowledge", "skill", "skills",
+    "strong", "contribute", "company", "polished", "united", "states",
+    "usd", "u.s", "annual",
 }
 
 # A JD flattened to one line (see core/jd_text.py) still has real sentences
@@ -68,7 +70,10 @@ _SECTION_HEADING_STARTS = {
 _LIST_LEAD_IN = re.compile(
     r"(?:experience|proficiency|expertise|background)\s+(?:with|in)|"
     r"knowledge\s+of|familiarity\s+with|skills?\s*(?:in|with)?\s*:|"
-    r"requirements?\s*:|qualifications?\s*:",
+    r"requirements?\s*:|qualifications?\s*:|preferred\s+qualifications?\s*:|"
+    r"you\s+(?:have|will|are|bring|need)\s*:|"
+    r"what\s+you(?:'ll|\s+will)\s+(?:do|need|bring)\s*:|"
+    r"nice\s+to\s+have\s*:|must\s+have\s*:",
     re.IGNORECASE,
 )
 
@@ -129,8 +134,15 @@ def _phrases_from_lead_in_lists(text: str) -> list[str]:
         # immediately followed by its own newline-separated bullet list
         # (handled by _phrases_from_short_lines instead) must not bleed
         # into whatever comes after those newlines.
-        tail = re.split(r"[.\n]", window, maxsplit=1)[0]
-        for item in _LIST_SPLIT.split(tail):
+        boundary = re.search(r"[.\n]", window)
+        tail = window[: boundary.start()] if boundary else window
+        items = _LIST_SPLIT.split(tail)
+        if boundary is None and items:
+            # the window ended at the 120-char cutoff, not a real sentence
+            # boundary -- the last split item is likely a word chopped mid-way
+            # ("...one or more langu[age]s") rather than a genuine list item
+            items = items[:-1]
+        for item in items:
             candidate = _candidate(item)
             # a genuine list item is short; anything longer without ever
             # hitting a comma/and/or is more likely a prose continuation
@@ -228,6 +240,16 @@ def extract_keywords(text: str) -> list[str]:
             seen.add(key)
             deduped.append(phrase)
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
+
+
+def drop_company_name(keywords: list[str], company: str) -> list[str]:
+    """The posting's own employer name is not a skill a candidate could ever
+    claim on a resume -- filtered out wherever the posting's own prose
+    mentions itself (e.g. "At Roblox, we're building...")."""
+    if not company:
+        return keywords
+    company_lower = company.lower()
+    return [k for k in keywords if k.lower() not in company_lower]
 
 
 def _tokens(text: str) -> set[str]:

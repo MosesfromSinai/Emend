@@ -1,4 +1,9 @@
-from core.matching import MAX_PHRASE_WORDS, extract_keywords, keyword_match
+from core.matching import (
+    MAX_PHRASE_WORDS,
+    drop_company_name,
+    extract_keywords,
+    keyword_match,
+)
 from core.schemas import JDExtract
 
 
@@ -129,6 +134,38 @@ def test_extract_keywords_ignores_pronoun_led_fragments():
     keywords = extract_keywords(text)
     assert "You Have" not in keywords
     assert "You Will" not in keywords
+
+
+def test_extract_keywords_pulls_from_you_have_and_you_will_lead_ins():
+    # common ATS bold-lead-in pattern in place of real "Requirements"/
+    # "Responsibilities" headings -- must read as a real list, not get
+    # discarded as a pronoun-led sentence fragment
+    text = (
+        "You Have: 3+ years with Kubernetes and Terraform. "
+        "You Will: Build reliable, scalable infrastructure."
+    )
+    keywords = extract_keywords(text)
+    assert "Kubernetes" in keywords
+    assert "Terraform" in keywords
+
+
+def test_extract_keywords_does_not_truncate_mid_word_at_the_window_cutoff():
+    # a lead-in list with no sentence-ending punctuation for well over 120
+    # chars must not leave a chopped-off partial word as a "keyword"
+    text = "Requirements: " + (
+        "several years of experience in one or more widely used programming languages"
+    )
+    keywords = extract_keywords(text)
+    assert not any(k.endswith("langu") or k == "langu" for k in keywords)
+
+
+def test_extract_keywords_drops_the_employers_own_name():
+    keywords = drop_company_name(
+        extract_keywords("At Roblox, we build immersive experiences with Lua."),
+        "Roblox",
+    )
+    assert "Roblox" not in keywords
+    assert "Lua" in keywords
 
 
 def test_extract_keywords_does_not_shred_a_whole_flattened_page():
