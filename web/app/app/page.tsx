@@ -331,7 +331,7 @@ export default function OnboardingPage() {
                 facts
               </li>
               <li>
-                <span className="text-em-accent">2.</span> You confirm what&apos;s accurate
+                <span className="text-em-accent">2.</span>{" "}You confirm what&apos;s accurate
               </li>
               <li>
                 <span className="text-em-accent">3.</span> We tailor and typeset a PDF from those
