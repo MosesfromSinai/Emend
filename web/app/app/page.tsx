@@ -321,7 +321,7 @@ export default function OnboardingPage() {
             </label>
           </div>
 
-          <div className="flex-1 rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
+          <div className="rounded-xl border border-em-softb bg-em-soft px-4.5 py-4">
             <p className="text-xs font-semibold tracking-wide text-em-accent uppercase">
               What happens next
             </p>
