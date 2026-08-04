@@ -11,11 +11,37 @@ from html import unescape
 
 from selectolax.parser import HTMLParser
 
-STRIP_TAGS = ("script", "style", "nav", "header", "footer", "aside")
+STRIP_TAGS = ("script", "style", "nav", "header", "footer", "aside", "a", "button")
 MAIN_SELECTORS = ("main", "article", "[role=main]")
 MAX_JD_CHARS = 20_000
 
 _TAG_RE = re.compile(r"<[^>]+>")
+
+# A "Related Jobs" / "Similar Openings" carousel is real content of the page
+# but not of the posting -- on custom-templated careers sites it commonly
+# sits as a sibling <section> inside <main> (confirmed against a real
+# Roblox posting), so STRIP_TAGS' semantic-tag list alone doesn't catch it.
+# Matched by heading text and removed by walking up to the nearest <section>
+# ancestor, never past it -- this must never reach up to <main>/<body>.
+_CHROME_HEADINGS = re.compile(
+    r"^(?:related|similar|other|more)\s+(?:jobs?|openings?|positions?|roles?|opportunities)|"
+    r"^jobs?\s+you\s+might\s+like|^share\s+this\s+job|"
+    r"^explore\s+(?:more|other)\s+(?:jobs?|roles?|opportunities)|"
+    r"^recently\s+viewed",
+    re.IGNORECASE,
+)
+
+
+def _strip_chrome_sections(tree: HTMLParser) -> None:
+    for heading in tree.css("h1, h2, h3, h4, h5, h6"):
+        text = heading.text(strip=True)
+        if not text or not _CHROME_HEADINGS.search(text):
+            continue
+        node = heading.parent
+        while node is not None and node.tag not in ("section", "article", "body", "html"):
+            node = node.parent
+        if node is not None and node.tag in ("section", "article"):
+            node.decompose()
 
 
 def _strip_tags(fragment: str) -> str:
@@ -47,6 +73,7 @@ def html_to_jd_text(html: str) -> str:
     """Extract the densest readable block of a job-posting page as plain text."""
     tree = HTMLParser(html)
     json_ld_text = _job_posting_from_json_ld(tree)
+    _strip_chrome_sections(tree)
 
     for tag in STRIP_TAGS:
         for node in tree.css(tag):
