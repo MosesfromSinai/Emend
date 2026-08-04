@@ -62,3 +62,23 @@ def test_preview_rejects_both_sources(client, master):
         "/jd/preview", json={"jd_text": "a posting", "jd_url": "https://example.com/job"}
     )
     assert r.status_code == 422
+
+
+def test_preview_fails_clearly_on_unreadable_url(client, master, monkeypatch):
+    # a JS-rendered posting page whose fetch "succeeds" but yields no real
+    # text (e.g. a React SPA shell with no JobPosting JSON-LD) must not
+    # silently score as a fake 0% match
+    confirm_master(client, master)
+
+    class FakeResponse:
+        text = "<html><body><noscript>Enable JavaScript to view this page.</noscript></body></html>"
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
+
+    r = client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
+
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "jd_unscoreable"

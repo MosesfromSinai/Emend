@@ -29,7 +29,10 @@ def preview_jd(body: JdPreviewRequest, session: CurrentSession, db: DB) -> JdPre
     else:
         jd_text = body.jd_text
 
-    jd = core_bridge.parse_jd(jd_text)
+    try:
+        jd = core_bridge.parse_jd(jd_text)
+    except ValueError as e:
+        raise ApiError(422, "jd_unscoreable", str(e)) from e
     score, matched, missing = core_bridge.keyword_match(jd, master)
     return JdPreviewResponse(
         score=score,
