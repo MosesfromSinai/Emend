@@ -50,28 +50,41 @@ export default function WorkspacePage() {
   }, []);
 
   useEffect(() => {
+    // A slow request for a stale/partial input (e.g. a URL fetch mid-paste)
+    // can resolve after a faster later one -- `stale` blocks it from
+    // clobbering the current result once a newer effect run has started.
+    let stale = false;
     const text = jdText.trim();
     const url = jdUrl.trim();
     const timer = setTimeout(async () => {
       if (mode !== "tailor" || (!text && !url)) {
-        setPreview(null);
-        setPreviewError(null);
-        setPreviewBusy(false);
+        if (!stale) {
+          setPreview(null);
+          setPreviewError(null);
+          setPreviewBusy(false);
+        }
         return;
       }
-      setPreviewBusy(true);
+      if (!stale) setPreviewBusy(true);
       try {
         const result = await previewJd(text ? { jdText: text } : { jdUrl: url });
-        setPreview(result);
-        setPreviewError(null);
+        if (!stale) {
+          setPreview(result);
+          setPreviewError(null);
+        }
       } catch (e) {
-        setPreview(null);
-        setPreviewError(e instanceof ApiError ? e.message : "Couldn't score that posting.");
+        if (!stale) {
+          setPreview(null);
+          setPreviewError(e instanceof ApiError ? e.message : "Couldn't score that posting.");
+        }
       } finally {
-        setPreviewBusy(false);
+        if (!stale) setPreviewBusy(false);
       }
     }, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
   }, [mode, jdText, jdUrl]);
 
   async function start() {
