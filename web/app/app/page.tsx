@@ -23,7 +23,10 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>("paste");
   const [text, setText] = useState("");
   const [master, setMaster] = useState<MasterResume | null>(null);
-  const [busy, setBusy] = useState(false);
+  // split so uploading a PDF doesn't gray out the paste side and vice versa
+  const [busyPaste, setBusyPaste] = useState(false);
+  const [busyPdf, setBusyPdf] = useState(false);
+  const [busySave, setBusySave] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
   const [error, setError] = useState<unknown>(null);
@@ -32,7 +35,7 @@ export default function OnboardingPage() {
   const [fileError, setFileError] = useState<string | null>(null);
 
   async function extractFacts() {
-    setBusy(true);
+    setBusyPaste(true);
     setError(null);
     try {
       setMaster(await importResume(text));
@@ -40,7 +43,7 @@ export default function OnboardingPage() {
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusyPaste(false);
     }
   }
 
@@ -54,7 +57,7 @@ export default function OnboardingPage() {
       setFileError("That PDF is too large — please upload one under 5 MB.");
       return;
     }
-    setBusy(true);
+    setBusyPdf(true);
     setError(null);
     try {
       setMaster(await importResumeFromFile(file));
@@ -62,13 +65,13 @@ export default function OnboardingPage() {
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusyPdf(false);
     }
   }
 
   async function confirm() {
     if (!master) return;
-    setBusy(true);
+    setBusySave(true);
     setError(null);
     try {
       await saveMaster(master);
@@ -76,7 +79,7 @@ export default function OnboardingPage() {
     } catch (e) {
       setError(e);
     } finally {
-      setBusy(false);
+      setBusySave(false);
     }
   }
 
@@ -93,10 +96,10 @@ export default function OnboardingPage() {
         <ParseError error={error} />
         <MasterResumeEditor master={master} onChange={setMaster} />
         <div className="flex items-center gap-3">
-          <Button onClick={confirm} disabled={busy}>
-            {busy ? "Saving…" : "Looks right — confirm"}
+          <Button onClick={confirm} disabled={busySave}>
+            {busySave ? "Saving…" : "Looks right — confirm"}
           </Button>
-          <Button variant="ghost" onClick={() => setStep("paste")} disabled={busy}>
+          <Button variant="ghost" onClick={() => setStep("paste")} disabled={busySave}>
             Back
           </Button>
         </div>
@@ -122,8 +125,8 @@ export default function OnboardingPage() {
         placeholder="Paste your resume here…"
       />
       <div className="flex items-center justify-between">
-        <Button onClick={extractFacts} disabled={busy || text.trim().length === 0}>
-          {busy ? "Extracting…" : "Extract my facts →"}
+        <Button onClick={extractFacts} disabled={busyPaste || busyPdf || text.trim().length === 0}>
+          {busyPaste ? "Extracting…" : "Extract my facts →"}
         </Button>
         {text.length > MAX_TEXT_CHARS * 0.9 && (
           <span className="font-mono text-xs text-ink/50">
@@ -137,12 +140,12 @@ export default function OnboardingPage() {
         <div className="h-px flex-1 bg-em-softb" />
       </div>
       <label className="flex cursor-pointer items-center justify-center rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-5.5 py-3 text-[15px] font-semibold text-ink hover:border-ink">
-        {busy ? "Extracting…" : "Upload a PDF instead"}
+        {busyPdf ? "Extracting…" : "Upload a PDF instead"}
         <input
           type="file"
           accept="application/pdf"
           className="hidden"
-          disabled={busy}
+          disabled={busyPaste || busyPdf}
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = ""; // allow re-selecting the same file after an error
