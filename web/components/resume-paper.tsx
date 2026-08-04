@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { FactTag } from "@/components/ui/fact-tag";
 import type { MasterResume } from "@/lib/types";
 
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
@@ -100,6 +101,7 @@ export function ResumePaper({
   onClickRow,
   activeSectionHeading,
   compact = false,
+  confirmedKeys,
   renderRowExtra,
 }: {
   master: MasterResume;
@@ -110,6 +112,7 @@ export function ResumePaper({
   onClickRow?: (row: PaperRow) => void;
   activeSectionHeading?: string;
   compact?: boolean;
+  confirmedKeys?: Set<string>;
   renderRowExtra?: (row: PaperRow) => ReactNode;
 }) {
   const sections = masterToSections(master);
@@ -194,6 +197,7 @@ export function ResumePaper({
                   className={cn(
                     "-mx-1.75 flex items-baseline gap-1.75 rounded-md px-1.75 py-0.5 transition-colors",
                     onClickRow && "cursor-pointer",
+                    confirmedKeys?.has(row.key) && "bg-em-ok-wash",
                     hoveredKey === row.key && "bg-em-soft"
                   )}
                 >
@@ -208,6 +212,7 @@ export function ResumePaper({
                   >
                     {row.text}
                   </span>
+                  {row.factId && !compact && <FactTag id={row.factId} className="shrink-0" />}
                   {renderRowExtra?.(row)}
                 </div>
               ))}
