@@ -68,6 +68,30 @@ def test_prefers_json_ld_job_posting_over_js_only_shell():
     assert "enable JavaScript" not in text
 
 
+def test_strips_related_jobs_carousel_and_nav_controls():
+    # confirmed against a real careers page: a "Related Jobs" widget lives
+    # as a sibling <section> inside <main>, not inside <footer>/<aside>, so
+    # STRIP_TAGS' semantic-tag list alone doesn't catch it -- nor do nav
+    # links/buttons like "Back to search results" and "Apply Now"
+    html = """
+    <body><main>
+    <a href="/search">Back to search results</a>
+    <button>Apply Now</button>
+    <p>Backend Engineer role. Python and SQL required.</p>
+    <section>
+      <h2>Related Jobs</h2>
+      <h3>Software Engineer, Data Engineering</h3>
+      <p>San Mateo, CA, United States</p>
+    </section>
+    </main></body>
+    """
+    text = html_to_jd_text(html)
+
+    assert "Backend Engineer role." in text
+    for noise in ("Back to search results", "Apply Now", "Related Jobs", "Data Engineering"):
+        assert noise not in text
+
+
 def test_ignores_json_ld_when_dom_text_is_already_longer():
     html = """
     <body>
