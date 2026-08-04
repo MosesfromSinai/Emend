@@ -17,7 +17,6 @@ from core.schemas import (
     BulletVerdict,
     MasterResume,
     Report,
-    TailoredBullet,
     TailoredResume,
     TailoredSection,
 )
@@ -183,24 +182,44 @@ def judge_bullets(
     *,
     client: Any | None = None,
 ) -> list[BulletVerdict]:
-    """Run the LLM judge over every tailored bullet (stage two of the guard).
+    """Run the LLM judge over every variant, one verdict returned per bullet.
 
     Assumes `validate_grounding` has already passed, so every cited id exists
-    on its own section. Bullets are judged concurrently, bounded so a long
-    resume can't fan out into an unbounded burst of API calls; `.map` returns
-    results in submission order regardless of completion order, so verdicts
-    still line up with the bullets they judge.
+    on its own section. All 3 variants are judged -- the user can pick any of
+    them on Export, so a bullet is only `supported` if every variant is.
+    Judged concurrently, bounded so a long resume can't fan out into an
+    unbounded burst of API calls; `.map` preserves submission order, so the
+    flat variant-verdict list can be chunked back into groups of 3.
     """
     facts_by_ref = {**_experience_facts(master), **_project_facts(master)}
-    jobs = [
-        (bullet, facts_by_ref[section.ref_id], client)
+    bullets = [
+        (bullet, facts_by_ref[section.ref_id])
         for section in [*tailored.experiences, *tailored.projects]
         for bullet in section.bullets
     ]
-    if not jobs:
+    if not bullets:
         return []
+    jobs = [
+        (variant, bullet.source_fact_ids, facts, client)
+        for bullet, facts in bullets
+        for variant in bullet.variants
+    ]
     with ThreadPoolExecutor(max_workers=min(JUDGE_MAX_WORKERS, len(jobs))) as pool:
-        return list(pool.map(_judge_one, jobs))
+        variant_verdicts = list(pool.map(_judge_one, jobs))
+
+    verdicts = []
+    for i, (bullet, _facts) in enumerate(bullets):
+        group = variant_verdicts[i * 3 : i * 3 + 3]
+        failing = next((v for v in group if not v.supported), None)
+        verdicts.append(
+            BulletVerdict(
+                bullet=bullet.variants[0],
+                supported=failing is None,
+                reason=failing.reason if failing else group[0].reason,
+                source_fact_ids=bullet.source_fact_ids,
+            )
+        )
+    return verdicts
 
 
 def validate(
