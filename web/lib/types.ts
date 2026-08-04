@@ -42,6 +42,23 @@ export interface MasterResume {
   skills: Record<string, string[]>;
 }
 
+export interface TailoredBullet {
+  variants: string[];
+  source_fact_ids: string[];
+}
+
+export interface TailoredSection {
+  ref_id: string;
+  bullets: TailoredBullet[];
+}
+
+export interface TailoredResume {
+  summary_of_strategy: string;
+  experiences: TailoredSection[];
+  projects: TailoredSection[];
+  skills: Record<string, string[]>;
+}
+
 export interface BulletVerdict {
   bullet: string;
   supported: boolean;
@@ -71,6 +88,7 @@ export interface VersionOut {
   id: string;
   tex: string;
   report: Report | null;
+  tailored: TailoredResume | null;
   pdf_url: string;
   tex_url: string;
   created_at: string;
