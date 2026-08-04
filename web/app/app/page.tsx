@@ -3,8 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, type DragEvent } from "react";
 
-import { MasterResumeEditor } from "@/components/master-resume-editor";
+import {
+  ConfirmPill,
+  SectionPanel,
+  SECTION_HEADINGS,
+  allRowKeys,
+  type SectionHeading,
+} from "@/components/confirm/section-panel";
 import { ParseError } from "@/components/parse-error";
+import { ResumePaper, masterToSections } from "@/components/resume-paper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,6 +21,7 @@ import {
   importResumeFromFile,
   saveMaster,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { MasterResume } from "@/lib/types";
 
 type Step = "paste" | "confirm";
@@ -50,6 +58,12 @@ export default function OnboardingPage() {
   const [busyPdf, setBusyPdf] = useState(false);
   const [busySave, setBusySave] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  // which facts a person has checked off -- ephemeral, never persisted; the
+  // only real save is the PUT /resumes/master on confirm
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionHeading>("EDUCATION");
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
   const [error, setError] = useState<unknown>(null);
@@ -113,9 +127,45 @@ export default function OnboardingPage() {
     }
   }
 
+  function toggleConfirm(key: string) {
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function confirmMany(keys: string[], value: boolean) {
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      for (const key of keys) {
+        if (value) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  function sectionForKey(key: string): SectionHeading | null {
+    if (!master) return null;
+    for (const section of masterToSections(master)) {
+      if (section.blocks.some((b) => b.rows.some((r) => r.key === key))) {
+        return section.heading as SectionHeading;
+      }
+    }
+    return null;
+  }
+
   if (step === "confirm" && master) {
+    const contact = [master.email, master.phone, ...master.links].filter(Boolean).join(" | ");
+    const allKeys = allRowKeys(master);
+    const doneCount = allKeys.filter((k) => confirmed.has(k)).length;
+    const allConfirmed = allKeys.length > 0 && doneCount === allKeys.length;
+    const remaining = allKeys.length - doneCount;
+
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 pb-28">
         <div>
           <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
           <p className="mt-1 text-sm text-ink/70">
@@ -124,15 +174,99 @@ export default function OnboardingPage() {
           </p>
         </div>
         <ParseError error={error} />
-        <MasterResumeEditor master={master} onChange={setMaster} />
-        <div className="flex items-center gap-3">
-          <Button onClick={confirm} disabled={busySave}>
-            {busySave ? "Saving…" : "Looks right — confirm"}
-          </Button>
-          <Button variant="ghost" onClick={() => setStep("paste")} disabled={busySave}>
-            Back
-          </Button>
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+          <div className="sticky top-20 h-[calc(100vh-110px)] self-start overflow-y-auto rounded-xl border border-em-line bg-white p-6">
+            <ResumePaper
+              master={master}
+              name={master.name}
+              contact={contact}
+              hoveredKey={hoveredKey}
+              onHoverRow={setHoveredKey}
+              onClickRow={(row) => {
+                const section = sectionForKey(row.key);
+                if (section) setActiveSection(section);
+              }}
+              activeSectionHeading={activeSection}
+              confirmedKeys={confirmed}
+              renderRowExtra={(row) => (
+                <span onClick={(e) => e.stopPropagation()}>
+                  <ConfirmPill
+                    confirmed={confirmed.has(row.key)}
+                    onToggle={() => toggleConfirm(row.key)}
+                  />
+                </span>
+              )}
+            />
+          </div>
+
+          <SectionPanel
+            master={master}
+            onChange={setMaster}
+            confirmed={confirmed}
+            onToggleConfirm={toggleConfirm}
+            onConfirmMany={confirmMany}
+            activeSection={activeSection}
+            onChangeSection={setActiveSection}
+            hoveredKey={hoveredKey}
+            onHoverRow={setHoveredKey}
+          />
         </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-em-line bg-paper/95 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-310 items-center gap-4 px-7 py-3">
+            <div className="flex-1">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-em-line-2">
+                <div
+                  className="h-full bg-em-bright transition-all"
+                  style={{ width: `${allKeys.length ? (doneCount / allKeys.length) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-em-muted">
+                {doneCount} of {allKeys.length} facts confirmed
+              </p>
+            </div>
+            <Button variant="ghost" onClick={() => setStep("paste")} disabled={busySave}>
+              Back
+            </Button>
+            <button
+              type="button"
+              onClick={() => (allConfirmed ? confirm() : setShowLeaveModal(true))}
+              disabled={busySave}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-medium text-paper transition-colors disabled:cursor-not-allowed",
+                allConfirmed ? "bg-ink hover:bg-em-deep" : "bg-ink/35 hover:bg-ink/45"
+              )}
+            >
+              {busySave ? "Saving…" : "Continue to tailoring →"}
+            </button>
+          </div>
+        </div>
+
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+              <h2 className="font-serif text-lg font-semibold">Keep reviewing?</h2>
+              <p className="mt-2 text-sm text-ink/70">
+                {remaining} fact{remaining === 1 ? "" : "s"} still need confirmation. You can
+                confirm the rest later, but nothing unconfirmed gets a second look.
+              </p>
+              <div className="mt-4 flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setShowLeaveModal(false)}>
+                  Keep reviewing
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    confirm();
+                  }}
+                >
+                  Continue anyway
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
