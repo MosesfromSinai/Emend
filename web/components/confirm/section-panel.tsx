@@ -132,6 +132,7 @@ type SectionProps = {
   onChange: (master: MasterResume) => void;
   confirmed: Set<string>;
   onToggleConfirm: (key: string) => void;
+  onConfirmMany: (keys: string[], value: boolean) => void;
   hoveredKey: string | null;
   onHoverRow: (key: string | null) => void;
   filter: Filter;
@@ -181,11 +182,33 @@ function EducationPanel({
   onChange,
   confirmed,
   onToggleConfirm,
+  onConfirmMany,
   hoveredKey,
   onHoverRow,
   filter,
 }: SectionProps) {
   const update = (next: Education[]) => onChange({ ...master, education: next });
+
+  // Coursework confirmation is keyed by position (`edu-${index}-coursework`),
+  // so removing an entry shifts every later entry into a key that may
+  // already be marked confirmed for entirely different coursework. Clear
+  // every existing coursework key, then re-confirm only the ones that still
+  // apply at their post-removal index.
+  const removeEducation = (index: number) => {
+    const oldConfirmedKeys: string[] = [];
+    const newConfirmedKeys: string[] = [];
+    master.education.forEach((_, i) => {
+      const oldKey = `edu-${i}-coursework`;
+      if (!confirmed.has(oldKey)) return;
+      oldConfirmedKeys.push(oldKey);
+      if (i === index) return; // the removed entry's confirmation doesn't carry over
+      const newIndex = i < index ? i : i - 1;
+      newConfirmedKeys.push(`edu-${newIndex}-coursework`);
+    });
+    onConfirmMany(oldConfirmedKeys, false);
+    onConfirmMany(newConfirmedKeys, true);
+    update(master.education.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -255,7 +278,7 @@ function EducationPanel({
             </RowChrome>
             <button
               type="button"
-              onClick={() => update(master.education.filter((_, i) => i !== index))}
+              onClick={() => removeEducation(index)}
               className="mt-2 text-sm text-ink/40 hover:text-ink"
             >
               Remove
@@ -285,6 +308,7 @@ function ExperiencePanel({
   onChange,
   confirmed,
   onToggleConfirm,
+  onConfirmMany,
   hoveredKey,
   onHoverRow,
   filter,
@@ -367,6 +391,7 @@ function ExperiencePanel({
                     const next = [...master.experiences];
                     next[index] = { ...exp, facts: exp.facts.filter((f) => f.id !== fact.id) };
                     update(next);
+                    onConfirmMany([fact.id], false);
                   }}
                 />
               ))}
@@ -414,6 +439,7 @@ function ProjectPanel({
   onChange,
   confirmed,
   onToggleConfirm,
+  onConfirmMany,
   hoveredKey,
   onHoverRow,
   filter,
@@ -481,6 +507,7 @@ function ProjectPanel({
                       facts: project.facts.filter((f) => f.id !== fact.id),
                     };
                     update(next);
+                    onConfirmMany([fact.id], false);
                   }}
                 />
               ))}
@@ -648,6 +675,7 @@ export function SectionPanel({
     onChange,
     confirmed,
     onToggleConfirm,
+    onConfirmMany,
     hoveredKey,
     onHoverRow,
     filter,
