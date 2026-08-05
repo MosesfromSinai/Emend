@@ -43,6 +43,11 @@ class VersionOut(BaseModel):
     # the 3-variants-per-bullet resume Export cycles through -- None in
     # refactor mode, nothing tailored to pick between
     tailored: TailoredResume | None
+    # fact id -> text snapshot of the master resume as it was when this
+    # version was generated -- "view my original" must read from here, not
+    # from a fresh GET of the (possibly since-edited) master resume, or a
+    # stale/reused fact id can show an AI rewrite as the user's own wording
+    source_facts: dict[str, str] = {}
     pdf_url: str
     tex_url: str
     created_at: datetime

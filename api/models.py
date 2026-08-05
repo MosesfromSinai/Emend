@@ -83,6 +83,13 @@ class ResumeVersion(Base):
     # tex -- needed so Export can re-render with a different variant picked.
     # None in refactor mode, where there's nothing to cycle between.
     tailored: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True)
+    # fact id -> text snapshot of the master resume *at generation time*.
+    # Fact ids are assigned positionally (core.pipeline._assign_ids) and are
+    # not stable across master-resume edits, so "view my original" must read
+    # from this frozen snapshot rather than the live master -- otherwise a
+    # later edit can make a stale fact id collide with a different fact (or
+    # vanish), silently showing an AI rewrite as the user's original wording.
+    source_facts: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

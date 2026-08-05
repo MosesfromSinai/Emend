@@ -21,6 +21,22 @@ from core.validation import GroundingError
 logger = logging.getLogger("emend.jobs")
 
 
+def _fact_text_map(master: MasterResume) -> dict[str, str]:
+    """Flat fact id -> text snapshot of a master resume. Fact ids are
+    assigned positionally (core.pipeline._assign_ids) and are only stable
+    for the master resume they were assigned from, so this must be captured
+    at generation time and frozen onto the version -- never recomputed from
+    whatever the master resume looks like later."""
+    text_by_id: dict[str, str] = {}
+    for exp in master.experiences:
+        for fact in exp.facts:
+            text_by_id[fact.id] = fact.text
+    for proj in master.projects:
+        for fact in proj.facts:
+            text_by_id[fact.id] = fact.text
+    return text_by_id
+
+
 def run_application(application_id: uuid.UUID) -> None:
     session = db.SessionLocal()
     try:
@@ -114,6 +130,9 @@ def _run(session, app_row: Application) -> None:
         # the 3-variants-per-bullet resume, so Export can re-render with a
         # different one picked -- None in refactor mode, nothing to cycle
         tailored=tailored.model_dump() if tailored is not None else None,
+        # frozen snapshot of the master facts this version was generated
+        # from -- see _fact_text_map for why this can't be recomputed later
+        source_facts=_fact_text_map(master),
     )
     session.add(version)
     session.flush()  # assign version.id before naming the artifact
