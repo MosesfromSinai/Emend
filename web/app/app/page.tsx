@@ -148,12 +148,11 @@ export default function OnboardingPage() {
     const remaining = allKeys.length - doneCount;
 
     return (
-      // Height fixed once here (header + <main>'s padding + the fixed bottom
-      // bar) instead of each panel guessing its own -- the heading above and
-      // the grid below both size from this single number, so the two panels
-      // can never disagree about how much room is actually left, which was
-      // the root cause of the double-scroll/cut-off-at-top bug.
-      <div className="flex h-[calc(100vh-168px)] flex-col gap-4">
+      // h-full, not a vh-minus-N guess: <main> in layout.tsx is now the
+      // sole scroll container with a definite flex-1 height, so this only
+      // has to reserve room for its own fixed bottom bar (pb-18) -- no
+      // header/padding pixel math to get wrong here at all.
+      <div className="flex h-full flex-col gap-4 pb-18">
         <div className="shrink-0">
           <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
           <p className="mt-1 text-sm text-ink/70">
