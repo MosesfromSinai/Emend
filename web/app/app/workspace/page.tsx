@@ -12,6 +12,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, MAX_TEXT_CHARS, createApplication, getMaster, previewJd } from "@/lib/api";
 import type { JdPreview, MasterResume } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type Mode = "tailor" | "refactor";
 
@@ -192,14 +193,31 @@ export default function WorkspacePage() {
             </Button>
           </div>
 
-          <div className="rounded-xl border border-em-softb bg-white p-5">
+          <div
+            className={cn(
+              "rounded-xl border border-em-softb p-5",
+              preview || previewError || previewBusy ? "bg-white" : "bg-em-soft"
+            )}
+          >
             {preview ? (
               <div className="flex flex-col gap-4">
-                <MatchScoreRing score={preview.score} />
-                <KeywordChips
-                  matched={preview.matched_keywords}
-                  missing={preview.missing_keywords}
+                <p className="text-sm text-ink/70">
+                  We compare a posting against your confirmed facts, then reorder
+                  and reframe what you already have. Nothing new gets added.
+                </p>
+                <MatchScoreRing
+                  score={preview.score}
+                  missingCount={preview.missing_keywords.length}
                 />
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
+                    Asked for in the posting · green means you already have it
+                  </p>
+                  <KeywordChips
+                    matched={preview.matched_keywords}
+                    missing={preview.missing_keywords}
+                  />
+                </div>
               </div>
             ) : previewError ? (
               <p className="text-sm text-red-700">{previewError}</p>
@@ -227,6 +245,16 @@ export default function WorkspacePage() {
                     <span className="font-mono font-semibold text-em-ok-fg">none, ever</span>
                   </div>
                 </div>
+                <ul className="mt-4 flex flex-col gap-1.5 border-t border-em-softb pt-4 text-sm text-ink/70">
+                  <li>
+                    Reorders your skills so the ones they asked for read first
+                    (a UI-heavy posting floats TypeScript, React, and Tailwind
+                    ahead of C++ and Bash).
+                  </li>
+                  <li>Leads each role with the bullets closest to the posting.</li>
+                  <li>Matches their vocabulary for work you actually did.</li>
+                  <li>Leaves every gap as a gap.</li>
+                </ul>
               </div>
             )}
           </div>
