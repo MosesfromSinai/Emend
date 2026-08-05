@@ -54,7 +54,9 @@ export default function OnboardingPage() {
     setError(null);
     try {
       setMaster(await importResume(source));
+      setConfirmed(new Set());
       setStep("confirm");
+      router.replace("/app?step=confirm");
     } catch (e) {
       setError(e);
     } finally {
@@ -76,7 +78,9 @@ export default function OnboardingPage() {
     setError(null);
     try {
       setMaster(await importResumeFromFile(file));
+      setConfirmed(new Set());
       setStep("confirm");
+      router.replace("/app?step=confirm");
     } catch (e) {
       setError(e);
     } finally {
@@ -87,6 +91,7 @@ export default function OnboardingPage() {
   function handleDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragOver(false);
+    if (busyPaste || busyPdf) return;
     const file = e.dataTransfer.files?.[0];
     if (file) extractFromFile(file);
   }
@@ -204,7 +209,14 @@ export default function OnboardingPage() {
                 {doneCount} of {allKeys.length} facts confirmed
               </p>
             </div>
-            <Button variant="ghost" onClick={() => setStep("paste")} disabled={busySave}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setStep("paste");
+                router.replace("/app");
+              }}
+              disabled={busySave}
+            >
               Back
             </Button>
             <button
@@ -294,12 +306,13 @@ export default function OnboardingPage() {
           <div
             onDragOver={(e) => {
               e.preventDefault();
-              setDragOver(true);
+              if (!(busyPaste || busyPdf)) setDragOver(true);
             }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             className={cn(
               "flex flex-1 flex-col items-center justify-center rounded-xl border-[1.5px] border-dashed p-5 text-center transition-colors",
+              (busyPaste || busyPdf) && "pointer-events-none opacity-60",
               dragOver ? "border-ink bg-em-soft/40" : "border-em-line-2 bg-white"
             )}
           >

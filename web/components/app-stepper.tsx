@@ -5,7 +5,11 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const STEPS = [
   { key: "import", label: "Import", href: "/app" },
-  { key: "confirm", label: "Confirm facts", href: "/app?step=confirm" },
+  // Not directly linkable -- there's no reload path for an in-progress
+  // confirm session, only a fresh extraction (extractFacts/extractFromFile
+  // in web/app/app/page.tsx) can reach this step. Reflects the active step
+  // via currentStepKey below once the page pushes ?step=confirm itself.
+  { key: "confirm", label: "Confirm facts", href: null },
   { key: "tailor", label: "Tailor", href: "/app/workspace" },
   { key: "export", label: "Export", href: null },
 ] as const;
