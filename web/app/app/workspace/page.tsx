@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -41,6 +42,9 @@ export default function WorkspacePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // true only for the no_master_resume case, so we can point the user back
+  // to /app instead of just naming the problem
+  const [needsMasterResume, setNeedsMasterResume] = useState(false);
 
   useEffect(() => {
     // A slow request for a stale/partial input (e.g. a URL fetch mid-paste)
@@ -83,6 +87,7 @@ export default function WorkspacePage() {
   async function start() {
     setBusy(true);
     setError(null);
+    setNeedsMasterResume(false);
     try {
       const { id } = await createApplication(
         mode === "tailor" ? { jdText: jdText || undefined, jdUrl: jdUrl || undefined } : undefined
@@ -90,7 +95,11 @@ export default function WorkspacePage() {
       router.push(`/app/applications/${id}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "no_master_resume") {
-        router.push("/app");
+        // Stay put -- navigating away here would silently drop whatever JD
+        // text/URL the user just typed, with no explanation. Tell them what
+        // happened and let them opt into leaving via the link below.
+        setNeedsMasterResume(true);
+        setError("You need to confirm a master resume before tailoring.");
         return;
       }
       setError(e instanceof ApiError ? e.message : "Something went wrong.");
@@ -101,7 +110,19 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-700">
+          {error}
+          {needsMasterResume && (
+            <>
+              {" "}
+              <Link href="/app" className="font-medium underline hover:text-red-900">
+                Go confirm your resume →
+              </Link>
+            </>
+          )}
+        </p>
+      )}
 
       <SegmentedControl
         value={mode}
