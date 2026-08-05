@@ -175,6 +175,39 @@ whichever facts the posting cared about, and project order fully reversed
 passing cleanly both times (no invented numbers, no swapped technologies).
 Dynamic per-posting reordering is real, not just prompted-for.
 
+**Full-site button/logic audit, 2026-08-05.** Fixed: a `_drop_redundant_superstrings`
+substring bug that silently dropped real keywords sharing letters with a
+longer one ("Java" vs "JavaScript", "C" vs "C++"); `/applications/{id}/preview`
+and `/finalize` now return a clean 409 instead of an unhandled 500 when a
+master-resume edit makes a tailored version's cited fact ids stale; each
+`ResumeVersion` now freezes a `source_facts` snapshot at generation time
+(migration `0004`) so "view my original" on Export can never show an AI
+rewrite mislabeled as the user's own wording; the Confirm screen now
+auto-advances to the next section once it's fully confirmed, and clears
+stale "confirmed" state when a fact/education entry is removed (was letting
+a newly-added blank fact, or a reordered entry, show as pre-confirmed); the
+header stepper now syncs with the actual confirm-step state instead of
+always showing "Import" active during confirmation; PDF/.tex downloads no
+longer silently fail to popup blockers (the `window.open` call now happens
+inside the click handler's activation window, before the `await`).
+
+**Still open, needs a product decision (not auto-fixed):**
+- Footer's "Privacy policy"/"Terms of service" links are dead (`href="#"`) —
+  no such pages exist yet. Decide: build stub pages, or remove the links
+  until real ones exist.
+- `PUT /resumes/master`'s check-then-insert for a brand-new session has a
+  race (two near-simultaneous first-saves can raise an unhandled
+  `IntegrityError`) — fixable with an upsert, but touches a write path worth
+  a second look before changing.
+- The global request body-size cap is smaller than `core/extract.py`'s own
+  5MB PDF limit, so a legitimate ~3MB+ PDF can get rejected earlier than
+  documented. Decide which limit is authoritative.
+- `fetch_jd_text` has no SSRF protection on user-supplied `jd_url` (no
+  block on internal/private network targets) — a security-policy decision,
+  not a pure bug fix.
+- A similar first-visit cookie race exists in session creation (low
+  likelihood, low severity) — noted, not yet addressed.
+
 ## Contracts — change only via a `contract` PR approved by all four
 
 `core/schemas.py` (Pydantic v2, exact field names; fact ids are `<ENTITY>-<NN>` strings):
