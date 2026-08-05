@@ -96,6 +96,7 @@ def _version_out(version: ResumeVersion) -> VersionOut:
         tex=version.tex,
         report=version.report,
         tailored=_tailored_from(version),
+        source_facts=version.source_facts or {},
         pdf_url=f"/artifacts/{version.id}.pdf",
         tex_url=f"/artifacts/{version.id}.tex",
         created_at=version.created_at,
@@ -139,7 +140,10 @@ def preview_application(
     version = _latest_version(app_row)
     master = _load_master(session, db)
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
-    tex = core_bridge.render_tex(master, _tailored_from(version), selections)
+    try:
+        tex = core_bridge.render_tex(master, _tailored_from(version), selections)
+    except ValueError as e:
+        raise ApiError(409, "stale_tailored_resume", str(e)) from e
     return RenderPreviewResponse(tex=tex)
 
 
@@ -152,9 +156,12 @@ def finalize_application(
     version = _latest_version(app_row)
     master = _load_master(session, db)
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
-    tex, pdf_path, log = core_bridge.render_and_compile(
-        master, _tailored_from(version), selections
-    )
+    try:
+        tex, pdf_path, log = core_bridge.render_and_compile(
+            master, _tailored_from(version), selections
+        )
+    except ValueError as e:
+        raise ApiError(409, "stale_tailored_resume", str(e)) from e
     if not pdf_path:
         raise ApiError(422, "compile_failed", log)
     version.tex = tex

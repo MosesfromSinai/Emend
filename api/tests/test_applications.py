@@ -396,6 +396,73 @@ def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     assert r.json()["tex"] == FAKE_TEX
 
 
+def test_preview_fails_cleanly_when_master_no_longer_matches(
+    client, master, pipeline, monkeypatch
+):
+    # editing the master resume after a tailored version cites its section
+    # ids must surface a clean 409, not an unhandled ValueError -> 500
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(variants=["a", "a", "a"], source_fact_ids=["ACME-01"])
+                    ],
+                )
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    edited = master.model_copy(update={"experiences": []})
+    confirm_master(client, edited)
+
+    r = client.post(f"/applications/{app_id}/preview", json={})
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "stale_tailored_resume"
+
+    def raising_render_and_compile(master_, tailored, selections=None):
+        raise ValueError("tailored experience section references unknown id: ACME")
+
+    monkeypatch.setattr(core_bridge, "render_and_compile", raising_render_and_compile)
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "stale_tailored_resume"
+
+
+def test_version_freezes_source_facts_at_generation_time(client, master, pipeline):
+    """A version's fact-id -> text snapshot must survive later edits to the
+    master resume, since tailored bullets cite fact ids assigned positionally
+    at generation time (core.pipeline._assign_ids) that are not stable across
+    edits. Regression for the "view my original" mislabeling bug: without a
+    frozen snapshot, re-importing/reordering the master can make an old
+    version's cited fact id resolve to the wrong fact (or none), so the UI
+    falls back to showing an AI rewrite labeled as the user's original wording.
+    """
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+    version = client.get(f"/applications/{app_id}").json()["version"]
+
+    # the tailor stub cites ACME-01, whose original text is captured here
+    assert version["source_facts"]["ACME-01"] == "Built an internal reporting dashboard"
+
+    # the user goes back and edits their master resume: ACME-01 now points at
+    # completely different wording (e.g. facts were reordered on re-import)
+    edited = master.model_copy(deep=True)
+    edited.experiences[0].facts[0].text = "Refactored the payments pipeline"
+    assert client.put("/resumes/master", json=edited.model_dump()).status_code == 200
+
+    # the old application's snapshot must be untouched by that edit
+    refetched = client.get(f"/applications/{app_id}").json()["version"]
+    assert refetched["source_facts"]["ACME-01"] == "Built an internal reporting dashboard"
+
+
 def test_jd_text_capped(client, master, pipeline):
     from api.config import settings
 
