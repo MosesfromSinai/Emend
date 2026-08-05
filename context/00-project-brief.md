@@ -165,11 +165,15 @@ instead of its own, so a skill could be silently relabeled into the wrong
 category; and `render_tex` fell back to the full master skills block
 whenever a tailor call correctly decided no skill category was relevant
 (`{}` is falsy in Python) instead of honoring that as a real decision.
-**Known gap, not yet resolved:** the ANTHROPIC_API_KEY in the local dev
-shell is rejected by Anthropic's API (401), so live empirical verification
-that real-mode tailoring actually reorders content differently per posting
-is blocked pending a working key — prompt-level instructions and unit
-tests are in place, but this hasn't been confirmed against the real model.
+**Confirmed against the real model, 2026-08-04.** Once a working
+ANTHROPIC_API_KEY was in place, one shared master resume was tailored
+against a frontend-heavy JD and a backend-heavy JD. Skill category order
+flipped (`Frontend` first vs. `Backend` first, the other pushed to last),
+bullet order within each experience/project section reordered to lead with
+whichever facts the posting cared about, and project order fully reversed
+(React-dashboard-then-Django-API vs. the opposite) — with grounding
+passing cleanly both times (no invented numbers, no swapped technologies).
+Dynamic per-posting reordering is real, not just prompted-for.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
