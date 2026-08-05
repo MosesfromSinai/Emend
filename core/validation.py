@@ -24,9 +24,34 @@ from core.trace import record_call
 
 NUMBER_PATTERN = re.compile(r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?%?\+?(?![A-Za-z0-9])")
 WORD_PATTERN = re.compile(r"[a-z0-9]+")
+UNIT_SUFFIX_PATTERN = re.compile(r"\s*([A-Za-z]+)")
 MIN_FACT_WORD_OVERLAP = 0.25
 STOP_WORDS = {"a", "an", "and", "by", "for", "in", "of", "on", "the", "to", "with"}
 JUDGE_MAX_WORKERS = 4
+
+# Canonical unit for every spelling/abbreviation we recognize immediately
+# after a number, so a same-digit magnitude/unit swap (e.g. "20ms" ->
+# "20 seconds") produces a distinct token instead of silently matching on
+# the shared digits.
+UNIT_ALIASES = {
+    "ms": "ms", "millisecond": "ms", "milliseconds": "ms",
+    "s": "s", "sec": "s", "secs": "s", "second": "s", "seconds": "s",
+    "min": "min", "mins": "min", "minute": "min", "minutes": "min",
+    "hr": "hr", "hrs": "hr", "hour": "hr", "hours": "hr",
+    "day": "day", "days": "day",
+    "week": "week", "weeks": "week",
+    "month": "month", "months": "month",
+    "year": "year", "years": "year",
+    "k": "k", "thousand": "k",
+    "m": "m", "million": "m",
+    "b": "b", "billion": "b",
+    "x": "x", "times": "x",
+    "kb": "kb", "mb": "mb", "gb": "gb", "tb": "tb",
+    "byte": "byte", "bytes": "byte",
+    "percent": "%", "pct": "%",
+    "usd": "usd", "dollar": "usd", "dollars": "usd",
+    "cent": "cent", "cents": "cent",
+}
 
 
 class GroundingError(ValueError):
@@ -42,8 +67,23 @@ def _numeric_tokens(text: str) -> set[str]:
     "10", or "27" derived from "62" and "89") are not direct paraphrases —
     they're new claims a deterministic pass can catch, even though "the
     arithmetic is correct" is a judgment only the LLM judge could make.
+
+    Each number is also paired with a recognized unit word immediately
+    following it (e.g. "20 seconds" -> also add "20s"), when present. Bare
+    digits alone would make "20ms" and "20 seconds" indistinguishable,
+    letting a unit/scale swap slip through on shared digits alone -- the
+    tagged token makes the swap produce a token neither side shares.
     """
-    return set(NUMBER_PATTERN.findall(text))
+    tokens: set[str] = set()
+    for match in NUMBER_PATTERN.finditer(text):
+        number = match.group()
+        tokens.add(number)
+        suffix_match = UNIT_SUFFIX_PATTERN.match(text, match.end())
+        if suffix_match:
+            unit = UNIT_ALIASES.get(suffix_match.group(1).lower())
+            if unit:
+                tokens.add(f"{number}{unit}")
+    return tokens
 
 
 def _content_words(text: str) -> set[str]:
@@ -92,10 +132,10 @@ def _validate_sections(
 def _validate_skills(
     master_skills: dict[str, list[str]], tailored_skills: dict[str, list[str]]
 ) -> None:
-    allowed = {skill.lower() for skills in master_skills.values() for skill in skills}
     for category, skills in tailored_skills.items():
         if category not in master_skills:
             raise GroundingError(f"unknown skill category: {category}")
+        allowed = {skill.lower() for skill in master_skills[category]}
         unsupported = {skill for skill in skills if skill.lower() not in allowed}
         if unsupported:
             raise GroundingError(f"unsupported skills: {sorted(unsupported)}")

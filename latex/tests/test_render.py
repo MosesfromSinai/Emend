@@ -63,10 +63,14 @@ def test_empty_sections_are_omitted(master):
     assert r"\section{Experience}" in tex
 
 
-def test_empty_tailored_skills_falls_back_to_master(master, tailored):
+def test_empty_tailored_skills_omits_section_not_master_fallback(master, tailored):
+    # An empty tailored.skills is a deliberate "nothing relevant" decision
+    # (core/prompts.py instructs filtering out categories with no overlap),
+    # not a missing value -- it must never fall back to master's skills.
     tailored.skills = {}
     tex = render_tex(master, tailored)
-    assert r"\textbf{Languages}{: Ada, Assembly, Python}" in tex
+    assert r"\section{Technical Skills}" not in tex
+    assert "Ada, Assembly, Python" not in tex
 
 
 def test_refactor_bullets_carry_own_fact_id_receipts(master):

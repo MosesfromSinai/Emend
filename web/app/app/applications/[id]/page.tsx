@@ -151,7 +151,10 @@ export default function ApplicationPage({
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
         {report ? (
           <>
-            <MatchScoreRing score={report.match_score} />
+            <MatchScoreRing
+              score={report.match_score}
+              missingCount={report.missing_keywords.length}
+            />
             <KeywordChips matched={report.matched_keywords} missing={report.missing_keywords} />
             <GroundedPill
               supportedCount={report.verdicts.filter((v) => v.supported).length}

@@ -3,15 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { allRowKeys } from "@/components/confirm/section-panel";
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, MAX_TEXT_CHARS, createApplication, getMaster, previewJd } from "@/lib/api";
-import type { JdPreview, MasterResume } from "@/lib/types";
+import { ApiError, MAX_TEXT_CHARS, createApplication, previewJd } from "@/lib/api";
+import type { JdPreview } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type Mode = "tailor" | "refactor";
 
@@ -41,13 +41,6 @@ export default function WorkspacePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [master, setMaster] = useState<MasterResume | null>(null);
-
-  useEffect(() => {
-    getMaster()
-      .then(setMaster)
-      .catch(() => setMaster(null));
-  }, []);
 
   useEffect(() => {
     // A slow request for a stale/partial input (e.g. a URL fetch mid-paste)
@@ -105,8 +98,6 @@ export default function WorkspacePage() {
       setBusy(false);
     }
   }
-
-  const totalFacts = master ? allRowKeys(master).length : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -179,7 +170,7 @@ export default function WorkspacePage() {
                   setJdUrl("");
                   setJdText(SAMPLE_POSTING);
                 }}
-                className="shrink-0 text-sm font-medium text-em-accent hover:text-em-deep"
+                className="shrink-0 rounded text-sm font-medium text-em-accent hover:text-em-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-em-accent"
               >
                 Use a sample posting
               </button>
@@ -192,14 +183,32 @@ export default function WorkspacePage() {
             </Button>
           </div>
 
-          <div className="rounded-xl border border-em-softb bg-white p-5">
+          <div
+            aria-live="polite"
+            className={cn(
+              "rounded-xl border border-em-softb p-5",
+              preview || previewError || previewBusy ? "bg-white" : "bg-em-soft"
+            )}
+          >
             {preview ? (
               <div className="flex flex-col gap-4">
-                <MatchScoreRing score={preview.score} />
-                <KeywordChips
-                  matched={preview.matched_keywords}
-                  missing={preview.missing_keywords}
+                <p className="text-sm text-ink/70">
+                  We compare a posting against your confirmed facts, then reorder
+                  and reframe what you already have. Nothing new gets added.
+                </p>
+                <MatchScoreRing
+                  score={preview.score}
+                  missingCount={preview.missing_keywords.length}
                 />
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
+                    Asked for in the posting · green means you already have it
+                  </p>
+                  <KeywordChips
+                    matched={preview.matched_keywords}
+                    missing={preview.missing_keywords}
+                  />
+                </div>
               </div>
             ) : previewError ? (
               <p className="text-sm text-red-700">{previewError}</p>
@@ -208,25 +217,23 @@ export default function WorkspacePage() {
             ) : (
               <div>
                 <h3 className="font-serif text-lg font-semibold">
-                  Your match score appears here
+                  Your compatibility score appears here
                 </h3>
                 <p className="mt-2 text-sm text-ink/70">
-                  Paste a posting on the left and we&apos;ll score it against your
-                  confirmed facts, then show which keywords you already cover and
-                  which are genuine gaps.
+                  Paste a posting on the left. We pull out what it asks for,
+                  measure it against your confirmed facts, and show you the
+                  overlap. The score is a read on fit, not a target to write
+                  toward.
                 </p>
-                <div className="mt-4 flex flex-col gap-2 border-t border-em-softb pt-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink/70">Facts we&apos;ll write from</span>
-                    <span className="font-mono font-semibold text-em-accent">
-                      {totalFacts} facts
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink/70">Invented from thin air</span>
-                    <span className="font-mono font-semibold text-em-ok-fg">none, ever</span>
-                  </div>
-                </div>
+                <p className="mt-4 border-t border-em-softb pt-4 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
+                  What tailoring actually changes
+                </p>
+                <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/70">
+                  <li>Reorders your skills so the ones they asked for read first</li>
+                  <li>Leads each role with the bullets closest to the posting</li>
+                  <li>Matches their vocabulary for work you actually did</li>
+                  <li>Leaves every gap as a gap</li>
+                </ul>
               </div>
             )}
           </div>

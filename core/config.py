@@ -6,7 +6,7 @@ importing `core.pipeline` (which imports the validators).
 
 import os
 
-MOCK_FALSE_VALUES = {"0", "false", "no"}
+MOCK_FALSE_VALUES = {"0", "false", "no", "off", "n", "disabled"}
 
 
 def mock_enabled() -> bool:

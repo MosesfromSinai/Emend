@@ -143,7 +143,7 @@ def render_tex(
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
         experiences = _tailored_rows(tailored.experiences, exp_by_id, "experience", selections)
         projects = _tailored_rows(tailored.projects, proj_by_id, "project", selections)
-        skills = tailored.skills or master.skills
+        skills = tailored.skills
 
     links = [
         {

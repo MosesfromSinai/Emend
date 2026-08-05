@@ -39,7 +39,12 @@ from core.schemas import (
     TailoredSection,
 )
 from core.trace import record_call
-from core.validation import build_grounding_report, judge_bullets, validate_grounding
+from core.validation import (
+    GroundingError,
+    build_grounding_report,
+    judge_bullets,
+    validate_grounding,
+)
 
 MIN_JD_CHARS = 40
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -857,6 +862,26 @@ def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     return _real_structure_resume(unwrap_text(text), client=client)
 
 
+_BARE_URL_PATTERN = re.compile(r"^(?:https?://|www\.)\S+$", re.IGNORECASE)
+
+
+def _reject_if_bare_url(text: str) -> None:
+    """A link pasted into the JD-text field (instead of the dedicated link
+    field, which fetches it) is not itself job posting text -- it's just a
+    URL, whole and alone, as the entire submitted string. extract_keywords
+    still finds a few literal path fragments in it ("stripe", "jobs"), so it
+    doesn't hit `_reject_if_no_keywords_found` either -- keyword_match goes
+    on to "score" the resume against those fragments and comes back with a
+    real but meaningless near-0%, indistinguishable from a normal bad
+    match. Anchored on the whole trimmed string, not `search`, so a real JD
+    that merely mentions "see www.acme.com for more" is never affected."""
+    if _BARE_URL_PATTERN.match(text.strip()):
+        raise ValueError(
+            "this looks like a link, not job posting text -- paste it into "
+            "the link field instead so it can be fetched"
+        )
+
+
 def _reject_if_too_short_to_score(text: str) -> None:
     """A near-empty JD -- an unrendered SPA shell after a failed extraction,
     a login/block page, or a field left almost blank -- can't produce a
@@ -867,6 +892,22 @@ def _reject_if_too_short_to_score(text: str) -> None:
             "job posting text is too short to score -- this usually means "
             "the posting couldn't be read from its page; try pasting the "
             "job description text directly instead of a link"
+        )
+
+
+def _reject_if_no_keywords_found(keywords: list[str]) -> None:
+    """Text long enough to pass `_reject_if_too_short_to_score` can still
+    yield zero literal keywords -- a link pasted into the text box instead
+    of fetched, or a genuine posting written as flattened prose with no
+    bullet lines, lead-in lists, or capitalized product names for
+    extract_keywords's heuristics to latch onto. Either way, `keyword_match`
+    would silently divide 0/0 into a fake 0% match instead of surfacing why
+    -- same failure mode `_reject_if_too_short_to_score` exists to avoid."""
+    if not keywords:
+        raise ValueError(
+            "couldn't find any concrete requirements to score in this "
+            "posting text -- if you pasted a link, try pasting the job "
+            "description text directly instead"
         )
 
 
@@ -882,6 +923,7 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     """
     _check_input_size(text, "job posting text")
     if not mock_enabled():
+        _reject_if_bare_url(text)
         _reject_if_too_short_to_score(text)
         result = structured_call_with_usage(
             FAST_MODEL,
@@ -901,6 +943,7 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
         keywords = drop_known_names(
             extract_keywords(text), result.value.company, result.value.title
         )
+        _reject_if_no_keywords_found(keywords)
         return result.value.model_copy(update={"keywords": keywords})
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()
@@ -909,14 +952,17 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     except json.JSONDecodeError as exc:
         if is_json_hint or json_text != text:
             raise ValueError("MOCK parse_jd found invalid JDExtract JSON") from exc
+        _reject_if_bare_url(text)
         _reject_if_too_short_to_score(text)
+        keywords = extract_keywords(text)
+        _reject_if_no_keywords_found(keywords)
         return JDExtract(
             company="",
             title="",
             hard_skills=[],
             soft_requirements=[],
             responsibilities=[text.strip()] if text.strip() else [],
-            keywords=extract_keywords(text),
+            keywords=keywords,
         )
     return JDExtract(**data)
 
@@ -991,33 +1037,82 @@ def _tailor_user_prompt(jd: JDExtract) -> str:
     )
 
 
+MAX_TAILOR_ATTEMPTS = 3
+
+
+def _tailor_repair_prompt(jd: JDExtract, error: GroundingError) -> str:
+    return (
+        f"{_tailor_user_prompt(jd)}\n\nYour previous attempt was rejected by "
+        f"grounding validation: {error}. Fix that specific issue and "
+        "resubmit -- every word and number must be a direct paraphrase of a "
+        "cited fact, never inferred or computed."
+    )
+
+
 def real_tailor_resume(
-    master: MasterResume, jd: JDExtract, *, client: Any | None = None
+    master: MasterResume,
+    jd: JDExtract,
+    *,
+    client: Any | None = None,
+    enforce_judge: bool = False,
 ) -> TailoredResume:
     """Tailor with Sonnet, then reject anything the validator will not accept.
 
     The master resume rides in the cached system block so repeated tailoring
-    for one session reuses the prefix.
+    for one session reuses the prefix. A grounding failure (an invented
+    number, an unsupported skill) is retried with the specific violation fed
+    back to the model -- one overreaching bullet in an otherwise-good draft
+    is usually a one-line fix once the model is told exactly what wasn't
+    grounded, which beats failing the whole job over it.
+
+    `enforce_judge=True` (the public `tailor()` entrypoint) additionally
+    runs the stage-2 LLM judge on a grounding-clean draft before returning
+    it: a bullet the judge marks unsupported (e.g. it overstates scope or
+    scale even though it reuses only cited words and numbers) must never
+    reach the caller, since callers compile and export whatever this
+    returns without re-checking it themselves. `real_tailor_result` below
+    deliberately calls this with `enforce_judge=False` -- it judges the
+    returned draft itself to *report* the verdicts (e.g. for evals), rather
+    than enforcing them.
     """
-    result = structured_call_with_usage(
-        TAILOR_MODEL,
-        cacheable_system(TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"),
-        _tailor_user_prompt(jd),
-        TailoredResume,
-        client=client,
+    system = cacheable_system(
+        TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"
     )
-    record_call(
-        label="tailor",
-        model=TAILOR_MODEL,
-        input_tokens=result.input_tokens,
-        output_tokens=result.output_tokens,
-        cache_read_input_tokens=result.cache_read_input_tokens,
-        cache_creation_input_tokens=result.cache_creation_input_tokens,
-    )
-    tailored = result.value
-    # Unvalidated output must never leave the pipeline.
-    validate_grounding(master, tailored)
-    return tailored
+    user_prompt = _tailor_user_prompt(jd)
+    last_error: GroundingError | None = None
+    for _attempt in range(MAX_TAILOR_ATTEMPTS):
+        result = structured_call_with_usage(
+            TAILOR_MODEL, system, user_prompt, TailoredResume, client=client
+        )
+        record_call(
+            label="tailor",
+            model=TAILOR_MODEL,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            cache_read_input_tokens=result.cache_read_input_tokens,
+            cache_creation_input_tokens=result.cache_creation_input_tokens,
+        )
+        tailored = result.value
+        try:
+            # Unvalidated output must never leave the pipeline.
+            validate_grounding(master, tailored)
+        except GroundingError as exc:
+            last_error = exc
+            user_prompt = _tailor_repair_prompt(jd, exc)
+            continue
+        if enforce_judge:
+            verdicts = judge_bullets(master, tailored, client=client)
+            unsupported = next((v for v in verdicts if not v.supported), None)
+            if unsupported is not None:
+                # Same retry-with-feedback treatment as a stage-1 rejection --
+                # a judge-flagged bullet shouldn't fail the whole job either.
+                last_error = GroundingError(
+                    f"judge rejected bullet {unsupported.bullet!r}: {unsupported.reason}"
+                )
+                user_prompt = _tailor_repair_prompt(jd, last_error)
+                continue
+        return tailored
+    raise last_error
 
 
 def real_tailor_result(
@@ -1036,8 +1131,15 @@ def real_tailor_result(
 def tailor(
     master: MasterResume, jd: JDExtract, *, client: Any | None = None
 ) -> TailoredResume:
-    """Public tailor entrypoint; MOCK mode preserves confirmed facts."""
+    """Public tailor entrypoint; MOCK mode preserves confirmed facts.
+
+    In real mode, both validation stages gate what this returns: stage-1
+    deterministic grounding and stage-2 the LLM judge (`enforce_judge=True`)
+    -- a bullet either stage rejects can never reach a caller, which is what
+    makes the "nothing invented" guarantee hold regardless of whether the
+    caller separately inspects a validation report.
+    """
     if mock_enabled():
         tailored, _report = mock_tailor_resume(master, jd)
         return tailored
-    return real_tailor_resume(master, jd, client=client)
+    return real_tailor_resume(master, jd, client=client, enforce_judge=True)

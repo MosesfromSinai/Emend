@@ -45,7 +45,7 @@ Application autofill / browser extension · accounts & auth · **live** per-sent
 
 ### Design ↔ scope reconciliations (team decisions)
 
-1. **"Paste a link to the posting" field (hero + step 01) — SUPERSEDED, now in scope, but not yet implemented.** Contract decision: job-URL ingestion will ship. The field will accept a URL; the api will fetch it server-side (`httpx`), extract JD text (`core.jd_text.html_to_jd_text`, already written and tested in isolation), and run the normal `parse_jd` pipeline on the result. `POST /applications` will take `jd_text` or `jd_url` (never both — 422 if both are set); `GET /applications/{id}` will report back `jd_source_url` when the tailor ran from a URL. **As of this writing, none of the api/db/web wiring exists** — no `jd_url` field on `CreateApplicationRequest`, no `applications.jd_url` column, no `httpx` fetch call anywhere in `api/`, and the landing hero still renders the field disabled ("Coming soon", see `web/components/landing/hero-mock.tsx`). Same for PDF upload: `core/extract.py::pdf_to_text` exists and is tested, but `POST /resumes/import` only accepts `{text}` JSON — no multipart path in `api/routers/resumes.py`. The field and the multipart path stay unbuilt until this lands.
+1. **"Paste a link to the posting" field (hero + step 01) — SHIPPED.** Job-URL ingestion is fully wired: `CreateApplicationRequest` and the `applications` table both carry `jd_url` alongside `jd_text` (never both — 422 if both are set), `api/jobs.py` fetches it server-side with a browser-like `User-Agent` (bot-protection CDNs in front of major careers sites silently drop requests without one), extracts JD text via `core.jd_text.html_to_jd_text` (also reads schema.org `JobPosting` JSON-LD for JS-rendered SPA shells, and strips "Related Jobs"-style carousels and nav/CTA links that otherwise leak into the extracted text), and runs the normal `parse_jd` pipeline. `GET /applications/{id}` reports `jd_source_url`. Same for PDF upload: `POST /resumes/import` accepts both a JSON `{text}` body and a multipart `file=<pdf>` upload. The Tailor screen's live score card (`POST /jd/preview`) takes the same `jd_text`/`jd_url` pair for a cheap parse+match-only preview.
 2. **Dark CTA band "Create a free account…":** accounts are deferred — reword the CTA (v1 is anonymous sessions); account copy returns when auth ships.
 3. **Interactive sentence demo:** on the landing page it is **scripted** (three pre-written grounded rewrites per sentence, ported from the design component; the click-to-edit behavior is real but client-side only). Live per-sentence cycling in the workspace is post-MVP.
 4. **Testimonials:** ship only real quotes. Invented testimonials would violate the product's own no-invented-claims brand — drop or replace the section until real users exist.
@@ -127,6 +127,49 @@ bidirectional paper↔panel hover sync, Tailor has a live debounced
 by `/applications/{id}/preview` (live) and `/finalize` (on download).
 Accounts stay explicitly deferred per this brief's existing scope — nothing
 in this work adds auth. Single branch, phased commits, not yet PR'd/merged.
+
+**Tailor pipeline hardening — same branch, 2026-08-04.** Keyword extraction
+was reworked from a curated skills dictionary to literal, deterministic
+phrase extraction straight from the posting's own text
+(`core/matching.py::extract_keywords`) — never an LLM, never a fixed list,
+so coverage isn't capped by whatever someone thought to add ahead of time.
+JD-URL fetch reliability was hardened (browser User-Agent, JSON-LD
+extraction for JS-only postings, page-chrome stripping — see reconciliation
+#1 above) and a link pasted into the text field, or a posting text with no
+extractable keywords, now fails with a clear 422 instead of silently
+scoring a fake 0%. `real_tailor_resume` retries a grounding rejection with
+the specific violation fed back to the model instead of failing the whole
+job over one invented number. The Tailor screen's score card is reframed
+end to end as a compatibility read (`{pct}% · Strongly compatible` /
+`{pct}% · Compatible, with N real gap(s)`, never "Needs work"), and
+`TAILOR_SYSTEM` now says explicitly that reordering skills and bullets per
+posting is the point of tailoring, not optional polish, plus a self-check
+step and an explicit "the posting is ordering-only, never a content
+source" instruction.
+
+**Audit round, same day.** An adversarial code review turned up and fixed six
+real grounding/matching bugs: `tailor()`'s public entrypoint wasn't actually
+gated on the stage-2 LLM judge (a judge-rejected bullet could still ship in
+the exported PDF — now `enforce_judge=True` in real mode, with the same
+retry-with-feedback treatment as a stage-1 rejection); `drop_known_names`
+dropped a real skill whenever it was merely a substring of the job title
+(e.g. "Java" inside "Java Developer" — now exact-match against the title
+and its comma/dash-separated segments only); `_numeric_tokens` was blind to
+a same-digit unit/magnitude swap ("20ms" restated as "20 seconds" passed
+grounding cleanly — now unit-tagged); `keyword_match` matched a multi-word
+keyword via a whole-resume bag of words, so "Team Leadership Experience"
+could match three unrelated facts that each contributed one word (now
+matched per-unit — one fact/skill/project span at a time); `_validate_skills`
+checked a tailored skill against a flattened set across every category
+instead of its own, so a skill could be silently relabeled into the wrong
+category; and `render_tex` fell back to the full master skills block
+whenever a tailor call correctly decided no skill category was relevant
+(`{}` is falsy in Python) instead of honoring that as a real decision.
+**Known gap, not yet resolved:** the ANTHROPIC_API_KEY in the local dev
+shell is rejected by Anthropic's API (401), so live empirical verification
+that real-mode tailoring actually reorders content differently per posting
+is blocked pending a working key — prompt-level instructions and unit
+tests are in place, but this hasn't been confirmed against the real model.
 
 ## Contracts — change only via a `contract` PR approved by all four
 

@@ -338,6 +338,27 @@ def test_parse_jd_rejects_near_empty_text():
         parse_jd("enable JavaScript")
 
 
+def test_parse_jd_rejects_a_bare_link_pasted_as_text():
+    # pasted into the JD-text field instead of the dedicated link field --
+    # extract_keywords finds a few literal path fragments in the URL, so
+    # this doesn't hit the empty-keywords check either without its own guard
+    with pytest.raises(ValueError, match="looks like a link"):
+        parse_jd("https://careers.roblox.com/jobs/8080438?gh_jid=8080438")
+
+
+def test_parse_jd_rejects_text_with_no_extractable_keywords():
+    # long enough to pass the near-empty-text check, but flat prose with no
+    # bullets, lead-in lists, or capitalized terms -- must fail loudly
+    # instead of silently scoring a fake 0% match
+    text = (
+        "We want someone who can work well with others and communicate "
+        "clearly with the team about what we are doing here for everyone "
+        "involved in this effort every single day of the week."
+    )
+    with pytest.raises(ValueError, match="couldn't find any concrete requirements"):
+        parse_jd(text)
+
+
 def test_mock_refactor_preserves_fact_text_and_ids(sample_master):
     master = sample_master
     refactored = mock_refactor_resume(master)
