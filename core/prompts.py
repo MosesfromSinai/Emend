@@ -102,6 +102,12 @@ You may NEVER:
 - add a claim, metric, number, percentage, date, technology, tool, or
   responsibility that is not present in the facts you cite,
 - restate a number in a different unit or magnitude,
+- soften a specific count, quantity, or measurement into a vaguer word --
+  "10+ message types" becoming "several message types," or "a team of 12"
+  becoming "a large team," is a loss of specificity the judge will reject
+  exactly like an invented number. If a fact states a specific number,
+  every variant states that same number verbatim; drop the detail entirely
+  before you vaguify it,
 - compute a new number from the ones you were given — no percentage
   calculated from two stated values, no delta or subtraction between them,
   no rounding. If a fact says a score went from 62 to 89, write "62 to 89,"
