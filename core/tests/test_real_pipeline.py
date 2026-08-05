@@ -143,6 +143,26 @@ def test_parse_jd_uses_fast_model():
     assert client.calls[0]["model"] == FAST_MODEL
 
 
+def test_parse_jd_rejects_a_bare_link_before_calling_the_model():
+    client = FakeClient(_jd().model_dump())
+
+    with pytest.raises(ValueError, match="looks like a link"):
+        parse_jd("https://careers.roblox.com/jobs/8080438?gh_jid=8080438", client=client)
+    assert client.calls == []
+
+
+def test_parse_jd_rejects_text_with_no_extractable_keywords():
+    client = FakeClient(_jd().model_dump())
+    text = (
+        "We want someone who can work well with others and communicate "
+        "clearly with the team about what we are doing here for everyone "
+        "involved in this effort every single day of the week."
+    )
+
+    with pytest.raises(ValueError, match="couldn't find any concrete requirements"):
+        parse_jd(text, client=client)
+
+
 def test_tailor_uses_sonnet_and_caches_the_master_resume(sample_master):
     master = sample_master
     client = FakeClient(_tailored_payload(master))

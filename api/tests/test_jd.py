@@ -80,6 +80,20 @@ def test_url_fetch_sends_a_browser_user_agent(client, master, monkeypatch):
     assert "Mozilla" in seen_headers.get("User-Agent", "")
 
 
+def test_preview_rejects_a_link_pasted_into_the_text_field(client, master):
+    # the Tailor screen's link field fetches a URL; pasting the same URL
+    # into the text field instead must fail clearly, not silently score 0%
+    confirm_master(client, master)
+
+    r = client.post(
+        "/jd/preview",
+        json={"jd_text": "https://careers.roblox.com/jobs/8080438?gh_jid=8080438"},
+    )
+
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "jd_unscoreable"
+
+
 def test_preview_rejects_both_sources(client, master):
     confirm_master(client, master)
     r = client.post(

@@ -862,6 +862,26 @@ def structure_resume(text: str, *, client: Any | None = None) -> MasterResume:
     return _real_structure_resume(unwrap_text(text), client=client)
 
 
+_BARE_URL_PATTERN = re.compile(r"^(?:https?://|www\.)\S+$", re.IGNORECASE)
+
+
+def _reject_if_bare_url(text: str) -> None:
+    """A link pasted into the JD-text field (instead of the dedicated link
+    field, which fetches it) is not itself job posting text -- it's just a
+    URL, whole and alone, as the entire submitted string. extract_keywords
+    still finds a few literal path fragments in it ("stripe", "jobs"), so it
+    doesn't hit `_reject_if_no_keywords_found` either -- keyword_match goes
+    on to "score" the resume against those fragments and comes back with a
+    real but meaningless near-0%, indistinguishable from a normal bad
+    match. Anchored on the whole trimmed string, not `search`, so a real JD
+    that merely mentions "see www.acme.com for more" is never affected."""
+    if _BARE_URL_PATTERN.match(text.strip()):
+        raise ValueError(
+            "this looks like a link, not job posting text -- paste it into "
+            "the link field instead so it can be fetched"
+        )
+
+
 def _reject_if_too_short_to_score(text: str) -> None:
     """A near-empty JD -- an unrendered SPA shell after a failed extraction,
     a login/block page, or a field left almost blank -- can't produce a
@@ -872,6 +892,22 @@ def _reject_if_too_short_to_score(text: str) -> None:
             "job posting text is too short to score -- this usually means "
             "the posting couldn't be read from its page; try pasting the "
             "job description text directly instead of a link"
+        )
+
+
+def _reject_if_no_keywords_found(keywords: list[str]) -> None:
+    """Text long enough to pass `_reject_if_too_short_to_score` can still
+    yield zero literal keywords -- a link pasted into the text box instead
+    of fetched, or a genuine posting written as flattened prose with no
+    bullet lines, lead-in lists, or capitalized product names for
+    extract_keywords's heuristics to latch onto. Either way, `keyword_match`
+    would silently divide 0/0 into a fake 0% match instead of surfacing why
+    -- same failure mode `_reject_if_too_short_to_score` exists to avoid."""
+    if not keywords:
+        raise ValueError(
+            "couldn't find any concrete requirements to score in this "
+            "posting text -- if you pasted a link, try pasting the job "
+            "description text directly instead"
         )
 
 
@@ -887,6 +923,7 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     """
     _check_input_size(text, "job posting text")
     if not mock_enabled():
+        _reject_if_bare_url(text)
         _reject_if_too_short_to_score(text)
         result = structured_call_with_usage(
             FAST_MODEL,
@@ -906,6 +943,7 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
         keywords = drop_known_names(
             extract_keywords(text), result.value.company, result.value.title
         )
+        _reject_if_no_keywords_found(keywords)
         return result.value.model_copy(update={"keywords": keywords})
     json_text = _json_object_text(text)
     is_json_hint = "```json" in text.lower()
@@ -914,14 +952,17 @@ def parse_jd(text: str, *, client: Any | None = None) -> JDExtract:
     except json.JSONDecodeError as exc:
         if is_json_hint or json_text != text:
             raise ValueError("MOCK parse_jd found invalid JDExtract JSON") from exc
+        _reject_if_bare_url(text)
         _reject_if_too_short_to_score(text)
+        keywords = extract_keywords(text)
+        _reject_if_no_keywords_found(keywords)
         return JDExtract(
             company="",
             title="",
             hard_skills=[],
             soft_requirements=[],
             responsibilities=[text.strip()] if text.strip() else [],
-            keywords=extract_keywords(text),
+            keywords=keywords,
         )
     return JDExtract(**data)
 
