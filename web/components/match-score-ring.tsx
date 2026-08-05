@@ -29,7 +29,7 @@ export function MatchScoreRing({
           </div>
         </div>
         <span className="text-sm font-semibold text-ink">
-          {compatibilityLabel(missingCount)}
+          {pct}% · {compatibilityLabel(missingCount)}
         </span>
       </div>
       <p className="text-xs text-ink/60">

@@ -3,15 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { allRowKeys } from "@/components/confirm/section-panel";
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, MAX_TEXT_CHARS, createApplication, getMaster, previewJd } from "@/lib/api";
-import type { JdPreview, MasterResume } from "@/lib/types";
+import { ApiError, MAX_TEXT_CHARS, createApplication, previewJd } from "@/lib/api";
+import type { JdPreview } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Mode = "tailor" | "refactor";
@@ -42,13 +41,6 @@ export default function WorkspacePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [master, setMaster] = useState<MasterResume | null>(null);
-
-  useEffect(() => {
-    getMaster()
-      .then(setMaster)
-      .catch(() => setMaster(null));
-  }, []);
 
   useEffect(() => {
     // A slow request for a stale/partial input (e.g. a URL fetch mid-paste)
@@ -106,8 +98,6 @@ export default function WorkspacePage() {
       setBusy(false);
     }
   }
-
-  const totalFacts = master ? allRowKeys(master).length : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -226,31 +216,19 @@ export default function WorkspacePage() {
             ) : (
               <div>
                 <h3 className="font-serif text-lg font-semibold">
-                  Your match score appears here
+                  Your compatibility score appears here
                 </h3>
                 <p className="mt-2 text-sm text-ink/70">
-                  Paste a posting on the left and we&apos;ll score it against your
-                  confirmed facts, then show which keywords you already cover and
-                  which are genuine gaps.
+                  Paste a posting on the left. We pull out what it asks for,
+                  measure it against your confirmed facts, and show you the
+                  overlap. The score is a read on fit, not a target to write
+                  toward.
                 </p>
-                <div className="mt-4 flex flex-col gap-2 border-t border-em-softb pt-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink/70">Facts we&apos;ll write from</span>
-                    <span className="font-mono font-semibold text-em-accent">
-                      {totalFacts} facts
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink/70">Invented from thin air</span>
-                    <span className="font-mono font-semibold text-em-ok-fg">none, ever</span>
-                  </div>
-                </div>
-                <ul className="mt-4 flex flex-col gap-1.5 border-t border-em-softb pt-4 text-sm text-ink/70">
-                  <li>
-                    Reorders your skills so the ones they asked for read first
-                    (a UI-heavy posting floats TypeScript, React, and Tailwind
-                    ahead of C++ and Bash).
-                  </li>
+                <p className="mt-4 border-t border-em-softb pt-4 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
+                  What tailoring actually changes
+                </p>
+                <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/70">
+                  <li>Reorders your skills so the ones they asked for read first.</li>
                   <li>Leads each role with the bullets closest to the posting.</li>
                   <li>Matches their vocabulary for work you actually did.</li>
                   <li>Leaves every gap as a gap.</li>
