@@ -16,11 +16,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen flex-col">
       <header className="z-40 shrink-0 border-b border-em-line bg-paper/94 backdrop-blur-sm">
         <div className="mx-auto flex max-w-390 items-center gap-6 px-7 py-3">
-          <Link href="/app" className="flex items-center gap-2.25">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink font-serif text-[13px] font-bold text-paper">
-              E
-            </span>
-            <span className="font-serif text-[17px] font-semibold text-ink">Emend</span>
+          <Link href="/" className="text-[12.5px] font-medium text-ink/60 hover:text-ink">
+            ← Back to home
+          </Link>
+          <Link href="/app" className="font-serif text-[17px] font-semibold text-ink">
+            Emend
           </Link>
           <Suspense fallback={null}>
             <AppStepper />
