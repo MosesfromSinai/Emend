@@ -225,18 +225,28 @@ def _proper_noun_phrases(text: str) -> list[str]:
     return found
 
 
+def _is_word_run(shorter: list[str], longer: list[str]) -> bool:
+    """True if `shorter`'s words appear as a contiguous run inside `longer`."""
+    n, m = len(shorter), len(longer)
+    return n > 0 and n <= m and any(longer[i : i + n] == shorter for i in range(m - n + 1))
+
+
 def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
     """Different heuristics above can surface both "cross-functional
     collaboration" and the noisier "experience with cross-functional
     collaboration" for the same posting -- keep the shorter, cleaner phrase
     (also the one more likely to appear verbatim on a resume) and drop any
-    phrase that's just a wrapper around one already kept."""
-    lowered = [p.lower() for p in phrases]
+    phrase that's just a wrapper around one already kept.
+
+    Containment is checked word-by-word, not as a raw character substring --
+    "Java" is not a redundant wrapper of "JavaScript", nor is "C" of "C++",
+    even though the letters happen to line up."""
+    word_lists = [p.lower().split() for p in phrases]
     return [
         phrase
         for i, phrase in enumerate(phrases)
         if not any(
-            i != j and lowered[j] != lowered[i] and lowered[j] in lowered[i]
+            i != j and word_lists[j] != word_lists[i] and _is_word_run(word_lists[j], word_lists[i])
             for j in range(len(phrases))
         )
     ]

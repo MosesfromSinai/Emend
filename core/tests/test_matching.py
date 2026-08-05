@@ -152,6 +152,15 @@ def test_extract_keywords_catches_soft_skill_phrases_in_a_list():
     assert "stakeholder management" in keywords
 
 
+def test_extract_keywords_keeps_short_terms_that_are_letter_substrings():
+    # "Java" is not a redundant wrapper of "JavaScript" just because the
+    # letters line up -- same for "C" inside "C++" and "Go" inside "MongoDB"
+    text = "Requirements: Java, JavaScript, Python, C, C++, Go, MongoDB."
+    keywords = extract_keywords(text)
+    for term in ("Java", "JavaScript", "C", "C++", "Go", "MongoDB"):
+        assert term in keywords
+
+
 def test_extract_keywords_reads_one_bullet_per_line():
     text = "Requirements:\nPython\nDocker\nStrong communication skills\n"
     assert extract_keywords(text) == ["Python", "Docker", "Strong communication skills"]
