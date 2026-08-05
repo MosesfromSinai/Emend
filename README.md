@@ -2,11 +2,19 @@
 
 **A tailored resume that can't lie about you.**
 
+**[Try it live →](https://emend-two.vercel.app)** — no sign-up, nothing saved until you confirm it.
+
 Most resumes get filtered out by an ATS before a human ever reads them. Emend reverse-engineers that: it reads what a job posting actually prioritizes, then rewrites your resume to match — stronger verbs, quantified results, the right keywords — using only facts you confirmed about yourself.
 
 You get real LaTeX out, not a locked-in template. Copy the `.tex`, download the PDF, keep both.
 
-[Design: Emend Landing v2](https://claude.ai/design/p/25cd707b-28d6-4cd6-9e5e-dcfcaa4f27c1?file=Emend+Landing+v2.dc.html)
+<!--
+TODO: screenshots. Suggested shots, in order: (1) the landing hero, (2) the
+Confirm screen (resume preview + fact list side by side), (3) the Tailor
+screen with a live compatibility score and keyword chips, (4) the Export
+screen's Resume/LaTeX toggle. Drop them in docs/screenshots/ and reference
+with ![Confirm screen](docs/screenshots/confirm.png) etc.
+-->
 
 ## How it works
 
