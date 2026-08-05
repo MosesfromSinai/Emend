@@ -1050,7 +1050,11 @@ def _tailor_repair_prompt(jd: JDExtract, error: GroundingError) -> str:
 
 
 def real_tailor_resume(
-    master: MasterResume, jd: JDExtract, *, client: Any | None = None
+    master: MasterResume,
+    jd: JDExtract,
+    *,
+    client: Any | None = None,
+    enforce_judge: bool = False,
 ) -> TailoredResume:
     """Tailor with Sonnet, then reject anything the validator will not accept.
 
@@ -1060,6 +1064,16 @@ def real_tailor_resume(
     back to the model -- one overreaching bullet in an otherwise-good draft
     is usually a one-line fix once the model is told exactly what wasn't
     grounded, which beats failing the whole job over it.
+
+    `enforce_judge=True` (the public `tailor()` entrypoint) additionally
+    runs the stage-2 LLM judge on a grounding-clean draft before returning
+    it: a bullet the judge marks unsupported (e.g. it overstates scope or
+    scale even though it reuses only cited words and numbers) must never
+    reach the caller, since callers compile and export whatever this
+    returns without re-checking it themselves. `real_tailor_result` below
+    deliberately calls this with `enforce_judge=False` -- it judges the
+    returned draft itself to *report* the verdicts (e.g. for evals), rather
+    than enforcing them.
     """
     system = cacheable_system(
         TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"
@@ -1082,10 +1096,22 @@ def real_tailor_resume(
         try:
             # Unvalidated output must never leave the pipeline.
             validate_grounding(master, tailored)
-            return tailored
         except GroundingError as exc:
             last_error = exc
             user_prompt = _tailor_repair_prompt(jd, exc)
+            continue
+        if enforce_judge:
+            verdicts = judge_bullets(master, tailored, client=client)
+            unsupported = next((v for v in verdicts if not v.supported), None)
+            if unsupported is not None:
+                # Same retry-with-feedback treatment as a stage-1 rejection --
+                # a judge-flagged bullet shouldn't fail the whole job either.
+                last_error = GroundingError(
+                    f"judge rejected bullet {unsupported.bullet!r}: {unsupported.reason}"
+                )
+                user_prompt = _tailor_repair_prompt(jd, last_error)
+                continue
+        return tailored
     raise last_error
 
 
@@ -1105,8 +1131,15 @@ def real_tailor_result(
 def tailor(
     master: MasterResume, jd: JDExtract, *, client: Any | None = None
 ) -> TailoredResume:
-    """Public tailor entrypoint; MOCK mode preserves confirmed facts."""
+    """Public tailor entrypoint; MOCK mode preserves confirmed facts.
+
+    In real mode, both validation stages gate what this returns: stage-1
+    deterministic grounding and stage-2 the LLM judge (`enforce_judge=True`)
+    -- a bullet either stage rejects can never reach a caller, which is what
+    makes the "nothing invented" guarantee hold regardless of whether the
+    caller separately inspects a validation report.
+    """
     if mock_enabled():
         tailored, _report = mock_tailor_resume(master, jd)
         return tailored
-    return real_tailor_resume(master, jd, client=client)
+    return real_tailor_resume(master, jd, client=client, enforce_judge=True)

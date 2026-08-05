@@ -64,6 +64,38 @@ class FakeClient:
         return SimpleNamespace(content=[block], usage=usage)
 
 
+class JudgeAwareFakeClient:
+    """Routes by model instead of a flat queue: TAILOR_MODEL calls consume
+    `drafts` in order (the last one repeats), and FAST_MODEL (judge) calls
+    return whichever entry of `verdicts_per_attempt` matches the current
+    draft attempt -- every variant judged within one attempt gets the same
+    verdict, which is all these tests need."""
+
+    def __init__(self, drafts: list[dict], verdicts_per_attempt: list[dict]):
+        self.drafts = drafts
+        self.verdicts_per_attempt = verdicts_per_attempt
+        self.calls: list[dict] = []
+        self.draft_calls = 0
+        self.messages = SimpleNamespace(create=self._create)
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        if kwargs["model"] == TAILOR_MODEL:
+            payload = self.drafts[min(self.draft_calls, len(self.drafts) - 1)]
+            self.draft_calls += 1
+        else:
+            attempt = min(self.draft_calls - 1, len(self.verdicts_per_attempt) - 1)
+            payload = self.verdicts_per_attempt[attempt]
+        block = SimpleNamespace(type="tool_use", name="emit_schema", input=payload)
+        usage = SimpleNamespace(
+            input_tokens=10,
+            output_tokens=20,
+            cache_read_input_tokens=5,
+            cache_creation_input_tokens=0,
+        )
+        return SimpleNamespace(content=[block], usage=usage)
+
+
 def _tailored_payload(master: MasterResume) -> dict:
     return TailoredResume(
         summary_of_strategy="Lead with Python work.",
@@ -163,9 +195,14 @@ def test_parse_jd_rejects_text_with_no_extractable_keywords():
         parse_jd(text, client=client)
 
 
+def _supported_verdict() -> dict:
+    return BulletVerdict(bullet="", supported=True, reason="Traceable.").model_dump()
+
+
 def test_tailor_uses_sonnet_and_caches_the_master_resume(sample_master):
     master = sample_master
-    client = FakeClient(_tailored_payload(master))
+    # a second payload for the stage-2 judge calls tailor() now also makes
+    client = FakeClient(_tailored_payload(master), _supported_verdict())
 
     tailor(master, _jd(), client=client)
 
@@ -204,13 +241,48 @@ def test_tailor_retries_a_grounding_failure_with_the_violation_fed_back(sample_m
     bad_payload = _tailored_payload(master)
     bad_payload["experiences"][0]["bullets"][0]["variants"][0] += " across 47 teams"
     good_payload = _tailored_payload(master)
-    client = FakeClient(bad_payload, good_payload)
+    # a third payload for the stage-2 judge calls that follow the good draft
+    client = FakeClient(bad_payload, good_payload, _supported_verdict())
 
     result = tailor(master, _jd(), client=client)
 
     assert result == TailoredResume(**good_payload)
-    assert len(client.calls) == 2
+    assert client.calls[1]["model"] == TAILOR_MODEL
     assert "47" in client.calls[1]["messages"][-1]["content"]
+
+
+def test_tailor_rejects_output_the_judge_marks_unsupported(sample_master):
+    """A bullet can pass deterministic grounding (same words, same numbers)
+    yet still overstate scope or scale -- something only the LLM judge
+    catches. tailor() must not ship it just because stage-1 passed, even
+    after retrying every attempt the judge keeps rejecting."""
+    master = sample_master
+    payload = _tailored_payload(master)
+    unsupported = BulletVerdict(
+        bullet="", supported=False, reason="Overstates the scope of the cited fact."
+    ).model_dump()
+    client = JudgeAwareFakeClient([payload], [unsupported, unsupported, unsupported])
+
+    with pytest.raises(GroundingError, match="judge rejected"):
+        tailor(master, _jd(), client=client)
+    assert client.draft_calls == 3
+
+
+def test_tailor_retries_a_judge_rejection_before_giving_up(sample_master):
+    # a judge rejection shouldn't fail the whole job either -- same
+    # retry-with-feedback treatment as a stage-1 grounding rejection
+    master = sample_master
+    payload = _tailored_payload(master)
+    unsupported = BulletVerdict(
+        bullet="", supported=False, reason="Overstates the scope of the cited fact."
+    ).model_dump()
+    supported = BulletVerdict(bullet="", supported=True, reason="Traceable.").model_dump()
+    client = JudgeAwareFakeClient([payload], [unsupported, supported])
+
+    result = tailor(master, _jd(), client=client)
+
+    assert result == TailoredResume(**payload)
+    assert client.draft_calls == 2
 
 
 def test_real_tailor_result_reports_judge_verdicts(sample_master):
