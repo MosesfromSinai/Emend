@@ -114,12 +114,22 @@ export default function ApplicationPage({
   if (!application) return <p className="text-sm text-ink/60">Loading…</p>;
 
   if (application.status === "queued" || application.status === "running") {
+    const runningLabel =
+      application.mode === "tailor"
+        ? "Rewriting your resume to match the posting…"
+        : "Typesetting your resume…";
     return (
       <div className="flex flex-col items-center gap-2 py-16 text-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-em-softb border-t-em-accent" />
         <p className="text-sm text-ink/70">
-          {application.status === "queued" ? "Queued…" : "Typesetting your resume…"}
+          {application.status === "queued" ? "Queued…" : runningLabel}
         </p>
+        {application.status === "running" && application.mode === "tailor" && (
+          <p className="text-xs text-ink/50">
+            Every line gets checked against your confirmed facts before it ships,
+            so this can take up to a minute.
+          </p>
+        )}
       </div>
     );
   }
