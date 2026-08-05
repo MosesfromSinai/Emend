@@ -13,7 +13,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // pixel height -- flexbox already accounts for it. Pages with ordinary
     // content just get a normal scrollbar on <main> when they overflow it,
     // which looks identical to the page itself scrolling.
-    <div className="flex h-screen flex-col">
+    // h-dvh, not h-screen (100vh): mobile Safari's address bar show/hide
+    // changes what's actually visible, so a static 100vh can be taller than
+    // the real viewport and clip content -- dvh tracks the true visible area.
+    <div className="flex h-dvh flex-col">
       <header className="z-40 shrink-0 border-b border-em-line bg-paper/94 backdrop-blur-sm">
         <div className="mx-auto flex max-w-390 items-center gap-6 px-7 py-3">
           <Link href="/" className="text-[12.5px] font-medium text-ink/60 hover:text-ink">
