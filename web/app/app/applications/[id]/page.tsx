@@ -171,10 +171,16 @@ export default function ApplicationPage({
   const tex = livePreviewTex ?? version.tex;
 
   return (
-    <div className="flex flex-col gap-4">
-      {downloadError && <p className="text-sm text-red-700">{downloadError}</p>}
+    // Height fixed once here (header + <main>'s own padding only) instead of
+    // guessing this toolbar row's height too -- the row below is a normal
+    // flex child sized to its own content, and the flex-1 panel underneath
+    // gets whatever's actually left, so a wrapped toolbar row on a narrow
+    // viewport can't push the panel below the fold and force a second,
+    // independent page-level scrollbar on top of the panel's own.
+    <div className="flex h-[calc(100vh-96px)] flex-col gap-4">
+      {downloadError && <p className="shrink-0 text-sm text-red-700">{downloadError}</p>}
 
-      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
+      <div className="shrink-0 flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
         {report ? (
           <>
             <MatchScoreRing
@@ -224,52 +230,54 @@ export default function ApplicationPage({
         </div>
       </div>
 
-      {view === "resume" ? (
-        <div className="max-h-[calc(100vh-190px)] overflow-auto rounded-[10px] bg-em-line p-6.5">
-          {renderResume && (
-            <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
-              <ResumePaper
-                master={renderResume}
-                name={renderResume.name}
-                contact={[renderResume.email, renderResume.phone, ...renderResume.links]
-                  .filter(Boolean)
-                  .join(" | ")}
-                size="export"
-                hoveredKey={hoveredKey}
-                onHoverRow={setHoveredKey}
-                activeFactId={activeFactId}
-                onClickRow={(row) => {
-                  const factId = row.factId;
-                  if (!factId || !bulletsByFactId.has(factId)) return;
-                  setActiveFactId((prev) => (prev === factId ? null : factId));
-                }}
-                renderRowControl={(row) => {
-                  const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
-                  if (!bullet || !row.factId) return null;
-                  return (
-                    <RewriteBar
-                      key={row.factId}
-                      bullet={bullet}
-                      selection={selections[row.factId]}
-                      originalText={
-                        originalTextByFactId.get(row.factId) ??
-                        "Original wording unavailable for this version."
-                      }
-                      onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
-                    />
-                  );
-                }}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="h-[calc(100vh-190px)] overflow-hidden rounded-lg border border-em-softb">
-          <TexPane tex={tex} hoveredFactId={hoveredKey} onHoverFactId={setHoveredKey} />
-        </div>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {view === "resume" ? (
+          <div className="rounded-[10px] bg-em-line p-6.5">
+            {renderResume && (
+              <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
+                <ResumePaper
+                  master={renderResume}
+                  name={renderResume.name}
+                  contact={[renderResume.email, renderResume.phone, ...renderResume.links]
+                    .filter(Boolean)
+                    .join(" | ")}
+                  size="export"
+                  hoveredKey={hoveredKey}
+                  onHoverRow={setHoveredKey}
+                  activeFactId={activeFactId}
+                  onClickRow={(row) => {
+                    const factId = row.factId;
+                    if (!factId || !bulletsByFactId.has(factId)) return;
+                    setActiveFactId((prev) => (prev === factId ? null : factId));
+                  }}
+                  renderRowControl={(row) => {
+                    const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
+                    if (!bullet || !row.factId) return null;
+                    return (
+                      <RewriteBar
+                        key={row.factId}
+                        bullet={bullet}
+                        selection={selections[row.factId]}
+                        originalText={
+                          originalTextByFactId.get(row.factId) ??
+                          "Original wording unavailable for this version."
+                        }
+                        onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
+                      />
+                    );
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="h-full overflow-hidden rounded-lg border border-em-softb">
+            <TexPane tex={tex} hoveredFactId={hoveredKey} onHoverFactId={setHoveredKey} />
+          </div>
+        )}
 
-      {showReport && report && <ProvenancePanel verdicts={report.verdicts} />}
+        {showReport && report && <ProvenancePanel verdicts={report.verdicts} />}
+      </div>
     </div>
   );
 }

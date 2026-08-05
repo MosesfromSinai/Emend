@@ -148,8 +148,13 @@ export default function OnboardingPage() {
     const remaining = allKeys.length - doneCount;
 
     return (
-      <div className="flex flex-col gap-4 pb-28">
-        <div>
+      // Height fixed once here (header + <main>'s padding + the fixed bottom
+      // bar) instead of each panel guessing its own -- the heading above and
+      // the grid below both size from this single number, so the two panels
+      // can never disagree about how much room is actually left, which was
+      // the root cause of the double-scroll/cut-off-at-top bug.
+      <div className="flex h-[calc(100vh-168px)] flex-col gap-4">
+        <div className="shrink-0">
           <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
           <p className="mt-1 text-sm text-ink/70">
             These facts are the only material Emend will ever write from. Fix
@@ -158,8 +163,8 @@ export default function OnboardingPage() {
         </div>
         <ParseError error={error} />
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
-          <div className="sticky top-20 h-[calc(100vh-110px)] self-start overflow-y-auto rounded-xl border border-em-line bg-white p-6">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
+          <div className="h-full overflow-y-auto rounded-xl border border-em-line bg-white p-6">
             <ResumePaper
               master={master}
               name={master.name}
