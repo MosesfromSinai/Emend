@@ -74,13 +74,17 @@ export default function ApplicationPage({
     [version]
   );
 
+  // Sourced from the version's own frozen snapshot, never the live master --
+  // fact ids are assigned positionally at generation time (core/pipeline.py
+  // _assign_ids) and are not stable across later master-resume edits. Reading
+  // from a fresh getMaster() here could resolve a stale/reused fact id to the
+  // wrong fact (or none), showing an AI rewrite as the user's own wording.
   const originalTextByFactId = useMemo(() => {
     const map = new Map<string, string>();
-    if (!master) return map;
-    for (const exp of master.experiences) for (const f of exp.facts) map.set(f.id, f.text);
-    for (const proj of master.projects) for (const f of proj.facts) map.set(f.id, f.text);
+    if (!version?.source_facts) return map;
+    for (const [factId, text] of Object.entries(version.source_facts)) map.set(factId, text);
     return map;
-  }, [master]);
+  }, [version]);
 
   const renderResume = useMemo(
     () => (master ? tailoredToRenderResume(master, version?.tailored ?? null, selections) : null),
@@ -99,11 +103,23 @@ export default function ApplicationPage({
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
+    // Open the tab synchronously, inside the click handler's transient-activation
+    // window, so popup blockers see it as a direct response to the user's
+    // gesture. We navigate it to the real URL once the (slow) finalize call
+    // resolves, instead of calling window.open() after the await -- by then the
+    // activation window has elapsed and Safari/Chrome silently block it.
+    const tab = window.open("", "_blank");
     try {
       const updated = await finalizeApplication(id, selections);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
-      window.open(`${artifactUrl(url)}?v=${Date.now()}`, "_blank");
+      const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
+      if (tab) {
+        tab.location.href = finalUrl;
+      } else {
+        setDownloadError("Your browser blocked the download tab. Please allow pop-ups for this site and try again.");
+      }
     } catch (e) {
+      tab?.close();
       setDownloadError(e instanceof ApiError ? e.message : "Couldn't prepare that file.");
     } finally {
       setDownloadBusy(null);
@@ -235,7 +251,10 @@ export default function ApplicationPage({
                       key={row.factId}
                       bullet={bullet}
                       selection={selections[row.factId]}
-                      originalText={originalTextByFactId.get(row.factId) ?? bullet.variants[0]}
+                      originalText={
+                        originalTextByFactId.get(row.factId) ??
+                        "Original wording unavailable for this version."
+                      }
                       onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
                     />
                   );
