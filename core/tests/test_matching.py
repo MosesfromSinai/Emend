@@ -267,6 +267,32 @@ def test_extract_keywords_reads_such_as_lists_in_prose():
     assert "maintainability" in keywords
 
 
+def test_extract_keywords_ignores_bullet_leading_verbs():
+    # "- Analyze campaign..." puts the bullet marker between the newline and
+    # the capitalized verb -- that verb is a sentence-starter, not a term
+    text = (
+        "Responsibilities:\n"
+        "- Analyze campaign performance data.\n"
+        "- Conduct statistical analysis using SQL.\n"
+        "- Present insights to leadership."
+    )
+    keywords = extract_keywords(text)
+    assert "Analyze" not in keywords
+    assert "Conduct" not in keywords
+    assert "Present" not in keywords
+    assert "SQL" in keywords
+
+
+def test_extract_keywords_ignores_word_right_after_a_colon():
+    # "About Acme: Founded in 2005..." -- "Founded" only looks like a term
+    # because it follows a colon, not because it's a real proper noun
+    text = "About Acme: Founded in 2005, we serve customers with Python and AWS."
+    keywords = extract_keywords(text)
+    assert "Founded" not in keywords
+    assert "Python" in keywords
+    assert "AWS" in keywords
+
+
 def test_extract_keywords_does_not_shred_a_whole_flattened_page():
     # a URL-fetched posting has no real line breaks (core/jd_text.py joins
     # every block into one line) -- a long line with no terminal punctuation

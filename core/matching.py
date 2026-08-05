@@ -99,7 +99,11 @@ _PROPER_NOUN = re.compile(
     r"\b[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*"
     r"(?:[ \t]+[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*){0,2}\b"
 )
-_SENTENCE_BOUNDARY = re.compile(r"[.!?\n]\s*$")
+# A fresh bullet marker ("- Analyze...") or a colon introducing a clause
+# ("About Acme: Founded in 2005...") is just as much a boundary as a period
+# or newline -- without these, the bullet's own leading verb or the word
+# right after the colon reads as "mid-sentence" and survives as noise.
+_SENTENCE_BOUNDARY = re.compile(r"[.!?\n:]\s*$|[•\-*·]\s*$")
 
 # A career-page header's "City, ST" (e.g. "San Mateo, CA") reads as two
 # separate Capitalized runs once split on the comma -- neither the city
