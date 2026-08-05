@@ -162,8 +162,13 @@ export default function OnboardingPage() {
         </div>
         <ParseError error={error} />
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
-          <div className="h-full overflow-y-auto rounded-xl border border-em-line bg-white p-6">
+        {/* flex, not grid: an auto-sized grid row sizes to its tallest
+            child's own content height, not to this container's -- with
+            flexbox, stretch correctly fills the definite height above
+            instead of growing past it and defeating every overflow-y-auto
+            below. lg:flex-[1.35]/[1] approximates the old 1.35fr/1fr split. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row">
+          <div className="min-h-0 overflow-y-auto rounded-xl border border-em-line bg-white p-6 lg:h-full lg:flex-[1.35]">
             <ResumePaper
               master={master}
               name={master.name}
