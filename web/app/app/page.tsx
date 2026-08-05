@@ -69,7 +69,7 @@ export default function OnboardingPage() {
       return;
     }
     if (file.size > MAX_PDF_BYTES) {
-      setFileError("That PDF is too large — please upload one under 5 MB.");
+      setFileError("That PDF is too large. Please upload one under 5 MB.");
       return;
     }
     setBusyPdf(true);
@@ -256,7 +256,7 @@ export default function OnboardingPage() {
       <div>
         <h1 className="font-serif text-2xl font-semibold">Let&apos;s get your resume in.</h1>
         <p className="mt-1 text-sm text-ink/70">
-          Paste it as plain text, or upload a PDF — we&apos;ll pull out the
+          Paste it as plain text, or upload a PDF, and we&apos;ll pull out the
           facts and typeset it in LaTeX. Nothing is saved until you confirm.
         </p>
       </div>

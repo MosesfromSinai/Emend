@@ -121,7 +121,7 @@ export default function WorkspacePage() {
             </span>
           </div>
           <p className="mb-4 text-sm text-ink/70">
-            No job posting needed — typeset your confirmed resume as-is, word for word.
+            No job posting needed. Typeset your confirmed resume as-is, word for word.
           </p>
           <Button onClick={start} disabled={busy}>
             {busy ? "Starting…" : "Typeset my resume →"}
@@ -133,8 +133,8 @@ export default function WorkspacePage() {
             <h2 className="mb-1 font-serif text-xl font-semibold">Tailor to a posting</h2>
             <p className="mb-4 text-sm text-ink/70">
               Paste a job description, or a link to one. Emend grounds every
-              rewrite in the facts you confirmed — gaps are left as gaps, never
-              invented.
+              rewrite in the facts you confirmed, and gaps are left as gaps,
+              never invented.
             </p>
             <Textarea
               value={jdText}
