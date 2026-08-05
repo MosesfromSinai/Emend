@@ -202,7 +202,17 @@ export default function WorkspacePage() {
                 />
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
-                    Asked for in the posting · green means you already have it
+                    Asked for in the posting
+                  </p>
+                  <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/60">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-em-ok-fg" />
+                      Green: already in your confirmed facts
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-em-warn-fg" />
+                      Rose: a real gap, shown honestly instead of invented
+                    </span>
                   </p>
                   <KeywordChips
                     matched={preview.matched_keywords}
