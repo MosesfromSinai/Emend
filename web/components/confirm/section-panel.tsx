@@ -616,6 +616,24 @@ export function SectionPanel({
   const progress = sectionProgress(master, confirmed);
   const sectionIndex = SECTION_HEADINGS.indexOf(activeSection);
   const active = progress[sectionIndex];
+
+  // Auto-advance the moment a section GOES complete (via "Confirm all" or
+  // the last individual checkbox) -- but never on arrival at a section
+  // that's already complete (e.g. navigating back with "previous"), which
+  // is why this tracks a transition, not just the current state.
+  const prevCompleteRef = useRef<{ section: SectionHeading; complete: boolean }>({
+    section: activeSection,
+    complete: active.total > 0 && active.done === active.total,
+  });
+  useEffect(() => {
+    const isComplete = active.total > 0 && active.done === active.total;
+    const prev = prevCompleteRef.current;
+    const justCompletedHere = prev.section === activeSection && isComplete && !prev.complete;
+    prevCompleteRef.current = { section: activeSection, complete: isComplete };
+    if (justCompletedHere && sectionIndex < SECTION_HEADINGS.length - 1) {
+      onChangeSection(SECTION_HEADINGS[sectionIndex + 1]);
+    }
+  }, [active.done, active.total, activeSection, sectionIndex, onChangeSection]);
   const entryCount =
     activeSection === "EDUCATION"
       ? master.education.length
