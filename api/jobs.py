@@ -16,6 +16,7 @@ from api import core_bridge, db
 from api.config import settings
 from api.models import Application, MasterResumeRow, ResumeVersion
 from core.schemas import MasterResume, Report
+from core.validation import GroundingError
 
 logger = logging.getLogger("emend.jobs")
 
@@ -78,7 +79,17 @@ def _run(session, app_row: Application) -> None:
         app_row.matched_keywords = matched
         app_row.missing_keywords = missing
         session.commit()
-        tailored = core_bridge.tailor(master, jd)
+        try:
+            tailored = core_bridge.tailor(master, jd)
+        except GroundingError:
+            app_row.status = "failed"
+            app_row.error = (
+                "We couldn't produce a rewrite that passed our fact-check after "
+                "a few tries. This can happen with some postings -- try tailoring "
+                "again, or paste the job description text directly if you used a link."
+            )
+            session.commit()
+            return
         report = core_bridge.validate(master, tailored, score, matched, missing)
 
     try:

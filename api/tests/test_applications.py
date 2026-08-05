@@ -13,6 +13,7 @@ from core.schemas import (
     TailoredResume,
     TailoredSection,
 )
+from core.validation import GroundingError
 
 FAKE_TEX = """\\documentclass{article}
 % grounded: ACME-01, ACME-02
@@ -175,6 +176,21 @@ def test_unknown_fact_ids_fail_cleanly(client, master, pipeline, monkeypatch):
     got = client.get(f"/applications/{r.json()['id']}").json()
     assert got["status"] == "failed"
     assert "unknown fact ids" in got["error"]
+
+
+def test_grounding_error_surfaces_a_friendly_message(client, master, pipeline, monkeypatch):
+    # an exhausted retry loop shouldn't dump a raw "GroundingError: judge
+    # rejected bullet ..." exception string at the user
+    def raising_tailor(master_, jd):
+        raise GroundingError('judge rejected bullet "...": overstates scope')
+
+    monkeypatch.setattr(core_bridge, "tailor", raising_tailor)
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_text": "a posting"})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+    assert got["status"] == "failed"
+    assert "GroundingError" not in got["error"]
+    assert "try tailoring again" in got["error"]
 
 
 def test_unexpected_error_never_leaves_running(client, master, pipeline, monkeypatch):
