@@ -144,19 +144,19 @@ function DemoBulletToolbar({
       </button>
       <span className="text-[11px] text-[#a89f8c]">{modeLabel}</span>
       <span className="text-[10.5px] text-[#8f887a]">
-        · click text to edit — your words are kept
+        · click text to edit · your words are kept
       </span>
       {showDiscard && (
         <button
           onClick={() => onPatch({ custom: null, orig: false, dirty: false, rev: state.rev + 1 })}
-          className="rounded px-1.5 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#a89f8c] hover:bg-[#3a372f] hover:text-paper"
+          className="rounded px-1.5 py-1 text-[11.5px] font-semibold whitespace-nowrap text-[#a89f8c] hover:bg-em-ink-2 hover:text-paper"
         >
           ↺ discard my edit
         </button>
       )}
       <button
         onClick={() => onPatch({ orig: !state.orig })}
-        className="ml-auto rounded px-1.5 py-1 text-[11.5px] font-semibold whitespace-nowrap text-em-bright hover:bg-[#3a372f]"
+        className="ml-auto rounded px-1.5 py-1 text-[11.5px] font-semibold whitespace-nowrap text-em-bright hover:bg-em-ink-2"
       >
         {origBtnLabel}
       </button>

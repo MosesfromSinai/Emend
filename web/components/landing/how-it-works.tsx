@@ -10,14 +10,14 @@ const STEPS = [
     n: "01",
     kicker: "10-SECOND ANALYSIS",
     title: "Paste any job description.",
-    body: "Copy a job posting and paste it in. Emend pulls out the keywords, skills, and experience the employer is scanning for — and scores your resume against them.",
+    body: "Copy a job posting and paste it in. Emend pulls out the keywords, skills, and experience the employer is scanning for, then scores your resume against them.",
     reverse: false,
   },
   {
     n: "02",
     kicker: "GROUNDED REWRITE",
-    title: "Confirm your facts. We write from those — only those.",
-    body: "Emend extracts every claim from your resume into facts you sign off on. The writer is structurally constrained to that list — every line it produces carries a reference to the fact it came from. Nothing invented, ever.",
+    title: "Confirm your facts. We write from those. Only those.",
+    body: "Emend extracts every claim from your resume into facts you sign off on. The writer is structurally constrained to that list: every line it produces carries a reference to the fact it came from. Nothing invented, ever.",
     // the one alternating step: visual moves left, text moves right, per the
     // approved design (order:2/order:1 on the two columns)
     reverse: true,

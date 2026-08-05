@@ -6,10 +6,10 @@ export function GroundedRewriteVisual() {
       <div className="mb-2 flex items-start gap-2.5 rounded-lg border border-em-softb bg-white px-3.5 py-2.5">
         <span className="font-semibold text-[#7a8a4a]">✓</span>
         <div>
-          <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-[#9a927f]">
+          <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-em-faint">
             FACT HX-02 · CONFIRMED BY YOU
           </div>
-          <div className="text-[12.5px] text-[#3a372f]">
+          <div className="text-[12.5px] text-em-ink-2">
             Multi-step dev setup → one-command Bash scripts · −80% setup time
           </div>
         </div>
@@ -36,15 +36,15 @@ export function GroundedRewriteVisual() {
 export function MatchScoreVisual() {
   return (
     <div className="rounded-xl border border-em-softb bg-paper p-5.5">
-      <div className="mb-2 font-mono text-[10.5px] font-semibold tracking-wide text-[#9a927f]">
+      <div className="mb-2 font-mono text-[10.5px] font-semibold tracking-wide text-em-faint">
         JOB DESCRIPTION
       </div>
-      <div className="mb-2 rounded-lg border border-em-softb bg-white px-3.5 py-3 font-mono text-xs text-[#3a372f]">
+      <div className="mb-2 rounded-lg border border-em-softb bg-white px-3.5 py-3 font-mono text-xs text-em-ink-2">
         &quot;New-grad software engineer with Python, React, CI/CD pipelines,
         AWS…&quot;
       </div>
       <div className="mb-3.5 rounded-lg border-[1.5px] border-dashed border-em-softb bg-white px-3.5 py-2.5">
-        <span className="text-xs text-[#9a927f]">
+        <span className="text-xs text-em-faint">
           Have a link to the posting? Paste it here instead
         </span>
       </div>
@@ -102,7 +102,7 @@ export function DualViewVisual() {
         {["PDF ready", ".tex source included", "Passes major ATS systems"].map(
           (label) => (
             <div key={label} className="flex items-center gap-2 text-xs font-semibold text-ink">
-              <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-[#eef0e2] text-[12px] text-[#5a6a34]">
+              <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-em-ok-bg text-[12px] text-em-ok-fg">
                 ✓
               </span>
               {label}

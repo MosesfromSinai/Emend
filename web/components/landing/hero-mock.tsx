@@ -15,7 +15,7 @@ export function HeroMock() {
           </span>
         </div>
         <div className="px-5.5 py-5">
-          <div className="mb-1.5 font-mono text-[10.5px] font-semibold tracking-wide text-[#9a927f]">
+          <div className="mb-1.5 font-mono text-[10.5px] font-semibold tracking-wide text-em-faint">
             JOB DESCRIPTION
           </div>
           <div className="rounded-lg border border-em-softb bg-paper px-3.5 py-3 font-mono text-xs leading-relaxed text-ink/70">
@@ -24,11 +24,11 @@ export function HeroMock() {
           </div>
           <div className="my-3.5 flex flex-wrap gap-1.5 font-mono text-[11px]">
             {["python", "react", "ci/cd", "aws"].map((kw) => (
-              <span key={kw} className="rounded bg-[#eef0e2] px-2 py-1 text-[#5a6a34]">
+              <span key={kw} className="rounded bg-em-ok-bg px-2 py-1 text-em-ok-fg">
                 {kw} ✓
               </span>
             ))}
-            <span className="rounded bg-[#f4e6e2] px-2 py-1 text-[#9a4a34]">
+            <span className="rounded bg-em-warn-bg px-2 py-1 text-em-warn-fg">
               distributed systems
             </span>
           </div>
@@ -47,10 +47,10 @@ export function HeroMock() {
               </div>
               <div>
                 <div className="text-[12.5px] font-semibold text-ink">Strong match</div>
-                <div className="text-[11px] text-[#9a927f]">1 keyword to address</div>
+                <div className="text-[11px] text-em-faint">1 keyword to address</div>
               </div>
             </div>
-            <span className="rounded-full bg-[#eef0e2] px-3 py-1 text-[11px] font-semibold text-[#5a6a34]">
+            <span className="rounded-full bg-em-ok-bg px-3 py-1 text-[11px] font-semibold text-em-ok-fg">
               ✓ grounded {DEMO_SENTENCE_COUNT}/{DEMO_SENTENCE_COUNT}
             </span>
           </div>
@@ -60,7 +60,7 @@ export function HeroMock() {
         <span className="text-[#8f887a]">% grounded:</span>{" "}
         <span className="text-em-bright">fact HX-02</span>
       </div>
-      <div className="absolute -bottom-3.5 -left-4.5 hidden rounded-lg border border-em-softb bg-white px-3 py-2 text-[11px] font-semibold text-[#5a6a34] shadow-md sm:block">
+      <div className="absolute -bottom-3.5 -left-4.5 hidden rounded-lg border border-em-softb bg-white px-3 py-2 text-[11px] font-semibold text-em-ok-fg shadow-md sm:block">
         ✓ every line has a source
       </div>
     </div>

@@ -18,7 +18,7 @@ export function CtaBand() {
           Tailor your resume
         </Link>
         <p className="mx-auto mt-5 max-w-md text-[13px] text-[#a89f8c]">
-          No account needed — your session stays private to your browser for
+          No account needed. Your session stays private to your browser for
           as long as you keep it open.
         </p>
       </Reveal>
