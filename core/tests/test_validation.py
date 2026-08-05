@@ -160,6 +160,19 @@ def test_validate_grounding_rejects_unknown_skill_category(sample_master, sample
         validate_grounding(master, tailored)
 
 
+def test_validate_grounding_rejects_skill_moved_to_wrong_category(
+    sample_master, sample_tailored
+):
+    # "Python" is a real master skill, but only under "Languages" -- filing it
+    # under "Tools" instead must still be rejected, even though "python" is
+    # present somewhere in the master skills as a whole.
+    master, tailored = sample_master, sample_tailored
+    tailored.skills["Tools"].append("Python")
+
+    with pytest.raises(GroundingError, match="unsupported skills"):
+        validate_grounding(master, tailored)
+
+
 def test_validate_grounding_rejects_derived_percentage():
     # "80%" is computed from 45 and 10 (a ~78% reduction, rounded up) -- the
     # fact only ever states the two absolute minute values, never a percent.
@@ -183,6 +196,25 @@ def test_validate_grounding_accepts_number_copied_from_fact():
     # 45 and 10 both appear literally in the fact -- no arithmetic performed.
     master = _one_fact_resume("Cut deploy time from 45 minutes to under 10")
     tailored = _one_bullet_resume("Cut deploy time from 45 minutes to under 10.")
+
+    validate_grounding(master, tailored)
+
+
+def test_validate_grounding_rejects_unit_magnitude_swap():
+    # Same digits, different unit -- "20 ms" restated as "20 seconds" is a
+    # 1000x magnitude inflation that a bare-digit comparison would miss.
+    master = _one_fact_resume("Reduced p95 latency by 20 ms.")
+    tailored = _one_bullet_resume("Reduced p95 latency by 20 seconds.")
+
+    with pytest.raises(GroundingError, match="unsupported numbers"):
+        validate_grounding(master, tailored)
+
+
+def test_validate_grounding_accepts_same_unit_paraphrase():
+    # Restating the unit's spelling without changing its magnitude (secs ->
+    # seconds) is a paraphrase, not a swap, and should still pass.
+    master = _one_fact_resume("Reduced p95 latency by 20 secs.")
+    tailored = _one_bullet_resume("Reduced p95 latency by 20 seconds.")
 
     validate_grounding(master, tailored)
 
