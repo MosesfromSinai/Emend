@@ -109,6 +109,12 @@ works and the evals in `docs/evals.md` have real numbers.
 corrected in `.github/workflows/deploy.yml` to match Railway's actual
 service name `Emend`). Verified green end to end: CI → Deploy → `/health`.
 
+**Known flake, 2026-08-05:** the `deploy-api` job's `railway up --service
+Emend --ci` step has failed twice with "Failed to stream build logs: Failed
+to retrieve build log" — a log-streaming glitch on Railway's own side, not
+a real build failure; re-running the job both times succeeded immediately.
+Worth hardening later (e.g. a retry step in `deploy.yml`), not urgent.
+
 Operational detail — secrets map, migrations, rollback per service, rebuilding
 the Tectonic cache layer — lives in `infra/runbook.md`.
 
