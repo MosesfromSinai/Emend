@@ -6,7 +6,7 @@ import { Reveal } from "@/components/landing/reveal";
 // bullets applies to its own marketing: claims true by construction only,
 // nothing that needs usage data we don't have.
 const STATS = [
-  { value: "0", label: "invented claims — by design" },
+  { value: "0", label: "invented claims, by design" },
   { value: "2", label: "independent checks before any bullet ships" },
   { value: "100%", label: "of bullets carry a confirmed fact citation" },
   { value: "< 60s", label: "posting → typeset PDF" },

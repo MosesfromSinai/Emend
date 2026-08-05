@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/api";
 /** What we say instead of whatever the parser actually complained about. */
 const FRIENDLY_MESSAGES: Record<string, string> = {
   unstructurable_resume:
-    "We couldn't read this resume cleanly. Try pasting it again straight from your document — plain text, one bullet per line.",
+    "We couldn't read this resume cleanly. Try pasting it again straight from your document: plain text, one bullet per line.",
   payload_too_large: "That resume is longer than we can take in one go. Trim it down and try again.",
 };
 const FALLBACK_MESSAGE = "Something went wrong. Give it another try.";

@@ -23,7 +23,7 @@ export function ProvenancePanel({ verdicts }: { verdicts: BulletVerdict[] }) {
               {verdict.source_fact_ids.map((id) => (
                 <FactTag key={id} id={id} />
               ))}
-              <span className={verdict.supported ? "text-[#5a6a34]" : "text-red-700"}>
+              <span className={verdict.supported ? "text-em-ok-fg" : "text-red-700"}>
                 {verdict.supported ? "✓ supported" : "⚠ unsupported"}
               </span>
             </div>

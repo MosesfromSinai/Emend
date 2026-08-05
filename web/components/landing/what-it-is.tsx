@@ -15,8 +15,8 @@ const STATS = [
     label: "demo lines grounded in confirmed facts, above",
   },
   { value: "< 60s", label: "posting to typeset PDF" },
-  { value: ".tex", label: "full LaTeX source — your resume is yours" },
-  { value: "0", label: "LLM calls in your match score — pure keyword math" },
+  { value: ".tex", label: "full LaTeX source, yours to keep" },
+  { value: "0", label: "LLM calls in your match score, pure keyword math" },
 ];
 
 export function WhatItIs() {
@@ -31,7 +31,7 @@ export function WhatItIs() {
             Structured, so it can&apos;t hallucinate.
           </h2>
           <p className="mb-7 text-base text-ink/70">
-            The resume tool built for how hiring actually works — without
+            The resume tool built for how hiring actually works, without
             lying for you.
           </p>
         </Reveal>
@@ -40,18 +40,18 @@ export function WhatItIs() {
           <PipelineDiagram />
         </Reveal>
 
-        <Reveal className="flex flex-col gap-4.5 text-[15.5px] leading-loose text-[#3a372f]">
+        <Reveal className="flex flex-col gap-4.5 text-[15.5px] leading-loose text-em-ink-2">
           <p>
             Most resumes are rejected before a human reads them. Hiring
             systems scan, filter, and rank candidates on keyword matches and
             formatting patterns. If your resume doesn&apos;t speak that
-            language, it&apos;s filtered out — regardless of what you&apos;ve
+            language, it&apos;s filtered out, regardless of what you&apos;ve
             actually done.
           </p>
           <p>
             Emend reverse-engineers that process. Paste a job description and
             it extracts what the employer is prioritizing, then rewrites your
-            resume to match — stronger verbs, quantified results, the right
+            resume to match: stronger verbs, quantified results, the right
             framing.
           </p>
           <p>
@@ -59,7 +59,7 @@ export function WhatItIs() {
               The difference: Emend can&apos;t make things up.
             </strong>{" "}
             Other AI resume tools generate free-form text and hope it&apos;s
-            true. Emend&apos;s pipeline is structured — the writer literally
+            true. Emend&apos;s pipeline is structured: the writer literally
             has no input except the facts you confirmed, and every output
             line is tagged with the fact it was built from. If a line has no
             source, it doesn&apos;t ship.

@@ -95,6 +95,9 @@ export interface VersionOut {
   tex: string;
   report: Report | null;
   tailored: TailoredResume | null;
+  // fact id -> text snapshot of the master resume as it was when this
+  // version was generated -- see applications/[id]/page.tsx originalTextByFactId
+  source_facts: Record<string, string>;
   pdf_url: string;
   tex_url: string;
   created_at: string;

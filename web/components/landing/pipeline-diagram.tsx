@@ -14,7 +14,7 @@ const STEPS = [
   {
     n: "STEP 3",
     title: "Constrained writer",
-    body: "The AI can only compose from your fact list — structurally.",
+    body: "The AI can only compose from your fact list. Structurally.",
     highlight: true,
   },
   {
@@ -54,7 +54,7 @@ function PipelineStepFragment({
         <div
           className={
             "mb-1.25 font-mono text-[10px] font-semibold " +
-            (step.highlight ? "text-em-accent" : "text-[#9a927f]")
+            (step.highlight ? "text-em-accent" : "text-em-faint")
           }
         >
           {step.n}

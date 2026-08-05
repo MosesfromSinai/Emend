@@ -54,7 +54,10 @@ Rules:
   carry no facts at all -- only school, degree, location, grad date, and
   coursework. Recognize one by its degree phrase ("Bachelor", "Master",
   "B.S.", "M.S.") plus a school name, even if the resume never writes the
-  word "Education" as a header.
+  word "Education" as a header. `degree` is copied from the resume's own
+  words, never inferred -- "studying computer science" with no stated
+  degree level becomes a bare field like "Computer Science," never
+  "Bachelor of Science in Computer Science."
 - Contact info (name, email, phone, links) never belongs in a company,
   title, or fact field.
 - If a field is genuinely absent from the resume, use an empty string or an

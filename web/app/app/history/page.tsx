@@ -58,7 +58,7 @@ export default function HistoryPage() {
                   (app.status === "failed"
                     ? "bg-red-100 text-red-700"
                     : app.status === "done"
-                      ? "bg-[#eef0e2] text-[#5a6a34]"
+                      ? "bg-em-ok-bg text-em-ok-fg"
                       : "bg-em-soft text-em-deep")
                 }
               >

@@ -19,20 +19,20 @@ export function SentenceDemo() {
     <div id="rewrite" className="mx-auto max-w-270 px-8 py-19">
       <Reveal className="mx-auto mb-11 max-w-xl text-center">
         <div className="mb-2.5 font-mono text-[11px] tracking-widest text-em-accent">
-          TRY IT — LIVE DEMO
+          TRY IT · LIVE DEMO
         </div>
         <h2 className="mb-2.5 text-[27px] font-semibold text-ink sm:text-[38px]">
           Every sentence, your call.
         </h2>
         <p className="text-base leading-relaxed text-ink/70">
-          This is a demo resume. Click any sentence to select it — cycle
+          This is a demo resume. Click any sentence to select it, then cycle
           through three grounded rewrites, edit the words in place, or revert
           to exactly what was originally written.
         </p>
       </Reveal>
       <Reveal className="mb-4.5 text-center">
         <span className="inline-block animate-bounce rounded-full border border-em-softb bg-em-soft px-4 py-1.5 font-mono text-xs text-em-accent">
-          ↓ try it — click any sentence below
+          ↓ try it · click any sentence below
         </span>
       </Reveal>
       <Reveal className="mx-auto max-w-3xl rounded border border-em-softb bg-white px-6.5 py-11 shadow-[0_12px_44px_rgba(28,27,24,.13)] sm:px-13 sm:pt-11 sm:pb-10">
@@ -52,7 +52,7 @@ export function SentenceDemo() {
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <span className="text-[13.5px] font-semibold text-ink">
-                {PERSONA_EDUCATION_HEADER.title} — {PERSONA_EDUCATION_HEADER.sub}
+                {PERSONA_EDUCATION_HEADER.title} · {PERSONA_EDUCATION_HEADER.sub}
               </span>
               <span className="font-mono text-[11.5px] text-[#8f8874]">
                 {PERSONA_EDUCATION_HEADER.dates}
@@ -134,7 +134,7 @@ export function SentenceDemo() {
         </div>
       </Reveal>
       <Reveal className="mt-9 text-center text-[13px] text-[#8f8874]">
-        Every rewrite above is generated from the same confirmed fact — never
+        Every rewrite above is generated from the same confirmed fact, never
         from thin air.
       </Reveal>
     </div>

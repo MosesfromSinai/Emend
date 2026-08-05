@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -41,6 +42,9 @@ export default function WorkspacePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // true only for the no_master_resume case, so we can point the user back
+  // to /app instead of just naming the problem
+  const [needsMasterResume, setNeedsMasterResume] = useState(false);
 
   useEffect(() => {
     // A slow request for a stale/partial input (e.g. a URL fetch mid-paste)
@@ -83,6 +87,7 @@ export default function WorkspacePage() {
   async function start() {
     setBusy(true);
     setError(null);
+    setNeedsMasterResume(false);
     try {
       const { id } = await createApplication(
         mode === "tailor" ? { jdText: jdText || undefined, jdUrl: jdUrl || undefined } : undefined
@@ -90,7 +95,11 @@ export default function WorkspacePage() {
       router.push(`/app/applications/${id}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "no_master_resume") {
-        router.push("/app");
+        // Stay put -- navigating away here would silently drop whatever JD
+        // text/URL the user just typed, with no explanation. Tell them what
+        // happened and let them opt into leaving via the link below.
+        setNeedsMasterResume(true);
+        setError("You need to confirm a master resume before tailoring.");
         return;
       }
       setError(e instanceof ApiError ? e.message : "Something went wrong.");
@@ -101,7 +110,19 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-700">
+          {error}
+          {needsMasterResume && (
+            <>
+              {" "}
+              <Link href="/app" className="font-medium underline hover:text-red-900">
+                Go confirm your resume →
+              </Link>
+            </>
+          )}
+        </p>
+      )}
 
       <SegmentedControl
         value={mode}
@@ -121,7 +142,7 @@ export default function WorkspacePage() {
             </span>
           </div>
           <p className="mb-4 text-sm text-ink/70">
-            No job posting needed — typeset your confirmed resume as-is, word for word.
+            No job posting needed. Typeset your confirmed resume as-is, word for word.
           </p>
           <Button onClick={start} disabled={busy}>
             {busy ? "Starting…" : "Typeset my resume →"}
@@ -133,8 +154,8 @@ export default function WorkspacePage() {
             <h2 className="mb-1 font-serif text-xl font-semibold">Tailor to a posting</h2>
             <p className="mb-4 text-sm text-ink/70">
               Paste a job description, or a link to one. Emend grounds every
-              rewrite in the facts you confirmed — gaps are left as gaps, never
-              invented.
+              rewrite in the facts you confirmed, and gaps are left as gaps,
+              never invented.
             </p>
             <Textarea
               value={jdText}
@@ -202,7 +223,17 @@ export default function WorkspacePage() {
                 />
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink/50">
-                    Asked for in the posting · green means you already have it
+                    Asked for in the posting
+                  </p>
+                  <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/60">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-em-ok-fg" />
+                      Green: already in your confirmed facts
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-em-warn-fg" />
+                      Rose: a real gap, shown honestly instead of invented
+                    </span>
                   </p>
                   <KeywordChips
                     matched={preview.matched_keywords}
