@@ -171,13 +171,11 @@ export default function ApplicationPage({
   const tex = livePreviewTex ?? version.tex;
 
   return (
-    // Height fixed once here (header + <main>'s own padding only) instead of
-    // guessing this toolbar row's height too -- the row below is a normal
-    // flex child sized to its own content, and the flex-1 panel underneath
-    // gets whatever's actually left, so a wrapped toolbar row on a narrow
-    // viewport can't push the panel below the fold and force a second,
-    // independent page-level scrollbar on top of the panel's own.
-    <div className="flex h-[calc(100vh-96px)] flex-col gap-4">
+    // h-full, not a vh-minus-N guess: <main> in layout.tsx is now the sole
+    // scroll container with a definite flex-1 height, so the toolbar row
+    // below sizes to its own content and the flex-1 panel underneath just
+    // gets whatever's actually left -- no pixel math to get wrong.
+    <div className="flex h-full flex-col gap-4">
       {downloadError && <p className="shrink-0 text-sm text-red-700">{downloadError}</p>}
 
       <div className="shrink-0 flex flex-wrap items-center gap-4 rounded-lg border border-em-softb p-4">
