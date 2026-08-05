@@ -148,17 +148,58 @@ export default function OnboardingPage() {
     const remaining = allKeys.length - doneCount;
 
     return (
-      // h-full, not a vh-minus-N guess: <main> in layout.tsx is now the
-      // sole scroll container with a definite flex-1 height, so this only
-      // has to reserve room for its own fixed bottom bar (pb-18) -- no
-      // header/padding pixel math to get wrong here at all.
-      <div className="flex h-full flex-col gap-4 pb-18">
-        <div className="shrink-0">
-          <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
-          <p className="mt-1 text-sm text-ink/70">
-            These facts are the only material Emend will ever write from. Fix
-            anything that&apos;s off before confirming.
-          </p>
+      // h-full, not a vh-minus-N guess: <main> in layout.tsx is now the sole
+      // scroll container with a definite flex-1 height. The progress/actions
+      // bar moved from a fixed bottom overlay to this compact top-right
+      // block, so nothing reserves bottom space anymore -- the panels below
+      // get the full remaining height.
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex shrink-0 items-start justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
+            <p className="mt-1 text-sm text-ink/70">
+              These facts are the only material Emend will ever write from. Fix
+              anything that&apos;s off before confirming.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setStep("paste");
+                  router.replace("/app");
+                }}
+                disabled={busySave}
+              >
+                Back
+              </Button>
+              <button
+                type="button"
+                onClick={() => (allConfirmed ? confirm() : setShowLeaveModal(true))}
+                disabled={busySave}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium text-paper shadow-[0_2px_10px_rgba(138,58,48,.35)] transition-colors disabled:cursor-not-allowed disabled:shadow-none",
+                  allConfirmed
+                    ? "bg-em-accent hover:bg-em-deep"
+                    : "bg-em-accent/35 hover:bg-em-accent/45"
+                )}
+              >
+                {busySave ? "Saving…" : "Continue to tailoring →"}
+              </button>
+            </div>
+            <div className="w-44">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-em-line-2">
+                <div
+                  className="h-full bg-em-ok-fg transition-all"
+                  style={{ width: `${allKeys.length ? (doneCount / allKeys.length) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="mt-1 text-right text-xs text-em-muted">
+                {doneCount} of {allKeys.length} facts confirmed
+              </p>
+            </div>
+          </div>
         </div>
         <ParseError error={error} />
 
@@ -203,45 +244,6 @@ export default function OnboardingPage() {
             hoveredKey={hoveredKey}
             onHoverRow={setHoveredKey}
           />
-        </div>
-
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-em-line bg-paper/95 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-390 items-center gap-4 px-7 py-3">
-            <div className="flex-1">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-em-line-2">
-                <div
-                  className="h-full bg-em-bright transition-all"
-                  style={{ width: `${allKeys.length ? (doneCount / allKeys.length) * 100 : 0}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-em-muted">
-                {doneCount} of {allKeys.length} facts confirmed
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setStep("paste");
-                router.replace("/app");
-              }}
-              disabled={busySave}
-            >
-              Back
-            </Button>
-            <button
-              type="button"
-              onClick={() => (allConfirmed ? confirm() : setShowLeaveModal(true))}
-              disabled={busySave}
-              className={cn(
-                "rounded-lg px-4 py-2 text-sm font-medium text-paper transition-colors disabled:cursor-not-allowed",
-                allConfirmed
-                  ? "bg-em-accent hover:bg-em-deep"
-                  : "bg-em-accent/35 hover:bg-em-accent/45"
-              )}
-            >
-              {busySave ? "Saving…" : "Continue to tailoring →"}
-            </button>
-          </div>
         </div>
 
         {showLeaveModal && (
