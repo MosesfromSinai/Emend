@@ -39,7 +39,12 @@ from core.schemas import (
     TailoredSection,
 )
 from core.trace import record_call
-from core.validation import build_grounding_report, judge_bullets, validate_grounding
+from core.validation import (
+    GroundingError,
+    build_grounding_report,
+    judge_bullets,
+    validate_grounding,
+)
 
 MIN_JD_CHARS = 40
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -991,33 +996,56 @@ def _tailor_user_prompt(jd: JDExtract) -> str:
     )
 
 
+MAX_TAILOR_ATTEMPTS = 3
+
+
+def _tailor_repair_prompt(jd: JDExtract, error: GroundingError) -> str:
+    return (
+        f"{_tailor_user_prompt(jd)}\n\nYour previous attempt was rejected by "
+        f"grounding validation: {error}. Fix that specific issue and "
+        "resubmit -- every word and number must be a direct paraphrase of a "
+        "cited fact, never inferred or computed."
+    )
+
+
 def real_tailor_resume(
     master: MasterResume, jd: JDExtract, *, client: Any | None = None
 ) -> TailoredResume:
     """Tailor with Sonnet, then reject anything the validator will not accept.
 
     The master resume rides in the cached system block so repeated tailoring
-    for one session reuses the prefix.
+    for one session reuses the prefix. A grounding failure (an invented
+    number, an unsupported skill) is retried with the specific violation fed
+    back to the model -- one overreaching bullet in an otherwise-good draft
+    is usually a one-line fix once the model is told exactly what wasn't
+    grounded, which beats failing the whole job over it.
     """
-    result = structured_call_with_usage(
-        TAILOR_MODEL,
-        cacheable_system(TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"),
-        _tailor_user_prompt(jd),
-        TailoredResume,
-        client=client,
+    system = cacheable_system(
+        TAILOR_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"
     )
-    record_call(
-        label="tailor",
-        model=TAILOR_MODEL,
-        input_tokens=result.input_tokens,
-        output_tokens=result.output_tokens,
-        cache_read_input_tokens=result.cache_read_input_tokens,
-        cache_creation_input_tokens=result.cache_creation_input_tokens,
-    )
-    tailored = result.value
-    # Unvalidated output must never leave the pipeline.
-    validate_grounding(master, tailored)
-    return tailored
+    user_prompt = _tailor_user_prompt(jd)
+    last_error: GroundingError | None = None
+    for _attempt in range(MAX_TAILOR_ATTEMPTS):
+        result = structured_call_with_usage(
+            TAILOR_MODEL, system, user_prompt, TailoredResume, client=client
+        )
+        record_call(
+            label="tailor",
+            model=TAILOR_MODEL,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            cache_read_input_tokens=result.cache_read_input_tokens,
+            cache_creation_input_tokens=result.cache_creation_input_tokens,
+        )
+        tailored = result.value
+        try:
+            # Unvalidated output must never leave the pipeline.
+            validate_grounding(master, tailored)
+            return tailored
+        except GroundingError as exc:
+            last_error = exc
+            user_prompt = _tailor_repair_prompt(jd, exc)
+    raise last_error
 
 
 def real_tailor_result(

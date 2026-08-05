@@ -177,6 +177,22 @@ def test_tailor_rejects_output_inventing_numbers(sample_master):
         tailor(master, _jd(), client=FakeClient(payload))
 
 
+def test_tailor_retries_a_grounding_failure_with_the_violation_fed_back(sample_master):
+    # one invented number in an otherwise-fine draft shouldn't fail the
+    # whole job -- the model gets told exactly what was rejected and retries
+    master = sample_master
+    bad_payload = _tailored_payload(master)
+    bad_payload["experiences"][0]["bullets"][0]["variants"][0] += " across 47 teams"
+    good_payload = _tailored_payload(master)
+    client = FakeClient(bad_payload, good_payload)
+
+    result = tailor(master, _jd(), client=client)
+
+    assert result == TailoredResume(**good_payload)
+    assert len(client.calls) == 2
+    assert "47" in client.calls[1]["messages"][-1]["content"]
+
+
 def test_real_tailor_result_reports_judge_verdicts(sample_master):
     master = sample_master
     tailored_payload = _tailored_payload(master)
