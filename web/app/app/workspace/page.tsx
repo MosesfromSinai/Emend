@@ -170,7 +170,7 @@ export default function WorkspacePage() {
                   setJdUrl("");
                   setJdText(SAMPLE_POSTING);
                 }}
-                className="shrink-0 text-sm font-medium text-em-accent hover:text-em-deep"
+                className="shrink-0 rounded text-sm font-medium text-em-accent hover:text-em-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-em-accent"
               >
                 Use a sample posting
               </button>
@@ -184,6 +184,7 @@ export default function WorkspacePage() {
           </div>
 
           <div
+            aria-live="polite"
             className={cn(
               "rounded-xl border border-em-softb p-5",
               preview || previewError || previewBusy ? "bg-white" : "bg-em-soft"
@@ -228,10 +229,10 @@ export default function WorkspacePage() {
                   What tailoring actually changes
                 </p>
                 <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/70">
-                  <li>Reorders your skills so the ones they asked for read first.</li>
-                  <li>Leads each role with the bullets closest to the posting.</li>
-                  <li>Matches their vocabulary for work you actually did.</li>
-                  <li>Leaves every gap as a gap.</li>
+                  <li>Reorders your skills so the ones they asked for read first</li>
+                  <li>Leads each role with the bullets closest to the posting</li>
+                  <li>Matches their vocabulary for work you actually did</li>
+                  <li>Leaves every gap as a gap</li>
                 </ul>
               </div>
             )}

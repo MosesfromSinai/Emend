@@ -19,6 +19,7 @@ export function MatchScoreRing({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <div
+          aria-hidden="true"
           className="flex h-9 w-9 items-center justify-center rounded-full"
           style={{
             background: `conic-gradient(var(--em-accent) 0 ${pct}%, var(--em-softb) ${pct}% 100%)`,
