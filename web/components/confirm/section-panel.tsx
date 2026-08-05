@@ -682,7 +682,7 @@ export function SectionPanel({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-em-line bg-white">
+    <div className="flex min-h-0 flex-col rounded-xl border border-em-line bg-white lg:h-full lg:flex-1">
       <div className="flex gap-1 overflow-x-auto border-b border-em-line px-3 py-2">
         {SECTION_HEADINGS.map((heading, i) => {
           const p = progress[i];
