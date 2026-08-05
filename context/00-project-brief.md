@@ -143,7 +143,33 @@ job over one invented number. The Tailor screen's score card is reframed
 end to end as a compatibility read (`{pct}% · Strongly compatible` /
 `{pct}% · Compatible, with N real gap(s)`, never "Needs work"), and
 `TAILOR_SYSTEM` now says explicitly that reordering skills and bullets per
-posting is the point of tailoring, not optional polish.
+posting is the point of tailoring, not optional polish, plus a self-check
+step and an explicit "the posting is ordering-only, never a content
+source" instruction.
+
+**Audit round, same day.** An adversarial code review turned up and fixed six
+real grounding/matching bugs: `tailor()`'s public entrypoint wasn't actually
+gated on the stage-2 LLM judge (a judge-rejected bullet could still ship in
+the exported PDF — now `enforce_judge=True` in real mode, with the same
+retry-with-feedback treatment as a stage-1 rejection); `drop_known_names`
+dropped a real skill whenever it was merely a substring of the job title
+(e.g. "Java" inside "Java Developer" — now exact-match against the title
+and its comma/dash-separated segments only); `_numeric_tokens` was blind to
+a same-digit unit/magnitude swap ("20ms" restated as "20 seconds" passed
+grounding cleanly — now unit-tagged); `keyword_match` matched a multi-word
+keyword via a whole-resume bag of words, so "Team Leadership Experience"
+could match three unrelated facts that each contributed one word (now
+matched per-unit — one fact/skill/project span at a time); `_validate_skills`
+checked a tailored skill against a flattened set across every category
+instead of its own, so a skill could be silently relabeled into the wrong
+category; and `render_tex` fell back to the full master skills block
+whenever a tailor call correctly decided no skill category was relevant
+(`{}` is falsy in Python) instead of honoring that as a real decision.
+**Known gap, not yet resolved:** the ANTHROPIC_API_KEY in the local dev
+shell is rejected by Anthropic's API (401), so live empirical verification
+that real-mode tailoring actually reorders content differently per posting
+is blocked pending a working key — prompt-level instructions and unit
+tests are in place, but this hasn't been confirmed against the real model.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
