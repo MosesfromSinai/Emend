@@ -21,7 +21,7 @@ export function Hero() {
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <Link
             href="/app/workspace"
-            className="rounded-lg bg-ink px-6.5 py-3.5 text-[15px] font-semibold text-paper shadow-[0_2px_8px_rgba(28,27,24,.18)] hover:bg-em-deep"
+            className="rounded-lg bg-em-accent px-6.5 py-3.5 text-[15px] font-semibold text-paper shadow-[0_2px_10px_rgba(138,58,48,.35)] hover:bg-em-deep hover:shadow-[0_4px_14px_rgba(138,58,48,.45)]"
           >
             Tailor my resume →
           </Link>
