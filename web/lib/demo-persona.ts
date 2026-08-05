@@ -368,4 +368,8 @@ export const DEMO_FAQS: FaqItem[] = [
     q: "What if I don't like a rewritten sentence?",
     a: "Every sentence is interactive: cycle through three grounded rewrites, edit the words in place, or revert to your original phrasing for that line. You approve everything before it exports.",
   },
+  {
+    q: "I'm not comfortable putting my resume online. Is this safe?",
+    a: "That's a fair instinct. There's no sign-up, so nothing here is tied to your name or email unless your resume itself contains them. Your data sits behind a private, anonymous session tied to your browser, not a public account anyone can look up or browse. It's used only to build your tailored resume.",
+  },
 ];
