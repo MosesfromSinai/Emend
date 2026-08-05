@@ -4,7 +4,7 @@ from core.matching import (
     extract_keywords,
     keyword_match,
 )
-from core.schemas import JDExtract
+from core.schemas import Experience, Fact, JDExtract, MasterResume
 
 
 def test_keyword_match_scores_overlap_deterministically(sample_master):
@@ -62,6 +62,53 @@ def test_keyword_match_excludes_employer_names(sample_master):
     score, matched, missing = keyword_match(jd, sample_master)
     assert (score, matched) == (0.0, [])
     assert missing == ["Babbage"]
+
+
+def test_keyword_match_does_not_match_words_scattered_across_facts():
+    # "team", "leadership", and "experience" each appear in the resume, but
+    # in three unrelated facts that never jointly claim team-leadership
+    # experience -- a whole-resume bag-of-words test would wrongly mark
+    # "Team Leadership Experience" as matched. Each word must land inside a
+    # single fact/skill/project unit to count.
+    master = MasterResume(
+        name="Jamie Doe",
+        email="jamie@example.com",
+        phone="555-010-1010",
+        links=[],
+        education=[],
+        experiences=[
+            Experience(
+                id="ACME",
+                company="Acme Corp",
+                title="Engineer",
+                location="Remote",
+                start="Jan 2020",
+                end="Jan 2022",
+                facts=[
+                    Fact(id="ACME-01", text="Worked on a team of 5 engineers"),
+                    Fact(
+                        id="ACME-02",
+                        text="Gained experience with CI/CD pipelines",
+                    ),
+                    Fact(id="ACME-03", text="Club leadership role"),
+                ],
+            )
+        ],
+        projects=[],
+        skills={},
+    )
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["Team Leadership Experience"],
+    )
+
+    score, matched, missing = keyword_match(jd, master)
+    assert (score, matched) == (0.0, [])
+    assert missing == ["Team Leadership Experience"]
 
 
 def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):
@@ -170,6 +217,32 @@ def test_extract_keywords_drops_the_employers_own_name_and_title():
     assert "Roblox" not in keywords
     assert "Software Engineer" not in keywords
     assert "Lua" in keywords
+
+
+def test_drop_known_names_keeps_a_skill_that_is_merely_a_substring_of_the_title():
+    # "Java" is a real, independently-listed requirement here, not just an
+    # echo of the title -- it must survive even though "java" is a
+    # substring of "java developer".
+    keywords = drop_known_names(
+        extract_keywords(
+            "Java Developer at Acme. Requirements: Java, Spring Boot, SQL."
+        ),
+        "Acme",
+        "Java Developer",
+    )
+    assert "Java" in keywords
+    assert "Spring Boot" in keywords
+
+
+def test_drop_known_names_drops_a_comma_separated_title_segment():
+    # "Software Engineer, User Frameworks" is still just the title split
+    # across a comma -- both halves are the title, not a claimed skill
+    keywords = drop_known_names(
+        ["Software Engineer", "User Frameworks", "Lua"],
+        "Roblox",
+        "Software Engineer, User Frameworks",
+    )
+    assert keywords == ["Lua"]
 
 
 def test_extract_keywords_ignores_city_state_addresses():

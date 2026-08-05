@@ -258,32 +258,52 @@ def extract_keywords(text: str) -> list[str]:
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
 
 
+_NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s")
+
+
 def drop_known_names(keywords: list[str], *names: str) -> list[str]:
     """Neither the posting's own employer name nor its own job title is a
-    skill a candidate could ever claim -- filtered out wherever the
-    posting's own prose mentions itself ("At Roblox, we're building...")
-    or its header repeats the title ("Software Engineer, User Frameworks
-    San Mateo, CA...")."""
-    blocked = [name.lower() for name in names if name]
-    return [k for k in keywords if not any(k.lower() in name for name in blocked)]
+    skill a candidate could ever claim -- filtered out wherever a keyword
+    IS the posting's own employer name or job title, or one of its natural
+    comma/dash-separated segments, verbatim.
+
+    "Software Engineer, User Frameworks" splits into "Software Engineer"
+    and "User Frameworks" -- both are still just the title, not a claim.
+    "Java Developer" has no such separator, so a keyword "Java" (a real,
+    independently-listed requirement that happens to share a word with the
+    title) is a plain substring, not a segment, and survives."""
+    blocked: set[str] = set()
+    for name in names:
+        if not name:
+            continue
+        blocked.add(name.lower())
+        blocked.update(s.strip().lower() for s in _NAME_SEGMENT_SPLIT.split(name) if s.strip())
+    return [k for k in keywords if k.lower() not in blocked]
 
 
 def _tokens(text: str) -> set[str]:
     return set(TOKEN_PATTERN.findall(text.lower()))
 
 
-def _master_text(master: MasterResume) -> str:
-    """Searchable corpus: facts, skills, project names, and project tech.
+def _master_units(master: MasterResume) -> list[str]:
+    """Individually matchable spans of the resume: one unit per fact, per
+    skill entry, and per project (its name plus its own tech list).
+
+    A multi-word keyword must have all of its words land inside a single
+    unit to count as matched -- otherwise "team", "leadership", and
+    "experience" turning up in three unrelated facts would satisfy "Team
+    Leadership Experience" even though the candidate never made that claim
+    as one coherent bullet.
 
     Company, title, and coursework are deliberately excluded — a JD keyword
     matching only an employer name is not a skill the candidate claimed.
     """
-    facts = " ".join(fact.text for fact in master.fact_lookup().values())
-    skills = " ".join(skill for group in master.skills.values() for skill in group)
-    projects = " ".join(
+    units = [fact.text for fact in master.fact_lookup().values()]
+    units.extend(skill for group in master.skills.values() for skill in group)
+    units.extend(
         " ".join([project.name, *project.tech]) for project in master.projects
     )
-    return " ".join([facts, skills, projects])
+    return units
 
 
 def _unique_keywords(keywords: list[str]) -> list[str]:
@@ -294,13 +314,15 @@ def keyword_match(
     jd: JDExtract, master: MasterResume
 ) -> tuple[float, list[str], list[str]]:
     """Return normalized keyword overlap without using an LLM."""
-    resume_tokens = _tokens(_master_text(master))
+    resume_unit_tokens = [_tokens(unit) for unit in _master_units(master)]
     matched: list[str] = []
     missing: list[str] = []
     keywords = _unique_keywords(jd.keywords)
     for keyword in keywords:
         keyword_tokens = _tokens(keyword)
-        if keyword_tokens and keyword_tokens <= resume_tokens:
+        if keyword_tokens and any(
+            keyword_tokens <= unit_tokens for unit_tokens in resume_unit_tokens
+        ):
             matched.append(keyword)
         else:
             missing.append(keyword)
