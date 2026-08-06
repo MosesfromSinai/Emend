@@ -166,6 +166,9 @@ def render_tex(
     experience_order: list[str] | None = None,
     project_order: list[str] | None = None,
     section_order: list[str] | None = None,
+    excluded_facts: list[str] | None = None,
+    excluded_experiences: list[str] | None = None,
+    excluded_projects: list[str] | None = None,
 ) -> str:
     """Cheap tex-only render (no compile) -- used for the live Export preview."""
     import latex.render
@@ -173,9 +176,12 @@ def render_tex(
     return latex.render.render_tex(
         master,
         tailored,
-        selections,
-        fact_order,
-        experience_order,
-        project_order,
-        section_order,
+        selections=selections,
+        fact_order=fact_order,
+        experience_order=experience_order,
+        project_order=project_order,
+        section_order=section_order,
+        excluded_facts=excluded_facts,
+        excluded_experiences=excluded_experiences,
+        excluded_projects=excluded_projects,
     )
