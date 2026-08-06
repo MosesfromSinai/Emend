@@ -37,8 +37,12 @@ export type PaperSection = {
   blocks: PaperBlock[];
 };
 
-export function masterToSections(master: MasterResume): PaperSection[] {
+export function masterToSections(
+  master: MasterResume,
+  sectionOrder: string[] = []
+): PaperSection[] {
   const education: PaperSection = {
+    key: "EDUCATION",
     heading: "EDUCATION",
     blocks: master.education.map((edu, i) => ({
       key: `edu-${i}`,
@@ -57,6 +61,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
   };
 
   const experience: PaperSection = {
+    key: "EXPERIENCE",
     heading: "EXPERIENCE",
     blocks: master.experiences.map((exp) => ({
       key: exp.id,
@@ -68,6 +73,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
   };
 
   const projects: PaperSection = {
+    key: "PROJECTS",
     heading: "PROJECTS",
     blocks: master.projects.map((p) => ({
       key: p.id,
@@ -80,6 +86,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
 
   const skillCategories = Object.entries(master.skills);
   const skills: PaperSection = {
+    key: "SKILLS",
     heading: "TECHNICAL SKILLS",
     blocks: skillCategories.length
       ? [
@@ -97,7 +104,8 @@ export function masterToSections(master: MasterResume): PaperSection[] {
       : [],
   };
 
-  return [education, experience, projects, skills].filter((s) => s.blocks.length);
+  const visible = [education, experience, projects, skills].filter((s) => s.blocks.length);
+  return reorderByKey(visible, sectionOrder, (s) => s.key);
 }
 
 export function ResumePaper({
