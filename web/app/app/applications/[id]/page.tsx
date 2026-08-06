@@ -88,9 +88,37 @@ export default function ApplicationPage({
   }, [version]);
 
   const renderResume = useMemo(
-    () => (master ? tailoredToRenderResume(master, version?.tailored ?? null, selections) : null),
-    [master, version, selections]
+    () =>
+      master
+        ? tailoredToRenderResume(master, version?.tailored ?? null, selections, factOrder)
+        : null,
+    [master, version, selections, factOrder]
   );
+
+  // Where a fact currently sits within its own entry -- drives which
+  // up/down arrow is enabled and what moveFact actually swaps.
+  const factPositions = useMemo(() => {
+    const map = new Map<string, { refId: string; index: number; length: number }>();
+    if (!version?.tailored) return map;
+    for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
+      const order = factOrder[section.ref_id] ?? section.bullets.map((b) => b.source_fact_ids[0]);
+      order.forEach((factId, index) => map.set(factId, { refId: section.ref_id, index, length: order.length }));
+    }
+    return map;
+  }, [version, factOrder]);
+
+  function moveFact(factId: string, direction: "up" | "down") {
+    const position = factPositions.get(factId);
+    if (!position) return;
+    const swapWith = direction === "up" ? position.index - 1 : position.index + 1;
+    if (swapWith < 0 || swapWith >= position.length) return;
+    const current = [...factPositions.entries()]
+      .filter(([, p]) => p.refId === position.refId)
+      .sort((a, b) => a[1].index - b[1].index)
+      .map(([id]) => id);
+    [current[position.index], current[swapWith]] = [current[swapWith], current[position.index]];
+    setFactOrder((prev) => ({ ...prev, [position.refId]: current }));
+  }
 
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
