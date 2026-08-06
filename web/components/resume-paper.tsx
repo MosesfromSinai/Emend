@@ -29,6 +29,10 @@ export type PaperBlock = {
 };
 
 export type PaperSection = {
+  // stable identifier matching DEFAULT_SECTION_ORDER -- `heading` is just
+  // display text ("TECHNICAL SKILLS" vs. the key "SKILLS") and isn't safe
+  // to reorder against
+  key: string;
   heading: string;
   blocks: PaperBlock[];
 };
