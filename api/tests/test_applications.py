@@ -483,6 +483,33 @@ def test_preview_reorders_sections_via_section_order(client, master, pipeline):
     assert tex.index(r"\section{Experience}") < tex.index(r"\section{Education}")
 
 
+def test_preview_deletes_a_bullet_via_excluded_facts(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    default = client.post(f"/applications/{app_id}/preview", json={})
+    assert "Built an internal reporting dashboard" in default.json()["tex"]
+
+    deleted = client.post(
+        f"/applications/{app_id}/preview",
+        json={"excluded_facts": ["ACME-01"]},
+    )
+    assert "Built an internal reporting dashboard" not in deleted.json()["tex"]
+
+
+def test_preview_deletes_a_whole_entry_via_excluded_experiences(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    deleted = client.post(
+        f"/applications/{app_id}/preview",
+        json={"excluded_experiences": ["ACME"]},
+    )
+    tex = deleted.json()["tex"]
+    assert "Acme Corp" not in tex
+    assert r"\section{Experience}" not in tex
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
