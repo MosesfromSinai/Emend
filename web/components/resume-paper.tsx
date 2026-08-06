@@ -228,7 +228,9 @@ export function ResumePaper({
                     )}
                     {renderRowExtra?.(row)}
                   </div>
-                  {activeFactId === row.factId && renderRowControl?.(row)}
+                  {((row.factId !== undefined && row.factId === activeFactId) ||
+                    (row.overrideKey !== undefined && row.key === activeRowKey)) &&
+                    renderRowControl?.(row)}
                 </Fragment>
               ))}
             </div>
