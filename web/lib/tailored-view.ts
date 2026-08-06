@@ -115,6 +115,8 @@ export function tailoredToRenderResume(
     return [
       {
         ...src,
+        name: overrideText(textOverrides, `project:${src.id}:name`, src.name),
+        tech: overrideList(textOverrides, `project:${src.id}:tech`, src.tech),
         facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
@@ -123,5 +125,13 @@ export function tailoredToRenderResume(
     ];
   });
 
-  return { ...master, experiences, projects, skills: tailored.skills ?? master.skills };
+  const baseSkills = tailored.skills ?? master.skills;
+  const skills = Object.fromEntries(
+    Object.entries(baseSkills).map(([category, items]) => [
+      category,
+      overrideList(textOverrides, `skills:${category}`, items),
+    ])
+  );
+
+  return { ...master, name, email, phone, links, education, experiences, projects, skills };
 }
