@@ -107,6 +107,13 @@ def _run(session, app_row: Application) -> None:
             session.commit()
             return
         report = core_bridge.validate(master, tailored, score, matched, missing)
+    else:
+        # No JD doesn't mean no editing -- wrap the confirmed facts the same
+        # way a tailored resume is wrapped, so Export's per-line edit
+        # controls work here too. render_tex output is unchanged either way
+        # (verified: identical tex for tailored=None vs tailored=refactor(master)
+        # on the same master); this only adds the ability to edit a line.
+        tailored = core_bridge.refactor(master)
 
     try:
         tex, pdf_path, log = core_bridge.render_and_compile(master, tailored)

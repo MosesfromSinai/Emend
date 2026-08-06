@@ -127,6 +127,15 @@ def test_refactor_mode_end_to_end(client, master, pipeline):
     copied = Path(settings.artifacts_dir) / f"{version['id']}.pdf"
     assert copied.read_bytes() == b"%PDF-1.4 fake"
 
+    # refactor mode still wraps confirmed facts as a TailoredResume (3
+    # identical variants each) so Export's per-line edit controls work here
+    # too -- editing isn't gated behind having pasted a job posting.
+    assert version["tailored"] is not None
+    bullet = version["tailored"]["experiences"][0]["bullets"][0]
+    assert bullet["source_fact_ids"] == ["ACME-01"]
+    assert len(bullet["variants"]) == 3
+    assert bullet["variants"][0] == bullet["variants"][1] == bullet["variants"][2]
+
 
 def test_tailor_mode_end_to_end(client, master, pipeline):
     confirm_master(client, master)
