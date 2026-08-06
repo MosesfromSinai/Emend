@@ -59,9 +59,15 @@ def _bullet_row(text: str, source_ids: list[str]) -> dict:
 def _experience_row(
     exp: Experience, bullets: list[dict], overrides: dict[str, str] | None = None
 ) -> dict:
+    # start/end stay separate override keys (matching MasterResume's own
+    # fields) rather than one combined "dates" string, so the frontend's
+    # live preview -- which only has start/end, not a precomputed display
+    # string -- can apply the exact same overrides without a schema mismatch.
+    start = _ov(overrides, f"experience:{exp.id}:start", exp.start)
+    end = _ov(overrides, f"experience:{exp.id}:end", exp.end)
     return {
         "title": _ov(overrides, f"experience:{exp.id}:title", exp.title),
-        "dates": _ov(overrides, f"experience:{exp.id}:dates", f"{exp.start} -- {exp.end}"),
+        "dates": f"{start} -- {end}",
         "company": _ov(overrides, f"experience:{exp.id}:company", exp.company),
         "location": _ov(overrides, f"experience:{exp.id}:location", exp.location),
         "bullets": bullets,
