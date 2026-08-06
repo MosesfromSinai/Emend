@@ -641,6 +641,35 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
+                  renderBlockExtra={(block) => {
+                    if (activeEntryEdit !== block.key) return null;
+                    const isEducation = block.key.startsWith("edu-");
+                    const fields = isEducation
+                      ? [
+                          overrideField("School", `education:${block.key.slice(4)}:school`),
+                          overrideField("Degree", `education:${block.key.slice(4)}:degree`),
+                          overrideField("Location", `education:${block.key.slice(4)}:location`),
+                          overrideField("Graduation date", `education:${block.key.slice(4)}:grad_date`),
+                          overrideField("Coursework", `education:${block.key.slice(4)}:coursework`),
+                        ]
+                      : entryPositions.get(block.key)?.kind === "project"
+                        ? [
+                            overrideField("Project name", `project:${block.key}:name`),
+                            overrideField("Tech", `project:${block.key}:tech`),
+                          ]
+                        : [
+                            overrideField("Title", `experience:${block.key}:title`),
+                            overrideField("Company", `experience:${block.key}:company`),
+                            overrideField("Location", `experience:${block.key}:location`),
+                            overrideField("Start date", `experience:${block.key}:start`),
+                            overrideField("End date", `experience:${block.key}:end`),
+                          ];
+                    return (
+                      <div className="mb-2 rounded-lg border border-em-softb bg-em-soft p-3 text-xs">
+                        <div className="flex flex-col gap-2">{fields}</div>
+                      </div>
+                    );
+                  }}
                   sectionOrder={effectiveSectionOrder}
                   renderSectionControl={(section) => {
                     const idx = effectiveSectionOrder.indexOf(section.key);
