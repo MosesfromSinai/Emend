@@ -2,6 +2,7 @@ import type {
   ApplicationListItem,
   ApplicationOut,
   BulletSelection,
+  FactOrder,
   JdPreview,
   MasterResume,
   VersionOut,
@@ -121,21 +122,23 @@ export function getApplication(id: string): Promise<ApplicationOut> {
 
 export function previewApplication(
   id: string,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {}
 ): Promise<{ tex: string }> {
   return apiFetch(`/applications/${id}/preview`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections) }),
+    body: JSON.stringify({ selections: wireSelections(selections), fact_order: factOrder }),
   });
 }
 
 export function finalizeApplication(
   id: string,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {}
 ): Promise<VersionOut> {
   return apiFetch(`/applications/${id}/finalize`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections) }),
+    body: JSON.stringify({ selections: wireSelections(selections), fact_order: factOrder }),
   });
 }
 
