@@ -79,6 +79,15 @@ def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     return bullet.variants[sel.get("variant_idx", 0)]
 
 
+def _exclude_by_key(items: list, excluded: list[str] | None, key) -> list:
+    """Drop items whose key is in `excluded` -- the delete side of
+    reordering. None/empty excludes everything unchanged."""
+    if not excluded:
+        return items
+    excluded_set = set(excluded)
+    return [item for item in items if key(item) not in excluded_set]
+
+
 def _reorder_by_key(items: list, order: list[str] | None, key) -> list:
     """Reorder `items` to match `order` (a list of `key(item)` values).
 
