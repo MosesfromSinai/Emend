@@ -77,11 +77,29 @@ def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     return bullet.variants[sel.get("variant_idx", 0)]
 
 
+def _reorder_by_key(items: list, order: list[str] | None, key) -> list:
+    """Reorder `items` to match `order` (a list of `key(item)` values).
+
+    Items whose key isn't in `order` keep their relative position, appended
+    after the ordered ones -- a stale order (referencing a fact id that's
+    since been deleted) or a partial one (missing a newly added fact) can
+    never silently drop a bullet.
+    """
+    if not order:
+        return items
+    by_key = {key(item): item for item in items}
+    ordered = [by_key[k] for k in order if k in by_key]
+    seen = set(order)
+    ordered.extend(item for item in items if key(item) not in seen)
+    return ordered
+
+
 def _tailored_rows(
     sections: list[TailoredSection],
     by_id: dict[str, Experience | Project],
     kind: str,
     selections: dict[str, dict] | None = None,
+    fact_order: dict[str, list[str]] | None = None,
 ) -> list:
     rows = []
     for section in sections:
@@ -90,9 +108,14 @@ def _tailored_rows(
             raise ValueError(
                 f"tailored {kind} section references unknown id {section.ref_id!r}"
             )
+        ordered_bullets = _reorder_by_key(
+            section.bullets,
+            (fact_order or {}).get(section.ref_id),
+            lambda b: b.source_fact_ids[0],
+        )
         bullets = [
             _bullet_row(_resolve_variant(b, selections), b.source_fact_ids)
-            for b in section.bullets
+            for b in ordered_bullets
         ]
         if isinstance(source, Experience):
             rows.append(_experience_row(source, bullets))
@@ -105,6 +128,7 @@ def render_tex(
     master: MasterResume,
     tailored: TailoredResume | None,
     selections: dict[str, dict] | None = None,
+    fact_order: dict[str, list[str]] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -119,6 +143,10 @@ def render_tex(
     `{"custom_text": "..."}` for a user's own edit. No entry for a bullet:
     its first variant renders. Ignored in refactor mode (nothing to pick between).
 
+    `fact_order` (keyed by an experience/project's own id) reorders that
+    entry's bullets before rendering -- see `_reorder_by_key`. No entry for
+    an id: bullets render in their existing order.
+
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
     refactor mode. Coursework and skills carry no receipts: they are confirmed
@@ -128,11 +156,23 @@ def render_tex(
     """
     if tailored is None:
         experiences = [
-            _experience_row(e, [_bullet_row(f.text, [f.id]) for f in e.facts])
+            _experience_row(
+                e,
+                [
+                    _bullet_row(f.text, [f.id])
+                    for f in _reorder_by_key(e.facts, (fact_order or {}).get(e.id), lambda f: f.id)
+                ],
+            )
             for e in master.experiences
         ]
         projects = [
-            _project_row(p, [_bullet_row(f.text, [f.id]) for f in p.facts])
+            _project_row(
+                p,
+                [
+                    _bullet_row(f.text, [f.id])
+                    for f in _reorder_by_key(p.facts, (fact_order or {}).get(p.id), lambda f: f.id)
+                ],
+            )
             for p in master.projects
         ]
         skills = master.skills
@@ -141,8 +181,12 @@ def render_tex(
             e.id: e for e in master.experiences
         }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
-        experiences = _tailored_rows(tailored.experiences, exp_by_id, "experience", selections)
-        projects = _tailored_rows(tailored.projects, proj_by_id, "project", selections)
+        experiences = _tailored_rows(
+            tailored.experiences, exp_by_id, "experience", selections, fact_order
+        )
+        projects = _tailored_rows(
+            tailored.projects, proj_by_id, "project", selections, fact_order
+        )
         skills = tailored.skills
 
     links = [

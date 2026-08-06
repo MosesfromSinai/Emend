@@ -76,6 +76,9 @@ class BulletSelection(BaseModel):
 
 class RenderRequest(BaseModel):
     selections: dict[str, BulletSelection] = {}
+    # keyed by an experience/project's own id -- the full ordered list of
+    # that entry's fact ids after the user's up/down moves on Export
+    fact_order: dict[str, list[str]] = {}
 
 
 class RenderPreviewResponse(BaseModel):

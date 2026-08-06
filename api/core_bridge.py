@@ -133,19 +133,21 @@ def render_and_compile(
     master: MasterResume,
     tailored: TailoredResume | None,
     selections: dict[str, dict] | None = None,
+    fact_order: dict[str, list[str]] | None = None,
 ) -> tuple[str, str, str]:
     """(tex, pdf_path, log); pdf_path == "" means compile failure, log says why."""
     import latex
 
-    return latex.render_and_compile(master, tailored, selections)
+    return latex.render_and_compile(master, tailored, selections, fact_order)
 
 
 def render_tex(
     master: MasterResume,
     tailored: TailoredResume | None,
     selections: dict[str, dict] | None = None,
+    fact_order: dict[str, list[str]] | None = None,
 ) -> str:
     """Cheap tex-only render (no compile) -- used for the live Export preview."""
     import latex.render
 
-    return latex.render.render_tex(master, tailored, selections)
+    return latex.render.render_tex(master, tailored, selections, fact_order)
