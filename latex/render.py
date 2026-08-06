@@ -167,7 +167,7 @@ def render_tex(
                     for f in _reorder_by_key(e.facts, (fact_order or {}).get(e.id), lambda f: f.id)
                 ],
             )
-            for e in master.experiences
+            for e in _reorder_by_key(master.experiences, experience_order, lambda e: e.id)
         ]
         projects = [
             _project_row(
@@ -177,7 +177,7 @@ def render_tex(
                     for f in _reorder_by_key(p.facts, (fact_order or {}).get(p.id), lambda f: f.id)
                 ],
             )
-            for p in master.projects
+            for p in _reorder_by_key(master.projects, project_order, lambda p: p.id)
         ]
         skills = master.skills
     else:
@@ -186,10 +186,18 @@ def render_tex(
         }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
         experiences = _tailored_rows(
-            tailored.experiences, exp_by_id, "experience", selections, fact_order
+            _reorder_by_key(tailored.experiences, experience_order, lambda s: s.ref_id),
+            exp_by_id,
+            "experience",
+            selections,
+            fact_order,
         )
         projects = _tailored_rows(
-            tailored.projects, proj_by_id, "project", selections, fact_order
+            _reorder_by_key(tailored.projects, project_order, lambda s: s.ref_id),
+            proj_by_id,
+            "project",
+            selections,
+            fact_order,
         )
         skills = tailored.skills
 
