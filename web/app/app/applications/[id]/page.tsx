@@ -322,6 +322,13 @@ export default function ApplicationPage({
     setSelections((prev) => ({ ...prev, [factId]: selection }));
   }
 
+  // Free-text edits to anything that isn't a fact-backed bullet -- header
+  // info, education, skills, structural entry fields. Separate from
+  // selections/updateSelection above, which stays scoped to confirmed facts.
+  function updateTextOverride(key: string, value: string) {
+    setTextOverrides((prev) => ({ ...prev, [key]: value }));
+  }
+
   function changeView(next: View) {
     setView(next);
     setActiveFactId(null);
