@@ -35,6 +35,8 @@ export default function ApplicationPage({
   const [master, setMaster] = useState<MasterResume | null>(null);
   const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
   const [factOrder, setFactOrder] = useState<FactOrder>({});
+  const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
