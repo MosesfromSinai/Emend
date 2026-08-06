@@ -103,6 +103,7 @@ export function masterToSections(
             rows: skillCategories.map(([category, items]) => ({
               key: `skills-${category}`,
               text: `${category}: ${items.join(", ")}.`,
+              overrideKey: `skills:${category}`,
             })),
           },
         ]
