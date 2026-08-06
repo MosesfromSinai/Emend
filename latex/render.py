@@ -165,6 +165,7 @@ def render_tex(
     excluded_facts: list[str] | None = None,
     excluded_experiences: list[str] | None = None,
     excluded_projects: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -190,6 +191,13 @@ def render_tex(
     or whole entries from rendering entirely -- the delete side of Export's
     per-line/per-entry editing. Deleting is export-time only: it never
     touches the confirmed master resume or the stored tailored version.
+
+    `text_overrides` (keyed by a stable path string -- "name", "email",
+    "phone", "link:<i>", "education:<i>:<field>", "experience:<id>:<field>",
+    "project:<id>:<field>", "skills:<category>") lets a user free-text edit
+    any non-fact-backed field on the resume -- structural fields, header
+    info, education, skills -- separate from and on top of the fact-grounded
+    `selections` mechanism above, which stays scoped to confirmed facts.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
