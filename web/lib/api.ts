@@ -129,6 +129,7 @@ export interface RenderOptions {
   excludedFacts?: string[];
   excludedExperiences?: string[];
   excludedProjects?: string[];
+  textOverrides?: Record<string, string>;
 }
 
 function renderBody(opts: RenderOptions) {
@@ -141,6 +142,7 @@ function renderBody(opts: RenderOptions) {
     excluded_facts: opts.excludedFacts ?? [],
     excluded_experiences: opts.excludedExperiences ?? [],
     excluded_projects: opts.excludedProjects ?? [],
+    text_overrides: opts.textOverrides ?? {},
   };
 }
 
