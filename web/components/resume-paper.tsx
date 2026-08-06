@@ -152,9 +152,12 @@ export function ResumePaper({
               {block.title && (
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-[13.5px] font-semibold text-ink">{block.title}</span>
-                  {block.dates && (
-                    <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    {block.dates && (
+                      <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
+                    )}
+                    {renderBlockControl?.(block)}
+                  </span>
                 </div>
               )}
               {block.sub && (
