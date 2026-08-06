@@ -78,6 +78,25 @@ def _project_row(
     }
 
 
+def _education_row(
+    edu: Education, index: int, overrides: dict[str, str] | None = None
+) -> dict:
+    # coursework_text overridable as one free-text blob (matching how it
+    # already displays as one joined line) rather than per-course editing;
+    # an override clearing it to "" hides the coursework line entirely.
+    coursework_text = _ov(
+        overrides, f"education:{index}:coursework", ", ".join(edu.coursework)
+    )
+    return {
+        "school": _ov(overrides, f"education:{index}:school", edu.school),
+        "degree": _ov(overrides, f"education:{index}:degree", edu.degree),
+        "location": _ov(overrides, f"education:{index}:location", edu.location),
+        "grad_date": _ov(overrides, f"education:{index}:grad_date", edu.grad_date),
+        "coursework_text": coursework_text,
+        "has_coursework": bool(coursework_text),
+    }
+
+
 def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     """Which of a bullet's 3 variants (or a user edit) actually renders.
 
