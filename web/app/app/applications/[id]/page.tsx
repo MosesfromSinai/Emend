@@ -2,6 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 
+import { OverrideEditor } from "@/components/export/override-editor";
 import { RewriteBar } from "@/components/export/rewrite-bar";
 import { GroundedPill } from "@/components/grounded-pill";
 import { KeywordChips } from "@/components/keyword-chips";
@@ -46,6 +47,7 @@ export default function ApplicationPage({
   const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
   const [sectionOrder, setSectionOrder] = useState<string[]>([]);
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [excludedFacts, setExcludedFacts] = useState<string[]>([]);
   const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
   const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
