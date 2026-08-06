@@ -129,6 +129,8 @@ def render_tex(
     tailored: TailoredResume | None,
     selections: dict[str, dict] | None = None,
     fact_order: dict[str, list[str]] | None = None,
+    experience_order: list[str] | None = None,
+    project_order: list[str] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -145,7 +147,9 @@ def render_tex(
 
     `fact_order` (keyed by an experience/project's own id) reorders that
     entry's bullets before rendering -- see `_reorder_by_key`. No entry for
-    an id: bullets render in their existing order.
+    an id: bullets render in their existing order. `experience_order` /
+    `project_order` reorder the entries themselves (by their own id in
+    refactor mode, by `ref_id` in tailor mode) the same way.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
