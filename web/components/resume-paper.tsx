@@ -2,9 +2,13 @@
 
 import { Fragment, type ReactNode } from "react";
 
+import { reorderByKey } from "@/lib/order";
 import { cn } from "@/lib/utils";
 import { FactTag } from "@/components/ui/fact-tag";
 import type { MasterResume } from "@/lib/types";
+
+// mirrors latex/render.py's DEFAULT_SECTION_ORDER
+export const DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"];
 
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
 // Experience/Project fact; coursework and skill-category rows have no real
