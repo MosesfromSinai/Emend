@@ -329,6 +329,47 @@ export default function ApplicationPage({
     setTextOverrides((prev) => ({ ...prev, [key]: value }));
   }
 
+  // The current effective (already-overridden) raw value for a given
+  // text_overrides path -- used to seed an editor's starting text, since
+  // a row's display text (e.g. "Coursework: A, B.") isn't the raw value.
+  function currentOverrideValue(key: string): string {
+    if (!renderResume) return "";
+    const [kind, a, b] = key.split(":");
+    if (kind === "name") return renderResume.name;
+    if (kind === "email") return renderResume.email;
+    if (kind === "phone") return renderResume.phone;
+    if (kind === "link") return renderResume.links[Number(a)] ?? "";
+    if (kind === "education") {
+      const edu = renderResume.education[Number(a)];
+      if (!edu) return "";
+      if (b === "coursework") return edu.coursework.join(", ");
+      if (b === "school") return edu.school;
+      if (b === "degree") return edu.degree;
+      if (b === "location") return edu.location;
+      if (b === "grad_date") return edu.grad_date;
+    }
+    if (kind === "experience") {
+      const exp = renderResume.experiences.find((e) => e.id === a);
+      if (!exp) return "";
+      if (b === "title") return exp.title;
+      if (b === "company") return exp.company;
+      if (b === "location") return exp.location;
+      if (b === "start") return exp.start;
+      if (b === "end") return exp.end;
+    }
+    if (kind === "project") {
+      const proj = renderResume.projects.find((p) => p.id === a);
+      if (!proj) return "";
+      if (b === "name") return proj.name;
+      if (b === "tech") return proj.tech.join(", ");
+    }
+    if (kind === "skills") {
+      const category = key.slice("skills:".length);
+      return (renderResume.skills[category] ?? []).join(", ");
+    }
+    return "";
+  }
+
   function changeView(next: View) {
     setView(next);
     setActiveFactId(null);
@@ -494,12 +535,30 @@ export default function ApplicationPage({
                   hoveredKey={hoveredKey}
                   onHoverRow={setHoveredKey}
                   activeFactId={activeFactId}
+                  activeRowKey={activeRowKey}
                   onClickRow={(row) => {
                     const factId = row.factId;
-                    if (!factId || !bulletsByFactId.has(factId)) return;
-                    setActiveFactId((prev) => (prev === factId ? null : factId));
+                    if (factId && bulletsByFactId.has(factId)) {
+                      setActiveFactId((prev) => (prev === factId ? null : factId));
+                      setActiveRowKey(null);
+                      return;
+                    }
+                    if (row.overrideKey) {
+                      setActiveRowKey((prev) => (prev === row.key ? null : row.key));
+                      setActiveFactId(null);
+                    }
                   }}
                   renderRowControl={(row) => {
+                    if (row.overrideKey && row.key === activeRowKey) {
+                      return (
+                        <OverrideEditor
+                          key={row.key}
+                          label="edit this line"
+                          value={textOverrides[row.overrideKey] ?? row.text}
+                          onChange={(text) => updateTextOverride(row.overrideKey!, text)}
+                        />
+                      );
+                    }
                     const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
                     if (!bullet || !row.factId) return null;
                     const position = factPositions.get(row.factId);
