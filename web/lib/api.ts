@@ -120,25 +120,43 @@ export function getApplication(id: string): Promise<ApplicationOut> {
   return apiFetch(`/applications/${id}`);
 }
 
+function orderBody(factOrder: FactOrder, experienceOrder: string[], projectOrder: string[]) {
+  return {
+    fact_order: factOrder,
+    experience_order: experienceOrder.length ? experienceOrder : null,
+    project_order: projectOrder.length ? projectOrder : null,
+  };
+}
+
 export function previewApplication(
   id: string,
   selections: Record<string, BulletSelection>,
-  factOrder: FactOrder = {}
+  factOrder: FactOrder = {},
+  experienceOrder: string[] = [],
+  projectOrder: string[] = []
 ): Promise<{ tex: string }> {
   return apiFetch(`/applications/${id}/preview`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections), fact_order: factOrder }),
+    body: JSON.stringify({
+      selections: wireSelections(selections),
+      ...orderBody(factOrder, experienceOrder, projectOrder),
+    }),
   });
 }
 
 export function finalizeApplication(
   id: string,
   selections: Record<string, BulletSelection>,
-  factOrder: FactOrder = {}
+  factOrder: FactOrder = {},
+  experienceOrder: string[] = [],
+  projectOrder: string[] = []
 ): Promise<VersionOut> {
   return apiFetch(`/applications/${id}/finalize`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections), fact_order: factOrder }),
+    body: JSON.stringify({
+      selections: wireSelections(selections),
+      ...orderBody(factOrder, experienceOrder, projectOrder),
+    }),
   });
 }
 
