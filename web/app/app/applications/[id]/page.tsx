@@ -92,9 +92,16 @@ export default function ApplicationPage({
   const renderResume = useMemo(
     () =>
       master
-        ? tailoredToRenderResume(master, version?.tailored ?? null, selections, factOrder)
+        ? tailoredToRenderResume(
+            master,
+            version?.tailored ?? null,
+            selections,
+            factOrder,
+            experienceOrder,
+            projectOrder
+          )
         : null,
-    [master, version, selections, factOrder]
+    [master, version, selections, factOrder, experienceOrder, projectOrder]
   );
 
   // Where a fact currently sits within its own entry -- drives which
