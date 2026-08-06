@@ -14,7 +14,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
-import type { BulletSelection, MasterResume } from "@/lib/types";
+import type { BulletSelection, FactOrder, MasterResume } from "@/lib/types";
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -34,6 +34,7 @@ export default function ApplicationPage({
   const { application, error } = usePollApplication(id);
   const [master, setMaster] = useState<MasterResume | null>(null);
   const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
+  const [factOrder, setFactOrder] = useState<FactOrder>({});
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
