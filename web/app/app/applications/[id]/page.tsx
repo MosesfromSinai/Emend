@@ -336,6 +336,32 @@ export default function ApplicationPage({
                       />
                     );
                   }}
+                  renderBlockControl={(block) => {
+                    const position = entryPositions.get(block.key);
+                    if (!position) return null;
+                    return (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveEntry(block.key, "up")}
+                          disabled={position.index === 0}
+                          aria-label={`Move ${block.title} up`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveEntry(block.key, "down")}
+                          disabled={position.index === position.length - 1}
+                          aria-label={`Move ${block.title} down`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    );
+                  }}
                 />
               </div>
             )}
