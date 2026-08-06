@@ -48,7 +48,8 @@ export function tailoredBulletsByFactId(
 export function tailoredToRenderResume(
   master: MasterResume,
   tailored: TailoredResume | null,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {}
 ): MasterResume {
   if (!tailored) return master;
 
@@ -58,10 +59,11 @@ export function tailoredToRenderResume(
   const experiences = tailored.experiences.flatMap((section) => {
     const src = expById.get(section.ref_id);
     if (!src) return [];
+    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
-        facts: section.bullets.map((b) => ({
+        facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
         })),
@@ -72,10 +74,11 @@ export function tailoredToRenderResume(
   const projects = tailored.projects.flatMap((section) => {
     const src = projById.get(section.ref_id);
     if (!src) return [];
+    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
-        facts: section.bullets.map((b) => ({
+        facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
         })),
