@@ -185,6 +185,38 @@ def test_section_order_with_unknown_key_never_drops_a_section(master):
     assert r"\section{Technical Skills}" in tex
 
 
+def test_excluded_facts_drops_a_bullet(master, tailored):
+    tex = render_tex(master, tailored, excluded_facts=["BAB-01"])
+    assert "Authored the first machine-executable" not in tex
+    assert "Boosted processing throughput" in tex  # BAB-02 wasn't excluded
+
+
+def test_excluded_facts_drops_a_refactor_bullet_only(master):
+    tex = render_tex(master, None, excluded_facts=["BAB-01"])
+    assert "Wrote the first published algorithm" not in tex
+    assert "Improved punch-card throughput" in tex
+
+
+def test_excluded_experiences_drops_a_whole_entry(master):
+    tex = render_tex(master, None, excluded_experiences=["RS"])
+    assert "Royal Society" not in tex
+    assert "Babbage" in tex
+
+
+def test_excluded_projects_drops_a_whole_entry(master):
+    tex = render_tex(master, None, excluded_projects=["BERN"])
+    assert r"\section{Projects}" not in tex
+
+
+def test_excluding_all_bullets_still_renders_the_entry(master):
+    # BAB has 3 facts; deleting all of them leaves an empty bullet list but
+    # the entry (title/company/dates) still renders -- deleting content
+    # isn't the same as deleting the entry itself
+    tex = render_tex(master, None, excluded_facts=["BAB-01", "BAB-02", "BAB-03"])
+    assert "Babbage" in tex
+    assert "Wrote the first published algorithm" not in tex
+
+
 def test_injection_in_every_field_is_escaped(master):
     master.name = r"Evil \write18{rm -rf /} & Co"
     master.experiences[0].company = "100% $legit_corp^{tm}"
