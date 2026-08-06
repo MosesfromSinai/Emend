@@ -62,7 +62,14 @@ export default function ApplicationPage({
     let stale = false;
     const timer = setTimeout(async () => {
       try {
-        const result = await previewApplication(id, selections, factOrder, experienceOrder, projectOrder);
+        const result = await previewApplication(
+          id,
+          selections,
+          factOrder,
+          experienceOrder,
+          projectOrder,
+          sectionOrder
+        );
         if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
@@ -72,7 +79,7 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
-  }, [id, version, selections, factOrder, experienceOrder, projectOrder]);
+  }, [id, version, selections, factOrder, experienceOrder, projectOrder, sectionOrder]);
 
   const bulletsByFactId = useMemo(
     () => tailoredBulletsByFactId(version?.tailored ?? null),
