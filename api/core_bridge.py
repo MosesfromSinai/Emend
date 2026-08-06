@@ -140,6 +140,7 @@ def render_and_compile(
     excluded_facts: list[str] | None = None,
     excluded_experiences: list[str] | None = None,
     excluded_projects: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> tuple[str, str, str]:
     """(tex, pdf_path, log); pdf_path == "" means compile failure, log says why."""
     import latex
@@ -155,6 +156,7 @@ def render_and_compile(
         excluded_facts=excluded_facts,
         excluded_experiences=excluded_experiences,
         excluded_projects=excluded_projects,
+        text_overrides=text_overrides,
     )
 
 
