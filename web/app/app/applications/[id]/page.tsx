@@ -241,6 +241,32 @@ export default function ApplicationPage({
     else setProjectOrder(current);
   }
 
+  // Deleting is export-time only: it hides a bullet/entry from this
+  // rendered output, never the confirmed master resume or the stored
+  // tailored version -- so "undo" is just removing the id again, no
+  // separate confirm step needed.
+  function deleteFact(factId: string) {
+    setExcludedFacts((prev) => (prev.includes(factId) ? prev : [...prev, factId]));
+    setActiveFactId(null);
+  }
+
+  function restoreFact(factId: string) {
+    setExcludedFacts((prev) => prev.filter((id) => id !== factId));
+  }
+
+  function deleteEntry(refId: string, kind: "experience" | "project") {
+    if (kind === "experience") {
+      setExcludedExperiences((prev) => (prev.includes(refId) ? prev : [...prev, refId]));
+    } else {
+      setExcludedProjects((prev) => (prev.includes(refId) ? prev : [...prev, refId]));
+    }
+  }
+
+  function restoreEntry(refId: string, kind: "experience" | "project") {
+    if (kind === "experience") setExcludedExperiences((prev) => prev.filter((id) => id !== refId));
+    else setExcludedProjects((prev) => prev.filter((id) => id !== refId));
+  }
+
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
   }
