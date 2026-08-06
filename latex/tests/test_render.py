@@ -1,5 +1,6 @@
 import pytest
 
+from core.schemas import TailoredBullet, TailoredSection
 from latex.render import render_tex
 
 
@@ -135,6 +136,32 @@ def test_fact_order_with_stale_id_never_drops_a_bullet(master, tailored):
     tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-99"]})
     assert "Authored the first machine-executable" in tex
     assert "Boosted processing throughput" in tex
+
+
+def test_experience_order_reorders_tailored_entries(master, tailored):
+    # master's second experience (Royal Society) isn't in the tailored
+    # fixture's selection -- add it so there are two entries to reorder
+    tailored.experiences.append(
+        TailoredSection(
+            ref_id="RS",
+            bullets=[TailoredBullet(source_fact_ids=["RS-01"], variants=["x", "x", "x"])],
+        )
+    )
+    tex = render_tex(master, tailored, experience_order=["RS", "BAB"])
+    assert tex.index("Royal Society") < tex.index("Babbage")
+
+
+def test_project_order_reorders_refactor_entries(master):
+    second = master.projects[0].model_copy(update={"id": "SECOND", "name": "Second Project"})
+    master.projects.append(second)
+    tex = render_tex(master, None, project_order=["SECOND", "BERN"])
+    assert tex.index("Second Project") < tex.index("Bernoulli Number Generator")
+
+
+def test_entry_order_with_stale_id_never_drops_an_entry(master):
+    tex = render_tex(master, None, experience_order=["NOPE"])
+    assert "Babbage" in tex
+    assert "Royal Society" in tex
 
 
 def test_injection_in_every_field_is_escaped(master):
