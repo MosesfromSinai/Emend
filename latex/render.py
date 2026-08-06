@@ -225,5 +225,8 @@ def render_tex(
         "experiences": experiences,
         "projects": projects,
         "skills": skills,
+        "section_order": _reorder_by_key(
+            DEFAULT_SECTION_ORDER, section_order, lambda s: s
+        ),
     }
     return _env.get_template("resume.tex.jinja").render(**context)
