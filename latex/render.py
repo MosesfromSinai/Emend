@@ -220,6 +220,7 @@ def render_tex(
                         lambda f: f.id,
                     )
                 ],
+                text_overrides,
             )
             for e in _reorder_by_key(remaining_experiences, experience_order, lambda e: e.id)
         ]
@@ -234,6 +235,7 @@ def render_tex(
                         lambda f: f.id,
                     )
                 ],
+                text_overrides,
             )
             for p in _reorder_by_key(remaining_projects, project_order, lambda p: p.id)
         ]
