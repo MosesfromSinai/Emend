@@ -110,6 +110,9 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link href="/app" className="w-fit text-[12.5px] font-medium text-ink/60 hover:text-ink">
+        ← Back to confirm facts
+      </Link>
       {error && (
         <p className="text-sm text-red-700">
           {error}
@@ -135,14 +138,13 @@ export default function WorkspacePage() {
 
       {mode === "refactor" ? (
         <section className="rounded-xl border border-em-line bg-white p-5">
-          <div className="mb-1 flex items-center gap-2">
-            <h2 className="font-serif text-xl font-semibold">Just typeset it</h2>
-            <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
-              0 rewrites
-            </span>
-          </div>
+          <h2 className="mb-1 font-serif text-xl font-semibold">
+            Don&apos;t need to tailor, just want to edit?
+          </h2>
           <p className="mb-4 text-sm text-ink/70">
-            No job posting needed. Typeset your confirmed resume as-is, word for word.
+            No job posting needed. Typeset your confirmed resume as a starting
+            point, then click any line on the export screen to rewrite it
+            however you want, in your own words.
           </p>
           <Button onClick={start} disabled={busy}>
             {busy ? "Starting…" : "Typeset my resume →"}

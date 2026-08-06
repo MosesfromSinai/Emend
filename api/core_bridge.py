@@ -104,6 +104,14 @@ def tailor(master: MasterResume, jd: JDExtract) -> TailoredResume:
     return _core_fn("tailor")(master, jd)
 
 
+def refactor(master: MasterResume) -> TailoredResume:
+    """No-JD path: wraps confirmed facts as a TailoredResume (3 identical
+    variants each) so Export's per-line edit controls work the same way
+    here as they do for a tailored resume -- refactor mode isn't just a
+    typeset pass-through, it's still a resume someone may want to tweak."""
+    return _core_fn("refactor")(master)
+
+
 def validate(
     master: MasterResume,
     tailored: TailoredResume,

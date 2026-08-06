@@ -28,6 +28,11 @@ export function RewriteBar({
   const isCustom = Boolean(selection?.customText);
   const currentText = selection?.customText ?? bullet.variants[variantIdx];
   const showDiscard = isCustom || (editing && draft !== currentText);
+  // Refactor mode (no job posting) wraps each fact as 3 identical variants
+  // just so this same edit UI works there too -- cycling through three
+  // copies of the same sentence would be confusing, so hide that control
+  // and say so plainly instead of "rewrite 1 of 3."
+  const hasRealVariants = bullet.variants.some((v) => v !== bullet.variants[0]);
 
   function cycle(delta: number) {
     const next = (variantIdx + delta + bullet.variants.length) % bullet.variants.length;
@@ -58,40 +63,46 @@ export function RewriteBar({
     ? "your original wording"
     : isCustom
       ? `your edit, based on ${bullet.source_fact_ids[0]}`
-      : `rewrite ${variantIdx + 1} of 3 · ${bullet.source_fact_ids[0]}`;
+      : hasRealVariants
+        ? `rewrite ${variantIdx + 1} of 3 · ${bullet.source_fact_ids[0]}`
+        : `your confirmed wording · ${bullet.source_fact_ids[0]}`;
 
   return (
     <div className="my-1 rounded-[7px] border border-em-softb bg-em-soft p-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <button
-          type="button"
-          onClick={() => cycle(-1)}
-          aria-label="Previous rewrite"
-          className="rounded-md border border-em-softb bg-white px-2 py-0.5 text-sm text-ink hover:border-ink"
-        >
-          ‹
-        </button>
-        <div className="flex gap-1">
-          {bullet.variants.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                !isCustom && !viewingOriginal && i === variantIdx
-                  ? "bg-em-accent"
-                  : "bg-[#d9c9c0]"
-              )}
-            />
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => cycle(1)}
-          aria-label="Next rewrite"
-          className="rounded-md border border-em-softb bg-white px-2 py-0.5 text-sm text-ink hover:border-ink"
-        >
-          ›
-        </button>
+        {hasRealVariants && (
+          <>
+            <button
+              type="button"
+              onClick={() => cycle(-1)}
+              aria-label="Previous rewrite"
+              className="rounded-md border border-em-softb bg-white px-2 py-0.5 text-sm text-ink hover:border-ink"
+            >
+              ‹
+            </button>
+            <div className="flex gap-1">
+              {bullet.variants.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    !isCustom && !viewingOriginal && i === variantIdx
+                      ? "bg-em-accent"
+                      : "bg-[#d9c9c0]"
+                  )}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => cycle(1)}
+              aria-label="Next rewrite"
+              className="rounded-md border border-em-softb bg-white px-2 py-0.5 text-sm text-ink hover:border-ink"
+            >
+              ›
+            </button>
+          </>
+        )}
 
         {!editing && (
           <button
