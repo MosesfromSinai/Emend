@@ -554,7 +554,7 @@ export default function ApplicationPage({
                         <OverrideEditor
                           key={row.key}
                           label="edit this line"
-                          value={textOverrides[row.overrideKey] ?? row.text}
+                          value={currentOverrideValue(row.overrideKey)}
                           onChange={(text) => updateTextOverride(row.overrideKey!, text)}
                         />
                       );
