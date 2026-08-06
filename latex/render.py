@@ -220,19 +220,27 @@ def render_tex(
             e.id: e for e in master.experiences
         }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
+        remaining_exp_sections = _exclude_by_key(
+            tailored.experiences, excluded_experiences, lambda s: s.ref_id
+        )
+        remaining_proj_sections = _exclude_by_key(
+            tailored.projects, excluded_projects, lambda s: s.ref_id
+        )
         experiences = _tailored_rows(
-            _reorder_by_key(tailored.experiences, experience_order, lambda s: s.ref_id),
+            _reorder_by_key(remaining_exp_sections, experience_order, lambda s: s.ref_id),
             exp_by_id,
             "experience",
             selections,
             fact_order,
+            excluded_facts,
         )
         projects = _tailored_rows(
-            _reorder_by_key(tailored.projects, project_order, lambda s: s.ref_id),
+            _reorder_by_key(remaining_proj_sections, project_order, lambda s: s.ref_id),
             proj_by_id,
             "project",
             selections,
             fact_order,
+            excluded_facts,
         )
         skills = tailored.skills
 
