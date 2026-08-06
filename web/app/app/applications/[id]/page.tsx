@@ -96,6 +96,10 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
+    // renderOptions is a fresh object every render -- depending on it
+    // directly would re-fire this debounced effect on every render instead
+    // of only when one of its underlying fields actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     id,
     version,
@@ -445,6 +449,23 @@ export default function ApplicationPage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {view === "resume" ? (
           <div className="rounded-[10px] bg-em-line p-6.5">
+            {removedItems.length > 0 && (
+              <div className="mx-auto mb-4 flex max-w-215 flex-wrap items-center gap-2 rounded-lg border border-em-softb bg-white px-3 py-2 text-xs text-ink/70">
+                <span className="font-semibold text-ink">
+                  {removedItems.length} removed from this export:
+                </span>
+                {removedItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.restore}
+                    className="rounded-full border border-em-softb px-2 py-0.5 hover:border-ink hover:text-ink"
+                  >
+                    {item.label} · restore
+                  </button>
+                ))}
+              </div>
+            )}
             {renderResume && (
               <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
                 <ResumePaper
