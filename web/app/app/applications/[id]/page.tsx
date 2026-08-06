@@ -7,14 +7,15 @@ import { GroundedPill } from "@/components/grounded-pill";
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
 import { ProvenancePanel } from "@/components/provenance-panel";
-import { ResumePaper } from "@/components/resume-paper";
+import { DEFAULT_SECTION_ORDER, ResumePaper, masterToSections } from "@/components/resume-paper";
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
+import { reorderByKey } from "@/lib/order";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
-import type { BulletSelection, MasterResume } from "@/lib/types";
+import type { BulletSelection, FactOrder, MasterResume } from "@/lib/types";
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -34,6 +35,10 @@ export default function ApplicationPage({
   const { application, error } = usePollApplication(id);
   const [master, setMaster] = useState<MasterResume | null>(null);
   const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
+  const [factOrder, setFactOrder] = useState<FactOrder>({});
+  const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
+  const [sectionOrder, setSectionOrder] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
@@ -57,7 +62,14 @@ export default function ApplicationPage({
     let stale = false;
     const timer = setTimeout(async () => {
       try {
-        const result = await previewApplication(id, selections);
+        const result = await previewApplication(
+          id,
+          selections,
+          factOrder,
+          experienceOrder,
+          projectOrder,
+          sectionOrder
+        );
         if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
@@ -67,7 +79,7 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
-  }, [id, version, selections]);
+  }, [id, version, selections, factOrder, experienceOrder, projectOrder, sectionOrder]);
 
   const bulletsByFactId = useMemo(
     () => tailoredBulletsByFactId(version?.tailored ?? null),
@@ -87,9 +99,95 @@ export default function ApplicationPage({
   }, [version]);
 
   const renderResume = useMemo(
-    () => (master ? tailoredToRenderResume(master, version?.tailored ?? null, selections) : null),
-    [master, version, selections]
+    () =>
+      master
+        ? tailoredToRenderResume(
+            master,
+            version?.tailored ?? null,
+            selections,
+            factOrder,
+            experienceOrder,
+            projectOrder
+          )
+        : null,
+    [master, version, selections, factOrder, experienceOrder, projectOrder]
   );
+
+  // The currently-visible section headings (empty sections don't render),
+  // reordered by the user's saved preference -- reordering against what's
+  // actually on screen, not the full 4-key space, keeps adjacent-arrow
+  // enablement correct even as sections appear/disappear with edits.
+  const effectiveSectionOrder = useMemo(() => {
+    const visibleKeys = renderResume
+      ? masterToSections(renderResume).map((s) => s.key)
+      : DEFAULT_SECTION_ORDER;
+    return reorderByKey(visibleKeys, sectionOrder, (k) => k);
+  }, [renderResume, sectionOrder]);
+
+  function moveSection(key: string, direction: "up" | "down") {
+    const idx = effectiveSectionOrder.indexOf(key);
+    if (idx === -1) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= effectiveSectionOrder.length) return;
+    const next = [...effectiveSectionOrder];
+    [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+    setSectionOrder(next);
+  }
+
+  // Where a fact currently sits within its own entry -- drives which
+  // up/down arrow is enabled and what moveFact actually swaps.
+  const factPositions = useMemo(() => {
+    const map = new Map<string, { refId: string; index: number; length: number }>();
+    if (!version?.tailored) return map;
+    for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
+      const order = factOrder[section.ref_id] ?? section.bullets.map((b) => b.source_fact_ids[0]);
+      order.forEach((factId, index) => map.set(factId, { refId: section.ref_id, index, length: order.length }));
+    }
+    return map;
+  }, [version, factOrder]);
+
+  function moveFact(factId: string, direction: "up" | "down") {
+    const position = factPositions.get(factId);
+    if (!position) return;
+    const swapWith = direction === "up" ? position.index - 1 : position.index + 1;
+    if (swapWith < 0 || swapWith >= position.length) return;
+    const current = [...factPositions.entries()]
+      .filter(([, p]) => p.refId === position.refId)
+      .sort((a, b) => a[1].index - b[1].index)
+      .map(([id]) => id);
+    [current[position.index], current[swapWith]] = [current[swapWith], current[position.index]];
+    setFactOrder((prev) => ({ ...prev, [position.refId]: current }));
+  }
+
+  // Where an experience/project entry currently sits among its own kind --
+  // drives which up/down arrow is enabled on that entry's header.
+  const entryPositions = useMemo(() => {
+    const map = new Map<string, { kind: "experience" | "project"; index: number; length: number }>();
+    if (!version?.tailored) return map;
+    const expOrder = experienceOrder.length
+      ? experienceOrder
+      : version.tailored.experiences.map((s) => s.ref_id);
+    expOrder.forEach((refId, index) => map.set(refId, { kind: "experience", index, length: expOrder.length }));
+    const projOrder = projectOrder.length
+      ? projectOrder
+      : version.tailored.projects.map((s) => s.ref_id);
+    projOrder.forEach((refId, index) => map.set(refId, { kind: "project", index, length: projOrder.length }));
+    return map;
+  }, [version, experienceOrder, projectOrder]);
+
+  function moveEntry(refId: string, direction: "up" | "down") {
+    const position = entryPositions.get(refId);
+    if (!position) return;
+    const swapWith = direction === "up" ? position.index - 1 : position.index + 1;
+    if (swapWith < 0 || swapWith >= position.length) return;
+    const current = [...entryPositions.entries()]
+      .filter(([, p]) => p.kind === position.kind)
+      .sort((a, b) => a[1].index - b[1].index)
+      .map(([id]) => id);
+    [current[position.index], current[swapWith]] = [current[swapWith], current[position.index]];
+    if (position.kind === "experience") setExperienceOrder(current);
+    else setProjectOrder(current);
+  }
 
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
@@ -110,7 +208,14 @@ export default function ApplicationPage({
     // activation window has elapsed and Safari/Chrome silently block it.
     const tab = window.open("", "_blank");
     try {
-      const updated = await finalizeApplication(id, selections);
+      const updated = await finalizeApplication(
+        id,
+        selections,
+        factOrder,
+        experienceOrder,
+        projectOrder,
+        sectionOrder
+      );
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
       const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
       if (tab) {
@@ -251,6 +356,7 @@ export default function ApplicationPage({
                   renderRowControl={(row) => {
                     const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
                     if (!bullet || !row.factId) return null;
+                    const position = factPositions.get(row.factId);
                     return (
                       <RewriteBar
                         key={row.factId}
@@ -261,7 +367,62 @@ export default function ApplicationPage({
                           "Original wording unavailable for this version."
                         }
                         onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
+                        canMoveUp={position ? position.index > 0 : false}
+                        canMoveDown={position ? position.index < position.length - 1 : false}
+                        onMove={(direction) => moveFact(row.factId!, direction)}
                       />
+                    );
+                  }}
+                  renderBlockControl={(block) => {
+                    const position = entryPositions.get(block.key);
+                    if (!position) return null;
+                    return (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveEntry(block.key, "up")}
+                          disabled={position.index === 0}
+                          aria-label={`Move ${block.title} up`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveEntry(block.key, "down")}
+                          disabled={position.index === position.length - 1}
+                          aria-label={`Move ${block.title} down`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    );
+                  }}
+                  sectionOrder={effectiveSectionOrder}
+                  renderSectionControl={(section) => {
+                    const idx = effectiveSectionOrder.indexOf(section.key);
+                    return (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveSection(section.key, "up")}
+                          disabled={idx <= 0}
+                          aria-label={`Move ${section.heading} section up`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveSection(section.key, "down")}
+                          disabled={idx === -1 || idx >= effectiveSectionOrder.length - 1}
+                          aria-label={`Move ${section.heading} section down`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↓
+                        </button>
+                      </div>
                     );
                   }}
                 />

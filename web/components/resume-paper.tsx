@@ -2,9 +2,13 @@
 
 import { Fragment, type ReactNode } from "react";
 
+import { reorderByKey } from "@/lib/order";
 import { cn } from "@/lib/utils";
 import { FactTag } from "@/components/ui/fact-tag";
 import type { MasterResume } from "@/lib/types";
+
+// mirrors latex/render.py's DEFAULT_SECTION_ORDER
+export const DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"];
 
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
 // Experience/Project fact; coursework and skill-category rows have no real
@@ -25,12 +29,20 @@ export type PaperBlock = {
 };
 
 export type PaperSection = {
+  // stable identifier matching DEFAULT_SECTION_ORDER -- `heading` is just
+  // display text ("TECHNICAL SKILLS" vs. the key "SKILLS") and isn't safe
+  // to reorder against
+  key: string;
   heading: string;
   blocks: PaperBlock[];
 };
 
-export function masterToSections(master: MasterResume): PaperSection[] {
+export function masterToSections(
+  master: MasterResume,
+  sectionOrder: string[] = []
+): PaperSection[] {
   const education: PaperSection = {
+    key: "EDUCATION",
     heading: "EDUCATION",
     blocks: master.education.map((edu, i) => ({
       key: `edu-${i}`,
@@ -49,6 +61,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
   };
 
   const experience: PaperSection = {
+    key: "EXPERIENCE",
     heading: "EXPERIENCE",
     blocks: master.experiences.map((exp) => ({
       key: exp.id,
@@ -60,6 +73,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
   };
 
   const projects: PaperSection = {
+    key: "PROJECTS",
     heading: "PROJECTS",
     blocks: master.projects.map((p) => ({
       key: p.id,
@@ -72,6 +86,7 @@ export function masterToSections(master: MasterResume): PaperSection[] {
 
   const skillCategories = Object.entries(master.skills);
   const skills: PaperSection = {
+    key: "SKILLS",
     heading: "TECHNICAL SKILLS",
     blocks: skillCategories.length
       ? [
@@ -89,7 +104,8 @@ export function masterToSections(master: MasterResume): PaperSection[] {
       : [],
   };
 
-  return [education, experience, projects, skills].filter((s) => s.blocks.length);
+  const visible = [education, experience, projects, skills].filter((s) => s.blocks.length);
+  return reorderByKey(visible, sectionOrder, (s) => s.key);
 }
 
 export function ResumePaper({
@@ -105,6 +121,9 @@ export function ResumePaper({
   activeFactId,
   renderRowControl,
   renderRowExtra,
+  renderBlockControl,
+  renderSectionControl,
+  sectionOrder,
 }: {
   master: MasterResume;
   name: string;
@@ -118,8 +137,11 @@ export function ResumePaper({
   activeFactId?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
+  renderBlockControl?: (block: PaperBlock) => ReactNode;
+  renderSectionControl?: (section: PaperSection) => ReactNode;
+  sectionOrder?: string[];
 }) {
-  const sections = masterToSections(master);
+  const sections = masterToSections(master, sectionOrder);
   const isExport = size === "export";
 
   return (
@@ -135,9 +157,12 @@ export function ResumePaper({
       <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
 
       {sections.map((section) => (
-        <div key={section.heading}>
-          <div className="mt-3.5 mb-2.5 border-b border-[#111] pb-0.5 font-serif text-[13px] font-bold tracking-widest text-[#111]">
-            {section.heading}
+        <div key={section.key}>
+          <div className="mt-3.5 mb-2.5 flex items-center justify-between border-b border-[#111] pb-0.5">
+            <span className="font-serif text-[13px] font-bold tracking-widest text-[#111]">
+              {section.heading}
+            </span>
+            {renderSectionControl?.(section)}
           </div>
           {section.blocks.map((block) => (
             <div
@@ -150,9 +175,12 @@ export function ResumePaper({
               {block.title && (
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-[13.5px] font-semibold text-ink">{block.title}</span>
-                  {block.dates && (
-                    <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    {block.dates && (
+                      <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
+                    )}
+                    {renderBlockControl?.(block)}
+                  </span>
                 </div>
               )}
               {block.sub && (

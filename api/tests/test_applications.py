@@ -7,6 +7,7 @@ from api import core_bridge
 from api.core_bridge import CoreUnavailableError
 from core.schemas import (
     BulletVerdict,
+    Fact,
     JDExtract,
     Report,
     TailoredBullet,
@@ -76,7 +77,7 @@ def pipeline(monkeypatch, tmp_path):
             ],
         )
 
-    def render_and_compile(master, tailored, selections=None):
+    def render_and_compile(master, tailored, *_args, **_kwargs):
         calls.append("render_and_compile")
         pdf = tmp_path / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
@@ -396,6 +397,92 @@ def test_preview_renders_the_selected_variant(client, master, pipeline, monkeypa
     assert "first phrasing" not in picked.json()["tex"]
 
 
+def test_preview_reorders_bullets_via_fact_order(client, master, pipeline, monkeypatch):
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(variants=["bullet one"] * 3, source_fact_ids=["ACME-01"]),
+                        TailoredBullet(variants=["bullet two"] * 3, source_fact_ids=["ACME-02"]),
+                    ],
+                )
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    default = client.post(f"/applications/{app_id}/preview", json={})
+    tex = default.json()["tex"]
+    assert tex.index("bullet one") < tex.index("bullet two")
+
+    reordered = client.post(
+        f"/applications/{app_id}/preview",
+        json={"fact_order": {"ACME": ["ACME-02", "ACME-01"]}},
+    )
+    tex = reordered.json()["tex"]
+    assert tex.index("bullet two") < tex.index("bullet one")
+
+
+def test_preview_reorders_entries_via_experience_order(client, master, pipeline, monkeypatch):
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[TailoredBullet(variants=["a"] * 3, source_fact_ids=["ACME-01"])],
+                ),
+                TailoredSection(
+                    ref_id="GLOBEX",
+                    bullets=[TailoredBullet(variants=["b"] * 3, source_fact_ids=["GLOBEX-01"])],
+                ),
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    second_experience = master.experiences[0].model_copy(
+        update={
+            "id": "GLOBEX",
+            "company": "Globex Corp",
+            "facts": [Fact(id="GLOBEX-01", text="Migrated the reporting pipeline")],
+        }
+    )
+    two_experiences = master.model_copy(
+        update={"experiences": master.experiences + [second_experience]}
+    )
+    confirm_master(client, two_experiences)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    reordered = client.post(
+        f"/applications/{app_id}/preview",
+        json={"experience_order": ["GLOBEX", "ACME"]},
+    )
+    tex = reordered.json()["tex"]
+    assert tex.index("Globex") < tex.index("Acme")
+
+
+def test_preview_reorders_sections_via_section_order(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    reordered = client.post(
+        f"/applications/{app_id}/preview",
+        json={"section_order": ["PROJECTS", "EXPERIENCE", "EDUCATION", "SKILLS"]},
+    )
+    tex = reordered.json()["tex"]
+    assert tex.index(r"\section{Projects}") < tex.index(r"\section{Experience}")
+    assert tex.index(r"\section{Experience}") < tex.index(r"\section{Education}")
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
@@ -436,7 +523,7 @@ def test_preview_fails_cleanly_when_master_no_longer_matches(
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "stale_tailored_resume"
 
-    def raising_render_and_compile(master_, tailored, selections=None):
+    def raising_render_and_compile(master_, tailored, *_args, **_kwargs):
         raise ValueError("tailored experience section references unknown id: ACME")
 
     monkeypatch.setattr(core_bridge, "render_and_compile", raising_render_and_compile)

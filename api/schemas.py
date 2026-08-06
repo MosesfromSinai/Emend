@@ -76,6 +76,19 @@ class BulletSelection(BaseModel):
 
 class RenderRequest(BaseModel):
     selections: dict[str, BulletSelection] = {}
+    # keyed by an experience/project's own id -- the full ordered list of
+    # that entry's fact ids after the user's up/down moves on Export
+    fact_order: dict[str, list[str]] = {}
+    # the full ordered list of experience/project entry ids (ref_ids in
+    # tailor mode, the entry's own id in refactor mode) after the user's
+    # up/down moves on an entry's header -- None means no override
+    experience_order: list[str] | None = None
+    project_order: list[str] | None = None
+    # the full ordered list of the four top-level section keys ("EDUCATION",
+    # "EXPERIENCE", "PROJECTS", "SKILLS") after the user reorders them on
+    # Export -- None or a partial/unrecognized list falls back to the
+    # default relative order for whatever's missing
+    section_order: list[str] | None = None
 
 
 class RenderPreviewResponse(BaseModel):

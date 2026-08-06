@@ -1,5 +1,7 @@
+import { reorderByKey } from "@/lib/order";
 import type {
   BulletSelection,
+  FactOrder,
   MasterResume,
   TailoredBullet,
   TailoredResume,
@@ -35,20 +37,27 @@ export function tailoredBulletsByFactId(
 export function tailoredToRenderResume(
   master: MasterResume,
   tailored: TailoredResume | null,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {},
+  experienceOrder: string[] = [],
+  projectOrder: string[] = []
 ): MasterResume {
   if (!tailored) return master;
 
   const expById = new Map(master.experiences.map((e) => [e.id, e]));
   const projById = new Map(master.projects.map((p) => [p.id, p]));
 
-  const experiences = tailored.experiences.flatMap((section) => {
+  const orderedExperienceSections = reorderByKey(tailored.experiences, experienceOrder, (s) => s.ref_id);
+  const orderedProjectSections = reorderByKey(tailored.projects, projectOrder, (s) => s.ref_id);
+
+  const experiences = orderedExperienceSections.flatMap((section) => {
     const src = expById.get(section.ref_id);
     if (!src) return [];
+    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
-        facts: section.bullets.map((b) => ({
+        facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
         })),
@@ -56,13 +65,14 @@ export function tailoredToRenderResume(
     ];
   });
 
-  const projects = tailored.projects.flatMap((section) => {
+  const projects = orderedProjectSections.flatMap((section) => {
     const src = projById.get(section.ref_id);
     if (!src) return [];
+    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
-        facts: section.bullets.map((b) => ({
+        facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
         })),

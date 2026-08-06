@@ -111,7 +111,8 @@
     \BLOCK{endfor}
 \end{center}
 
-\BLOCK{if education}
+\BLOCK{for section_key in section_order}
+\BLOCK{if section_key == "EDUCATION" and education}
 %-----------EDUCATION-----------
 \section{Education}
   \resumeSubHeadingListStart
@@ -126,9 +127,7 @@
     \BLOCK{endif}
     \BLOCK{endfor}
   \resumeSubHeadingListEnd
-\BLOCK{endif}
-
-\BLOCK{if experiences}
+\BLOCK{elif section_key == "EXPERIENCE" and experiences}
 %-----------EXPERIENCE-----------
 \section{Experience}
   \resumeSubHeadingListStart
@@ -144,9 +143,7 @@
       \resumeItemListEnd
     \BLOCK{endfor}
   \resumeSubHeadingListEnd
-\BLOCK{endif}
-
-\BLOCK{if projects}
+\BLOCK{elif section_key == "PROJECTS" and projects}
 %-----------PROJECTS-----------
 \section{Projects}
     \resumeSubHeadingListStart
@@ -161,9 +158,7 @@
           \resumeItemListEnd
       \BLOCK{endfor}
     \resumeSubHeadingListEnd
-\BLOCK{endif}
-
-\BLOCK{if skills}
+\BLOCK{elif section_key == "SKILLS" and skills}
 %-----------TECHNICAL SKILLS-----------
 \section{Technical Skills}
  \begin{itemize}[leftmargin=0.15in, label={}]
@@ -174,6 +169,7 @@
     }}
  \end{itemize}
 \BLOCK{endif}
+\BLOCK{endfor}
 
 %-------------------------------------------
 \end{document}

@@ -2,6 +2,7 @@ import type {
   ApplicationListItem,
   ApplicationOut,
   BulletSelection,
+  FactOrder,
   JdPreview,
   MasterResume,
   VersionOut,
@@ -119,23 +120,51 @@ export function getApplication(id: string): Promise<ApplicationOut> {
   return apiFetch(`/applications/${id}`);
 }
 
+function orderBody(
+  factOrder: FactOrder,
+  experienceOrder: string[],
+  projectOrder: string[],
+  sectionOrder: string[]
+) {
+  return {
+    fact_order: factOrder,
+    experience_order: experienceOrder.length ? experienceOrder : null,
+    project_order: projectOrder.length ? projectOrder : null,
+    section_order: sectionOrder.length ? sectionOrder : null,
+  };
+}
+
 export function previewApplication(
   id: string,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {},
+  experienceOrder: string[] = [],
+  projectOrder: string[] = [],
+  sectionOrder: string[] = []
 ): Promise<{ tex: string }> {
   return apiFetch(`/applications/${id}/preview`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections) }),
+    body: JSON.stringify({
+      selections: wireSelections(selections),
+      ...orderBody(factOrder, experienceOrder, projectOrder, sectionOrder),
+    }),
   });
 }
 
 export function finalizeApplication(
   id: string,
-  selections: Record<string, BulletSelection>
+  selections: Record<string, BulletSelection>,
+  factOrder: FactOrder = {},
+  experienceOrder: string[] = [],
+  projectOrder: string[] = [],
+  sectionOrder: string[] = []
 ): Promise<VersionOut> {
   return apiFetch(`/applications/${id}/finalize`, {
     method: "POST",
-    body: JSON.stringify({ selections: wireSelections(selections) }),
+    body: JSON.stringify({
+      selections: wireSelections(selections),
+      ...orderBody(factOrder, experienceOrder, projectOrder, sectionOrder),
+    }),
   });
 }
 

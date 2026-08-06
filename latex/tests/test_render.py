@@ -1,5 +1,6 @@
 import pytest
 
+from core.schemas import TailoredBullet, TailoredSection
 from latex.render import render_tex
 
 
@@ -111,6 +112,77 @@ def test_empty_source_fact_ids_still_renders_receipt(master, tailored):
     tailored.experiences[0].bullets[0].source_fact_ids = []
     tex = render_tex(master, tailored)
     assert "% grounded:" in [line.strip() for line in tex.splitlines()]
+
+
+def test_fact_order_reorders_tailored_bullets(master, tailored):
+    tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-02", "BAB-01"]})
+    idx_02 = tex.index("Boosted processing throughput")
+    idx_01 = tex.index("Authored the first machine-executable")
+    assert idx_02 < idx_01
+
+
+def test_fact_order_reorders_refactor_bullets(master):
+    exp_id = master.experiences[0].id
+    fact_ids = [f.id for f in master.experiences[0].facts]
+    tex = render_tex(master, None, fact_order={exp_id: list(reversed(fact_ids))})
+    idx_first = tex.index(f"% grounded: {fact_ids[0]}")
+    idx_last = tex.index(f"% grounded: {fact_ids[-1]}")
+    assert idx_last < idx_first
+
+
+def test_fact_order_with_stale_id_never_drops_a_bullet(master, tailored):
+    # BAB-99 doesn't exist -- a deleted/renamed fact shouldn't vanish the
+    # entry it never named.
+    tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-99"]})
+    assert "Authored the first machine-executable" in tex
+    assert "Boosted processing throughput" in tex
+
+
+def test_experience_order_reorders_tailored_entries(master, tailored):
+    # master's second experience (Royal Society) isn't in the tailored
+    # fixture's selection -- add it so there are two entries to reorder
+    tailored.experiences.append(
+        TailoredSection(
+            ref_id="RS",
+            bullets=[TailoredBullet(source_fact_ids=["RS-01"], variants=["x", "x", "x"])],
+        )
+    )
+    tex = render_tex(master, tailored, experience_order=["RS", "BAB"])
+    assert tex.index("Royal Society") < tex.index("Babbage")
+
+
+def test_project_order_reorders_refactor_entries(master):
+    second = master.projects[0].model_copy(update={"id": "SECOND", "name": "Second Project"})
+    master.projects.append(second)
+    tex = render_tex(master, None, project_order=["SECOND", "BERN"])
+    assert tex.index("Second Project") < tex.index("Bernoulli Number Generator")
+
+
+def test_entry_order_with_stale_id_never_drops_an_entry(master):
+    tex = render_tex(master, None, experience_order=["NOPE"])
+    assert "Babbage" in tex
+    assert "Royal Society" in tex
+
+
+def test_section_order_reorders_top_level_sections(master):
+    tex = render_tex(master, None, section_order=["PROJECTS", "EXPERIENCE", "EDUCATION", "SKILLS"])
+    assert tex.index("Projects") < tex.index("Experience") < tex.index("Education")
+
+
+def test_section_order_default_matches_original_layout(master, tailored):
+    default_order = render_tex(master, tailored)
+    explicit_default = render_tex(
+        master, tailored, section_order=["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"]
+    )
+    assert default_order == explicit_default
+
+
+def test_section_order_with_unknown_key_never_drops_a_section(master):
+    tex = render_tex(master, None, section_order=["NOPE", "PROJECTS"])
+    assert r"\section{Education}" in tex
+    assert r"\section{Experience}" in tex
+    assert r"\section{Projects}" in tex
+    assert r"\section{Technical Skills}" in tex
 
 
 def test_injection_in_every_field_is_escaped(master):
