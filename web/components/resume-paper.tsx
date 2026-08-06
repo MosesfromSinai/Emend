@@ -129,7 +129,10 @@ export function ResumePaper({
   renderRowControl,
   renderRowExtra,
   renderBlockControl,
+  renderBlockExtra,
   renderSectionControl,
+  renderHeaderControl,
+  renderHeaderExtra,
   sectionOrder,
 }: {
   master: MasterResume;
@@ -148,7 +151,14 @@ export function ResumePaper({
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
   renderBlockControl?: (block: PaperBlock) => ReactNode;
+  // rendered below a block's title/sub/dates, above its rows -- the slot
+  // for a per-entry "edit details" form (structural fields aren't rows)
+  renderBlockExtra?: (block: PaperBlock) => ReactNode;
   renderSectionControl?: (section: PaperSection) => ReactNode;
+  // same idea as renderBlockControl/renderBlockExtra, for the name/contact
+  // header -- there's no PaperBlock for it since it isn't a resume section
+  renderHeaderControl?: () => ReactNode;
+  renderHeaderExtra?: () => ReactNode;
   sectionOrder?: string[];
 }) {
   const sections = masterToSections(master, sectionOrder);
