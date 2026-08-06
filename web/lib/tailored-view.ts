@@ -1,4 +1,4 @@
-import { reorderByKey } from "@/lib/order";
+import { excludeByKey, reorderByKey } from "@/lib/order";
 import type {
   BulletSelection,
   FactOrder,
@@ -40,20 +40,26 @@ export function tailoredToRenderResume(
   selections: Record<string, BulletSelection>,
   factOrder: FactOrder = {},
   experienceOrder: string[] = [],
-  projectOrder: string[] = []
+  projectOrder: string[] = [],
+  excludedFacts: string[] = [],
+  excludedExperiences: string[] = [],
+  excludedProjects: string[] = []
 ): MasterResume {
   if (!tailored) return master;
 
   const expById = new Map(master.experiences.map((e) => [e.id, e]));
   const projById = new Map(master.projects.map((p) => [p.id, p]));
 
-  const orderedExperienceSections = reorderByKey(tailored.experiences, experienceOrder, (s) => s.ref_id);
-  const orderedProjectSections = reorderByKey(tailored.projects, projectOrder, (s) => s.ref_id);
+  const liveExperienceSections = excludeByKey(tailored.experiences, excludedExperiences, (s) => s.ref_id);
+  const liveProjectSections = excludeByKey(tailored.projects, excludedProjects, (s) => s.ref_id);
+  const orderedExperienceSections = reorderByKey(liveExperienceSections, experienceOrder, (s) => s.ref_id);
+  const orderedProjectSections = reorderByKey(liveProjectSections, projectOrder, (s) => s.ref_id);
 
   const experiences = orderedExperienceSections.flatMap((section) => {
     const src = expById.get(section.ref_id);
     if (!src) return [];
-    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
+    const liveBullets = excludeByKey(section.bullets, excludedFacts, (b) => b.source_fact_ids[0]);
+    const bullets = reorderByKey(liveBullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
@@ -68,7 +74,8 @@ export function tailoredToRenderResume(
   const projects = orderedProjectSections.flatMap((section) => {
     const src = projById.get(section.ref_id);
     if (!src) return [];
-    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
+    const liveBullets = excludeByKey(section.bullets, excludedFacts, (b) => b.source_fact_ids[0]);
+    const bullets = reorderByKey(liveBullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
