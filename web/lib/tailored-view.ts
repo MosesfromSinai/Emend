@@ -58,9 +58,25 @@ export function tailoredToRenderResume(
   projectOrder: string[] = [],
   excludedFacts: string[] = [],
   excludedExperiences: string[] = [],
-  excludedProjects: string[] = []
+  excludedProjects: string[] = [],
+  textOverrides: Record<string, string> = {}
 ): MasterResume {
-  if (!tailored) return master;
+  const name = overrideText(textOverrides, "name", master.name);
+  const email = overrideText(textOverrides, "email", master.email);
+  const phone = overrideText(textOverrides, "phone", master.phone);
+  const links = master.links.map((link, i) => overrideText(textOverrides, `link:${i}`, link));
+  const education = master.education.map((edu, i) => ({
+    ...edu,
+    school: overrideText(textOverrides, `education:${i}:school`, edu.school),
+    degree: overrideText(textOverrides, `education:${i}:degree`, edu.degree),
+    location: overrideText(textOverrides, `education:${i}:location`, edu.location),
+    grad_date: overrideText(textOverrides, `education:${i}:grad_date`, edu.grad_date),
+    coursework: overrideList(textOverrides, `education:${i}:coursework`, edu.coursework),
+  }));
+
+  if (!tailored) {
+    return { ...master, name, email, phone, links, education };
+  }
 
   const expById = new Map(master.experiences.map((e) => [e.id, e]));
   const projById = new Map(master.projects.map((p) => [p.id, p]));
