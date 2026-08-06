@@ -58,7 +58,7 @@ export default function ApplicationPage({
     let stale = false;
     const timer = setTimeout(async () => {
       try {
-        const result = await previewApplication(id, selections);
+        const result = await previewApplication(id, selections, factOrder);
         if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
@@ -68,7 +68,7 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
-  }, [id, version, selections]);
+  }, [id, version, selections, factOrder]);
 
   const bulletsByFactId = useMemo(
     () => tailoredBulletsByFactId(version?.tailored ?? null),
@@ -111,7 +111,7 @@ export default function ApplicationPage({
     // activation window has elapsed and Safari/Chrome silently block it.
     const tab = window.open("", "_blank");
     try {
-      const updated = await finalizeApplication(id, selections);
+      const updated = await finalizeApplication(id, selections, factOrder);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
       const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
       if (tab) {
