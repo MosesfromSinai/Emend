@@ -280,6 +280,7 @@ export default function ApplicationPage({
                   renderRowControl={(row) => {
                     const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
                     if (!bullet || !row.factId) return null;
+                    const position = factPositions.get(row.factId);
                     return (
                       <RewriteBar
                         key={row.factId}
@@ -290,6 +291,9 @@ export default function ApplicationPage({
                           "Original wording unavailable for this version."
                         }
                         onChangeSelection={(sel) => updateSelection(row.factId!, sel)}
+                        canMoveUp={position ? position.index > 0 : false}
+                        canMoveDown={position ? position.index < position.length - 1 : false}
+                        onMove={(direction) => moveFact(row.factId!, direction)}
                       />
                     );
                   }}
