@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 
 import {
   ConfirmPill,
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   MAX_PDF_BYTES,
   MAX_TEXT_CHARS,
+  getMaster,
   importResume,
   importResumeFromFile,
   saveMaster,
@@ -48,6 +49,30 @@ export default function OnboardingPage() {
   // client-side file checks, kept separate from `error` -- these never came
   // from the api, so ParseError's api-error-shaped messaging doesn't apply
   const [fileError, setFileError] = useState<string | null>(null);
+
+  // Reopening /app (e.g. the new "back to confirm" link from Tailor, or the
+  // header logo) shouldn't force a full re-paste when a resume is already
+  // saved -- load it straight into an editable confirm view instead. Facts
+  // already went through one real review before this save, so they open
+  // pre-confirmed rather than demanding a second full pass.
+  useEffect(() => {
+    let cancelled = false;
+    getMaster()
+      .then((saved) => {
+        if (cancelled) return;
+        setMaster(saved);
+        setConfirmed(new Set(allRowKeys(saved)));
+        setStep("confirm");
+        router.replace("/app?step=confirm");
+      })
+      .catch(() => {
+        // no saved master (or a transient fetch error) -- just stay on paste
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function extractFacts(source: string) {
     setBusyPaste(true);
