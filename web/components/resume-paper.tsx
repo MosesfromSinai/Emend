@@ -157,9 +157,12 @@ export function ResumePaper({
       <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
 
       {sections.map((section) => (
-        <div key={section.heading}>
-          <div className="mt-3.5 mb-2.5 border-b border-[#111] pb-0.5 font-serif text-[13px] font-bold tracking-widest text-[#111]">
-            {section.heading}
+        <div key={section.key}>
+          <div className="mt-3.5 mb-2.5 flex items-center justify-between border-b border-[#111] pb-0.5">
+            <span className="font-serif text-[13px] font-bold tracking-widest text-[#111]">
+              {section.heading}
+            </span>
+            {renderSectionControl?.(section)}
           </div>
           {section.blocks.map((block) => (
             <div
