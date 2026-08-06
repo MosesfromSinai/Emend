@@ -187,7 +187,14 @@ export default function ApplicationPage({
     // activation window has elapsed and Safari/Chrome silently block it.
     const tab = window.open("", "_blank");
     try {
-      const updated = await finalizeApplication(id, selections, factOrder, experienceOrder, projectOrder);
+      const updated = await finalizeApplication(
+        id,
+        selections,
+        factOrder,
+        experienceOrder,
+        projectOrder,
+        sectionOrder
+      );
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
       const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
       if (tab) {
