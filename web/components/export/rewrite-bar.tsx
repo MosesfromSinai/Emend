@@ -14,11 +14,17 @@ export function RewriteBar({
   selection,
   originalText,
   onChangeSelection,
+  canMoveUp,
+  canMoveDown,
+  onMove,
 }: {
   bullet: TailoredBullet;
   selection?: BulletSelection;
   originalText: string;
   onChangeSelection: (selection: BulletSelection) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMove?: (direction: "up" | "down") => void;
 }) {
   const [viewingOriginal, setViewingOriginal] = useState(false);
   const [editing, setEditing] = useState(false);
