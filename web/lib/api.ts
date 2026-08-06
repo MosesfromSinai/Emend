@@ -120,51 +120,41 @@ export function getApplication(id: string): Promise<ApplicationOut> {
   return apiFetch(`/applications/${id}`);
 }
 
-function orderBody(
-  factOrder: FactOrder,
-  experienceOrder: string[],
-  projectOrder: string[],
-  sectionOrder: string[]
-) {
+export interface RenderOptions {
+  selections?: Record<string, BulletSelection>;
+  factOrder?: FactOrder;
+  experienceOrder?: string[];
+  projectOrder?: string[];
+  sectionOrder?: string[];
+  excludedFacts?: string[];
+  excludedExperiences?: string[];
+  excludedProjects?: string[];
+}
+
+function renderBody(opts: RenderOptions) {
   return {
-    fact_order: factOrder,
-    experience_order: experienceOrder.length ? experienceOrder : null,
-    project_order: projectOrder.length ? projectOrder : null,
-    section_order: sectionOrder.length ? sectionOrder : null,
+    selections: wireSelections(opts.selections ?? {}),
+    fact_order: opts.factOrder ?? {},
+    experience_order: opts.experienceOrder?.length ? opts.experienceOrder : null,
+    project_order: opts.projectOrder?.length ? opts.projectOrder : null,
+    section_order: opts.sectionOrder?.length ? opts.sectionOrder : null,
+    excluded_facts: opts.excludedFacts ?? [],
+    excluded_experiences: opts.excludedExperiences ?? [],
+    excluded_projects: opts.excludedProjects ?? [],
   };
 }
 
-export function previewApplication(
-  id: string,
-  selections: Record<string, BulletSelection>,
-  factOrder: FactOrder = {},
-  experienceOrder: string[] = [],
-  projectOrder: string[] = [],
-  sectionOrder: string[] = []
-): Promise<{ tex: string }> {
+export function previewApplication(id: string, opts: RenderOptions): Promise<{ tex: string }> {
   return apiFetch(`/applications/${id}/preview`, {
     method: "POST",
-    body: JSON.stringify({
-      selections: wireSelections(selections),
-      ...orderBody(factOrder, experienceOrder, projectOrder, sectionOrder),
-    }),
+    body: JSON.stringify(renderBody(opts)),
   });
 }
 
-export function finalizeApplication(
-  id: string,
-  selections: Record<string, BulletSelection>,
-  factOrder: FactOrder = {},
-  experienceOrder: string[] = [],
-  projectOrder: string[] = [],
-  sectionOrder: string[] = []
-): Promise<VersionOut> {
+export function finalizeApplication(id: string, opts: RenderOptions): Promise<VersionOut> {
   return apiFetch(`/applications/${id}/finalize`, {
     method: "POST",
-    body: JSON.stringify({
-      selections: wireSelections(selections),
-      ...orderBody(factOrder, experienceOrder, projectOrder, sectionOrder),
-    }),
+    body: JSON.stringify(renderBody(opts)),
   });
 }
 

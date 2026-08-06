@@ -11,7 +11,14 @@ import { DEFAULT_SECTION_ORDER, ResumePaper, masterToSections } from "@/componen
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
+import {
+  ApiError,
+  artifactUrl,
+  finalizeApplication,
+  getMaster,
+  previewApplication,
+  type RenderOptions,
+} from "@/lib/api";
 import { reorderByKey } from "@/lib/order";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
@@ -39,6 +46,9 @@ export default function ApplicationPage({
   const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
   const [sectionOrder, setSectionOrder] = useState<string[]>([]);
+  const [excludedFacts, setExcludedFacts] = useState<string[]>([]);
+  const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
+  const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
@@ -55,6 +65,20 @@ export default function ApplicationPage({
 
   const version = application?.version ?? null;
 
+  // Single bag of "what the user has changed on Export" -- fed to both the
+  // live preview effect below and finalize() on download, so the two never
+  // drift out of sync with each other.
+  const renderOptions: RenderOptions = {
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+  };
+
   useEffect(() => {
     if (!version) return;
     // Same stale-response guard as Tailor's JD preview -- a slower request
@@ -62,14 +86,7 @@ export default function ApplicationPage({
     let stale = false;
     const timer = setTimeout(async () => {
       try {
-        const result = await previewApplication(
-          id,
-          selections,
-          factOrder,
-          experienceOrder,
-          projectOrder,
-          sectionOrder
-        );
+        const result = await previewApplication(id, renderOptions);
         if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
@@ -79,7 +96,18 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
-  }, [id, version, selections, factOrder, experienceOrder, projectOrder, sectionOrder]);
+  }, [
+    id,
+    version,
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+  ]);
 
   const bulletsByFactId = useMemo(
     () => tailoredBulletsByFactId(version?.tailored ?? null),
@@ -208,14 +236,7 @@ export default function ApplicationPage({
     // activation window has elapsed and Safari/Chrome silently block it.
     const tab = window.open("", "_blank");
     try {
-      const updated = await finalizeApplication(
-        id,
-        selections,
-        factOrder,
-        experienceOrder,
-        projectOrder,
-        sectionOrder
-      );
+      const updated = await finalizeApplication(id, renderOptions);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
       const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
       if (tab) {
