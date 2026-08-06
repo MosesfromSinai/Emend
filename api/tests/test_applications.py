@@ -396,6 +396,39 @@ def test_preview_renders_the_selected_variant(client, master, pipeline, monkeypa
     assert "first phrasing" not in picked.json()["tex"]
 
 
+def test_preview_reorders_bullets_via_fact_order(client, master, pipeline, monkeypatch):
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(variants=["bullet one"] * 3, source_fact_ids=["ACME-01"]),
+                        TailoredBullet(variants=["bullet two"] * 3, source_fact_ids=["ACME-02"]),
+                    ],
+                )
+            ],
+            projects=[],
+            skills={},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    default = client.post(f"/applications/{app_id}/preview", json={})
+    tex = default.json()["tex"]
+    assert tex.index("bullet one") < tex.index("bullet two")
+
+    reordered = client.post(
+        f"/applications/{app_id}/preview",
+        json={"fact_order": {"ACME": ["ACME-02", "ACME-01"]}},
+    )
+    tex = reordered.json()["tex"]
+    assert tex.index("bullet two") < tex.index("bullet one")
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
