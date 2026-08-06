@@ -173,8 +173,10 @@ export function ResumePaper({
         )}
       >
         {name}
+        {renderHeaderControl?.()}
       </div>
       <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
+      {renderHeaderExtra?.()}
 
       {sections.map((section) => (
         <div key={section.key}>
