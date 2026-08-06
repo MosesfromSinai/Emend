@@ -370,6 +370,21 @@ export default function ApplicationPage({
     return "";
   }
 
+  // A single labeled input bound to a text_overrides path, reused across
+  // the header and per-entry "edit details" forms.
+  function overrideField(label: string, keyPath: string) {
+    return (
+      <label key={keyPath} className="flex flex-col gap-1">
+        {label}
+        <input
+          value={currentOverrideValue(keyPath)}
+          onChange={(e) => updateTextOverride(keyPath, e.target.value)}
+          className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
+        />
+      </label>
+    );
+  }
+
   function changeView(next: View) {
     setView(next);
     setActiveFactId(null);
