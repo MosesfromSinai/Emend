@@ -1,9 +1,22 @@
 import type {
   BulletSelection,
+  FactOrder,
   MasterResume,
   TailoredBullet,
   TailoredResume,
 } from "@/lib/types";
+
+// Mirrors latex/render.py's _reorder_by_key -- items whose key isn't in
+// `order` keep their relative position, appended after the ordered ones,
+// so a stale/partial order never drops a bullet.
+function reorderByKey<T>(items: T[], order: string[] | undefined, key: (item: T) => string): T[] {
+  if (!order || order.length === 0) return items;
+  const byKey = new Map(items.map((item) => [key(item), item]));
+  const seen = new Set(order);
+  const ordered = order.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
+  ordered.push(...items.filter((item) => !seen.has(key(item))));
+  return ordered;
+}
 
 // Mirrors latex/render.py's _resolve_variant -- selections are keyed by a
 // bullet's first source fact id, since Export's per-line picker treats a
