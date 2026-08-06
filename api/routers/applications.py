@@ -152,6 +152,7 @@ def preview_application(
             excluded_facts=body.excluded_facts,
             excluded_experiences=body.excluded_experiences,
             excluded_projects=body.excluded_projects,
+            text_overrides=body.text_overrides,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
