@@ -133,6 +133,7 @@ def render_tex(
     fact_order: dict[str, list[str]] | None = None,
     experience_order: list[str] | None = None,
     project_order: list[str] | None = None,
+    section_order: list[str] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -151,7 +152,9 @@ def render_tex(
     entry's bullets before rendering -- see `_reorder_by_key`. No entry for
     an id: bullets render in their existing order. `experience_order` /
     `project_order` reorder the entries themselves (by their own id in
-    refactor mode, by `ref_id` in tailor mode) the same way.
+    refactor mode, by `ref_id` in tailor mode) the same way. `section_order`
+    reorders the four top-level sections (values from DEFAULT_SECTION_ORDER);
+    an omitted or unrecognized entry keeps its default relative position.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
