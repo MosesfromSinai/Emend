@@ -362,7 +362,10 @@ function ExperiencePanel({
             />
             <button
               type="button"
-              onClick={() => update(master.experiences.filter((_, i) => i !== index))}
+              onClick={() => {
+                onConfirmMany(exp.facts.map((f) => f.id), false);
+                update(master.experiences.filter((_, i) => i !== index));
+              }}
               className="text-sm text-ink/40 hover:text-ink"
             >
               Remove
@@ -463,7 +466,10 @@ function ProjectPanel({
             />
             <button
               type="button"
-              onClick={() => update(master.projects.filter((_, i) => i !== index))}
+              onClick={() => {
+                onConfirmMany(project.facts.map((f) => f.id), false);
+                update(master.projects.filter((_, i) => i !== index));
+              }}
               className="text-sm text-ink/40 hover:text-ink"
             >
               Remove
