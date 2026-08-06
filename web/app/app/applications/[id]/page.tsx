@@ -52,6 +52,9 @@ export default function ApplicationPage({
   const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
   const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
+  const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
+  const [activeEntryEdit, setActiveEntryEdit] = useState<string | null>(null);
+  const [headerEditOpen, setHeaderEditOpen] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
   const [showReport, setShowReport] = useState(false);
