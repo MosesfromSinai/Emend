@@ -17,6 +17,7 @@ export function RewriteBar({
   canMoveUp,
   canMoveDown,
   onMove,
+  onDelete,
 }: {
   bullet: TailoredBullet;
   selection?: BulletSelection;
@@ -25,6 +26,7 @@ export function RewriteBar({
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   onMove?: (direction: "up" | "down") => void;
+  onDelete?: () => void;
 }) {
   const [viewingOriginal, setViewingOriginal] = useState(false);
   const [editing, setEditing] = useState(false);
