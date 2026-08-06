@@ -18,6 +18,10 @@ export type PaperRow = {
   key: string;
   text: string;
   factId?: string;
+  // stable text_overrides path (mirrors api's RenderRequest.text_overrides)
+  // for rows with no fact id -- coursework and skills lines are confirmed
+  // master data, editable as free text, not grounded generated content.
+  overrideKey?: string;
 };
 
 export type PaperBlock = {
