@@ -94,6 +94,11 @@ export function tailoredToRenderResume(
     return [
       {
         ...src,
+        title: overrideText(textOverrides, `experience:${src.id}:title`, src.title),
+        company: overrideText(textOverrides, `experience:${src.id}:company`, src.company),
+        location: overrideText(textOverrides, `experience:${src.id}:location`, src.location),
+        start: overrideText(textOverrides, `experience:${src.id}:start`, src.start),
+        end: overrideText(textOverrides, `experience:${src.id}:end`, src.end),
         facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
