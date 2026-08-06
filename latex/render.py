@@ -41,24 +41,38 @@ def _grounding_comment(ids: list[str]) -> str:
     return ", ".join(" ".join(i.split()) for i in ids)
 
 
+def _ov(overrides: dict[str, str] | None, key: str, default: str) -> str:
+    """A user's free-text edit for any non-fact-backed field (name, a
+    company name, a degree, ...) -- keyed by a stable path string, separate
+    from the fact-grounded `selections` mechanism above. No entry for a
+    key: the master/tailored value renders untouched."""
+    if overrides and key in overrides:
+        return overrides[key]
+    return default
+
+
 def _bullet_row(text: str, source_ids: list[str]) -> dict:
     return {"text": text, "grounded": _grounding_comment(source_ids)}
 
 
-def _experience_row(exp: Experience, bullets: list[dict]) -> dict:
+def _experience_row(
+    exp: Experience, bullets: list[dict], overrides: dict[str, str] | None = None
+) -> dict:
     return {
-        "title": exp.title,
-        "dates": f"{exp.start} -- {exp.end}",
-        "company": exp.company,
-        "location": exp.location,
+        "title": _ov(overrides, f"experience:{exp.id}:title", exp.title),
+        "dates": _ov(overrides, f"experience:{exp.id}:dates", f"{exp.start} -- {exp.end}"),
+        "company": _ov(overrides, f"experience:{exp.id}:company", exp.company),
+        "location": _ov(overrides, f"experience:{exp.id}:location", exp.location),
         "bullets": bullets,
     }
 
 
-def _project_row(proj: Project, bullets: list[dict]) -> dict:
+def _project_row(
+    proj: Project, bullets: list[dict], overrides: dict[str, str] | None = None
+) -> dict:
     return {
-        "name": proj.name,
-        "tech": ", ".join(proj.tech),
+        "name": _ov(overrides, f"project:{proj.id}:name", proj.name),
+        "tech": _ov(overrides, f"project:{proj.id}:tech", ", ".join(proj.tech)),
         "bullets": bullets,
     }
 
