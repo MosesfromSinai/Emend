@@ -113,6 +113,27 @@ export default function ApplicationPage({
     [master, version, selections, factOrder, experienceOrder, projectOrder]
   );
 
+  // The currently-visible section headings (empty sections don't render),
+  // reordered by the user's saved preference -- reordering against what's
+  // actually on screen, not the full 4-key space, keeps adjacent-arrow
+  // enablement correct even as sections appear/disappear with edits.
+  const effectiveSectionOrder = useMemo(() => {
+    const visibleKeys = renderResume
+      ? masterToSections(renderResume).map((s) => s.key)
+      : DEFAULT_SECTION_ORDER;
+    return reorderByKey(visibleKeys, sectionOrder, (k) => k);
+  }, [renderResume, sectionOrder]);
+
+  function moveSection(key: string, direction: "up" | "down") {
+    const idx = effectiveSectionOrder.indexOf(key);
+    if (idx === -1) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= effectiveSectionOrder.length) return;
+    const next = [...effectiveSectionOrder];
+    [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+    setSectionOrder(next);
+  }
+
   // Where a fact currently sits within its own entry -- drives which
   // up/down arrow is enabled and what moveFact actually swaps.
   const factPositions = useMemo(() => {
