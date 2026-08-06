@@ -267,6 +267,44 @@ export default function ApplicationPage({
     else setExcludedProjects((prev) => prev.filter((id) => id !== refId));
   }
 
+  // Everything currently hidden from this export, so deleting never feels
+  // like a one-way door -- each entry restores with a single click.
+  const removedItems = useMemo(() => {
+    const items: { key: string; label: string; restore: () => void }[] = [];
+    if (!version?.tailored) return items;
+    for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
+      for (const bullet of section.bullets) {
+        const factId = bullet.source_fact_ids[0];
+        if (!excludedFacts.includes(factId)) continue;
+        const text = bullet.variants[0];
+        items.push({
+          key: `fact-${factId}`,
+          label: text.length > 50 ? `${text.slice(0, 50)}…` : text,
+          restore: () => restoreFact(factId),
+        });
+      }
+    }
+    for (const section of version.tailored.experiences) {
+      if (!excludedExperiences.includes(section.ref_id)) continue;
+      const exp = master?.experiences.find((e) => e.id === section.ref_id);
+      items.push({
+        key: `exp-${section.ref_id}`,
+        label: exp?.company ?? section.ref_id,
+        restore: () => restoreEntry(section.ref_id, "experience"),
+      });
+    }
+    for (const section of version.tailored.projects) {
+      if (!excludedProjects.includes(section.ref_id)) continue;
+      const proj = master?.projects.find((p) => p.id === section.ref_id);
+      items.push({
+        key: `proj-${section.ref_id}`,
+        label: proj?.name ?? section.ref_id,
+        restore: () => restoreEntry(section.ref_id, "project"),
+      });
+    }
+    return items;
+  }, [version, master, excludedFacts, excludedExperiences, excludedProjects]);
+
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
   }
