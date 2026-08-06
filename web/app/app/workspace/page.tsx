@@ -110,6 +110,9 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link href="/app" className="w-fit text-[12.5px] font-medium text-ink/60 hover:text-ink">
+        ← Back to confirm facts
+      </Link>
       {error && (
         <p className="text-sm text-red-700">
           {error}
