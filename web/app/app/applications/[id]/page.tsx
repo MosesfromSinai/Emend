@@ -506,6 +506,14 @@ export default function ApplicationPage({
                         >
                           ↓
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteEntry(block.key, position.kind)}
+                          aria-label={`Delete ${block.title}`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-red-700 hover:border-red-700"
+                        >
+                          delete
+                        </button>
                       </div>
                     );
                   }}
