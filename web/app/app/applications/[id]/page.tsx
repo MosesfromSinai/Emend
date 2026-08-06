@@ -19,7 +19,7 @@ import {
   previewApplication,
   type RenderOptions,
 } from "@/lib/api";
-import { reorderByKey } from "@/lib/order";
+import { excludeByKey, reorderByKey } from "@/lib/order";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
 import type { BulletSelection, FactOrder, MasterResume } from "@/lib/types";
