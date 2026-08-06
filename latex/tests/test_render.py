@@ -217,6 +217,75 @@ def test_excluding_all_bullets_still_renders_the_entry(master):
     assert "Wrote the first published algorithm" not in tex
 
 
+def test_override_replaces_header_fields(master):
+    tex = render_tex(master, None, text_overrides={"name": "Ada L. Byron", "phone": "555-9999"})
+    assert r"Ada L. Byron" in tex
+    assert "555-9999" in tex
+    assert "Ada Lovelace" not in tex
+
+
+def test_override_replaces_link_display(master):
+    tex = render_tex(master, None, text_overrides={"link:0": "linkedin.com/in/countess-lovelace"})
+    assert "countess-lovelace" in tex
+
+
+def test_override_replaces_experience_structural_fields(master):
+    tex = render_tex(master, None, text_overrides={
+        "experience:BAB:company": "Analytical Engines Ltd",
+        "experience:BAB:title": "Lead Engineer",
+    })
+    assert "Analytical Engines Ltd" in tex
+    assert "Lead Engineer" in tex
+    assert "Babbage \\& Co" not in tex
+
+
+def test_override_applies_in_tailor_mode_too(master, tailored):
+    tex = render_tex(master, tailored, text_overrides={"experience:BAB:company": "Renamed Co"})
+    assert "Renamed Co" in tex
+
+
+def test_override_replaces_project_fields(master):
+    tex = render_tex(master, None, text_overrides={
+        "project:BERN:name": "Bernoulli Calculator",
+        "project:BERN:tech": "Python, NumPy",
+    })
+    assert "Bernoulli Calculator" in tex
+    assert "Python, NumPy" in tex
+
+
+def test_override_replaces_education_fields(master):
+    tex = render_tex(master, None, text_overrides={
+        "education:0:school": "Cambridge University",
+        "education:0:coursework": "Custom Course A, Custom Course B",
+    })
+    assert "Cambridge University" in tex
+    assert "Custom Course A, Custom Course B" in tex
+
+
+def test_override_can_clear_coursework(master):
+    tex = render_tex(master, None, text_overrides={"education:0:coursework": ""})
+    assert "Relevant Coursework" not in tex
+
+
+def test_override_can_add_coursework_where_none_existed(master):
+    master.education[0].coursework = []
+    tex = render_tex(master, None, text_overrides={"education:0:coursework": "New Course"})
+    assert "Relevant Coursework" in tex
+    assert "New Course" in tex
+
+
+def test_override_replaces_skills_category_text(master):
+    tex = render_tex(master, None, text_overrides={"skills:Languages": "Ada, Python, Rust"})
+    assert r"\textbf{Languages}{: Ada, Python, Rust}" in tex
+    assert "Assembly" not in tex
+
+
+def test_unknown_override_keys_are_ignored(master):
+    tex = render_tex(master, None, text_overrides={"experience:NOPE:company": "Ghost Corp"})
+    assert "Ghost Corp" not in tex
+    assert "Babbage" in tex
+
+
 def test_injection_in_every_field_is_escaped(master):
     master.name = r"Evil \write18{rm -rf /} & Co"
     master.experiences[0].company = "100% $legit_corp^{tm}"
