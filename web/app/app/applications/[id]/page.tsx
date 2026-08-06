@@ -399,6 +399,32 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
+                  sectionOrder={effectiveSectionOrder}
+                  renderSectionControl={(section) => {
+                    const idx = effectiveSectionOrder.indexOf(section.key);
+                    return (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveSection(section.key, "up")}
+                          disabled={idx <= 0}
+                          aria-label={`Move ${section.heading} section up`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveSection(section.key, "down")}
+                          disabled={idx === -1 || idx >= effectiveSectionOrder.length - 1}
+                          aria-label={`Move ${section.heading} section down`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    );
+                  }}
                 />
               </div>
             )}
