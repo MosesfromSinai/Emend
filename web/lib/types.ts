@@ -90,6 +90,11 @@ export interface BulletSelection {
   customText?: string;
 }
 
+// keyed by an experience/project's own id -- the full ordered list of that
+// entry's fact ids after the user's up/down moves, mirrors api's
+// RenderRequest.fact_order
+export type FactOrder = Record<string, string[]>;
+
 export interface VersionOut {
   id: string;
   tex: string;
