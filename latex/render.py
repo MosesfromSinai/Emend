@@ -184,25 +184,35 @@ def render_tex(
     bullets is the upstream validator's job.
     """
     if tailored is None:
+        remaining_experiences = _exclude_by_key(master.experiences, excluded_experiences, lambda e: e.id)
+        remaining_projects = _exclude_by_key(master.projects, excluded_projects, lambda p: p.id)
         experiences = [
             _experience_row(
                 e,
                 [
                     _bullet_row(f.text, [f.id])
-                    for f in _reorder_by_key(e.facts, (fact_order or {}).get(e.id), lambda f: f.id)
+                    for f in _reorder_by_key(
+                        _exclude_by_key(e.facts, excluded_facts, lambda f: f.id),
+                        (fact_order or {}).get(e.id),
+                        lambda f: f.id,
+                    )
                 ],
             )
-            for e in _reorder_by_key(master.experiences, experience_order, lambda e: e.id)
+            for e in _reorder_by_key(remaining_experiences, experience_order, lambda e: e.id)
         ]
         projects = [
             _project_row(
                 p,
                 [
                     _bullet_row(f.text, [f.id])
-                    for f in _reorder_by_key(p.facts, (fact_order or {}).get(p.id), lambda f: f.id)
+                    for f in _reorder_by_key(
+                        _exclude_by_key(p.facts, excluded_facts, lambda f: f.id),
+                        (fact_order or {}).get(p.id),
+                        lambda f: f.id,
+                    )
                 ],
             )
-            for p in _reorder_by_key(master.projects, project_order, lambda p: p.id)
+            for p in _reorder_by_key(remaining_projects, project_order, lambda p: p.id)
         ]
         skills = master.skills
     else:
