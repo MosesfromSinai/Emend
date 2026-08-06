@@ -239,6 +239,15 @@ def test_override_replaces_experience_structural_fields(master):
     assert "Babbage \\& Co" not in tex
 
 
+def test_override_replaces_experience_dates(master):
+    tex = render_tex(master, None, text_overrides={
+        "experience:BAB:start": "Jan 2024",
+        "experience:BAB:end": "Present",
+    })
+    assert "Jan 2024 -- Present" in tex
+    assert "Jun 2023 -- Aug 2023" not in tex
+
+
 def test_override_applies_in_tailor_mode_too(master, tailored):
     tex = render_tex(master, tailored, text_overrides={"experience:BAB:company": "Renamed Co"})
     assert "Renamed Co" in tex
