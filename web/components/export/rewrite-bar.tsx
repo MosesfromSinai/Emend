@@ -147,6 +147,15 @@ export function RewriteBar({
         )}
 
         <div className="ml-auto flex items-center gap-3">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="text-xs text-red-700 underline hover:text-red-900"
+            >
+              delete this line
+            </button>
+          )}
           {showDiscard && (
             <button
               type="button"
