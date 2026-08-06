@@ -210,16 +210,22 @@ export default function ApplicationPage({
   const entryPositions = useMemo(() => {
     const map = new Map<string, { kind: "experience" | "project"; index: number; length: number }>();
     if (!version?.tailored) return map;
-    const expOrder = experienceOrder.length
-      ? experienceOrder
-      : version.tailored.experiences.map((s) => s.ref_id);
+    const liveExpIds = excludeByKey(
+      version.tailored.experiences.map((s) => s.ref_id),
+      excludedExperiences,
+      (id) => id
+    );
+    const expOrder = reorderByKey(liveExpIds, experienceOrder, (id) => id);
     expOrder.forEach((refId, index) => map.set(refId, { kind: "experience", index, length: expOrder.length }));
-    const projOrder = projectOrder.length
-      ? projectOrder
-      : version.tailored.projects.map((s) => s.ref_id);
+    const liveProjIds = excludeByKey(
+      version.tailored.projects.map((s) => s.ref_id),
+      excludedProjects,
+      (id) => id
+    );
+    const projOrder = reorderByKey(liveProjIds, projectOrder, (id) => id);
     projOrder.forEach((refId, index) => map.set(refId, { kind: "project", index, length: projOrder.length }));
     return map;
-  }, [version, experienceOrder, projectOrder]);
+  }, [version, experienceOrder, projectOrder, excludedExperiences, excludedProjects]);
 
   function moveEntry(refId: string, direction: "up" | "down") {
     const position = entryPositions.get(refId);
