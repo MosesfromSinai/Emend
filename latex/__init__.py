@@ -17,6 +17,7 @@ def render_and_compile(
     excluded_facts: list[str] | None = None,
     excluded_experiences: list[str] | None = None,
     excluded_projects: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> tuple[str, str, str]:
     """Render to .tex and compile to PDF. Returns (tex, pdf_path, log).
 
@@ -24,7 +25,8 @@ def render_and_compile(
     `selections` picks which of a bullet's 3 variants renders, `fact_order`
     reorders bullets within an entry, `experience_order`/`project_order`
     reorder the entries themselves, `section_order` reorders the four
-    top-level sections, `excluded_*` drop bullets/entries entirely -- see
+    top-level sections, `excluded_*` drop bullets/entries entirely,
+    `text_overrides` free-text edits any non-fact-backed field -- see
     render_tex.
     """
     tex = render_tex(
@@ -38,6 +40,7 @@ def render_and_compile(
         excluded_facts=excluded_facts,
         excluded_experiences=excluded_experiences,
         excluded_projects=excluded_projects,
+        text_overrides=text_overrides,
     )
     pdf_path, log = compile_tex(tex)
     return tex, pdf_path, log
