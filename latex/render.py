@@ -147,6 +147,9 @@ def render_tex(
     experience_order: list[str] | None = None,
     project_order: list[str] | None = None,
     section_order: list[str] | None = None,
+    excluded_facts: list[str] | None = None,
+    excluded_experiences: list[str] | None = None,
+    excluded_projects: list[str] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -168,6 +171,10 @@ def render_tex(
     refactor mode, by `ref_id` in tailor mode) the same way. `section_order`
     reorders the four top-level sections (values from DEFAULT_SECTION_ORDER);
     an omitted or unrecognized entry keeps its default relative position.
+    `excluded_facts`/`excluded_experiences`/`excluded_projects` drop bullets
+    or whole entries from rendering entirely -- the delete side of Export's
+    per-line/per-entry editing. Deleting is export-time only: it never
+    touches the confirmed master resume or the stored tailored version.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
