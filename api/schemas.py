@@ -96,6 +96,11 @@ class RenderRequest(BaseModel):
     excluded_facts: list[str] = []
     excluded_experiences: list[str] = []
     excluded_projects: list[str] = []
+    # free-text edits to any non-fact-backed field -- keyed by a stable path
+    # string ("name", "email", "phone", "link:<i>", "education:<i>:<field>",
+    # "experience:<id>:<field>", "project:<id>:<field>", "skills:<category>").
+    # Separate from `selections`, which stays scoped to confirmed facts.
+    text_overrides: dict[str, str] = {}
 
 
 class RenderPreviewResponse(BaseModel):
