@@ -146,7 +146,8 @@ export default function ApplicationPage({
             projectOrder,
             excludedFacts,
             excludedExperiences,
-            excludedProjects
+            excludedProjects,
+            textOverrides
           )
         : null,
     [
@@ -159,6 +160,7 @@ export default function ApplicationPage({
       excludedFacts,
       excludedExperiences,
       excludedProjects,
+      textOverrides,
     ]
   );
 
