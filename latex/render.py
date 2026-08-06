@@ -258,6 +258,7 @@ def render_tex(
             selections,
             fact_order,
             excluded_facts,
+            text_overrides,
         )
         projects = _tailored_rows(
             _reorder_by_key(remaining_proj_sections, project_order, lambda s: s.ref_id),
@@ -266,6 +267,7 @@ def render_tex(
             selections,
             fact_order,
             excluded_facts,
+            text_overrides,
         )
         skills = tailored.skills
 
