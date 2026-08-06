@@ -105,6 +105,7 @@ export function ResumePaper({
   activeFactId,
   renderRowControl,
   renderRowExtra,
+  renderBlockControl,
 }: {
   master: MasterResume;
   name: string;
@@ -118,6 +119,7 @@ export function ResumePaper({
   activeFactId?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
+  renderBlockControl?: (block: PaperBlock) => ReactNode;
 }) {
   const sections = masterToSections(master);
   const isExport = size === "export";
