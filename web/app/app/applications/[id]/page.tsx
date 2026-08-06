@@ -681,40 +681,10 @@ export default function ApplicationPage({
                       <div className="mx-auto mb-4 max-w-sm rounded-lg border border-em-softb bg-em-soft p-3 text-left text-xs">
                         <div className="mb-2 font-semibold text-ink">Edit header</div>
                         <div className="flex flex-col gap-2">
-                          <label className="flex flex-col gap-1">
-                            Name
-                            <input
-                              value={currentOverrideValue("name")}
-                              onChange={(e) => updateTextOverride("name", e.target.value)}
-                              className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            Email
-                            <input
-                              value={currentOverrideValue("email")}
-                              onChange={(e) => updateTextOverride("email", e.target.value)}
-                              className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            Phone
-                            <input
-                              value={currentOverrideValue("phone")}
-                              onChange={(e) => updateTextOverride("phone", e.target.value)}
-                              className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-                            />
-                          </label>
-                          {renderResume?.links.map((_, i) => (
-                            <label key={i} className="flex flex-col gap-1">
-                              {`Link ${i + 1}`}
-                              <input
-                                value={currentOverrideValue(`link:${i}`)}
-                                onChange={(e) => updateTextOverride(`link:${i}`, e.target.value)}
-                                className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-                              />
-                            </label>
-                          ))}
+                          {overrideField("Name", "name")}
+                          {overrideField("Email", "email")}
+                          {overrideField("Phone", "phone")}
+                          {renderResume?.links.map((_, i) => overrideField(`Link ${i + 1}`, `link:${i}`))}
                         </div>
                       </div>
                     ) : null
