@@ -113,6 +113,30 @@ def test_empty_source_fact_ids_still_renders_receipt(master, tailored):
     assert "% grounded:" in [line.strip() for line in tex.splitlines()]
 
 
+def test_fact_order_reorders_tailored_bullets(master, tailored):
+    tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-02", "BAB-01"]})
+    idx_02 = tex.index("Boosted processing throughput")
+    idx_01 = tex.index("Authored the first machine-executable")
+    assert idx_02 < idx_01
+
+
+def test_fact_order_reorders_refactor_bullets(master):
+    exp_id = master.experiences[0].id
+    fact_ids = [f.id for f in master.experiences[0].facts]
+    tex = render_tex(master, None, fact_order={exp_id: list(reversed(fact_ids))})
+    idx_first = tex.index(f"% grounded: {fact_ids[0]}")
+    idx_last = tex.index(f"% grounded: {fact_ids[-1]}")
+    assert idx_last < idx_first
+
+
+def test_fact_order_with_stale_id_never_drops_a_bullet(master, tailored):
+    # BAB-99 doesn't exist -- a deleted/renamed fact shouldn't vanish the
+    # entry it never named.
+    tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-99"]})
+    assert "Authored the first machine-executable" in tex
+    assert "Boosted processing throughput" in tex
+
+
 def test_injection_in_every_field_is_escaped(master):
     master.name = r"Evil \write18{rm -rf /} & Co"
     master.experiences[0].company = "100% $legit_corp^{tm}"
