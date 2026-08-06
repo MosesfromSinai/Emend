@@ -125,6 +125,7 @@ export function ResumePaper({
   size = "default",
   confirmedKeys,
   activeFactId,
+  activeRowKey,
   renderRowControl,
   renderRowExtra,
   renderBlockControl,
@@ -141,6 +142,9 @@ export function ResumePaper({
   size?: "default" | "export";
   confirmedKeys?: Set<string>;
   activeFactId?: string | null;
+  // matched against a row's own `key` -- the click-to-edit affordance for
+  // rows with no fact id (coursework, skills), separate from activeFactId
+  activeRowKey?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
   renderBlockControl?: (block: PaperBlock) => ReactNode;
