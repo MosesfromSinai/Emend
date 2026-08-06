@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from core.schemas import (
+    Education,
     Experience,
     MasterResume,
     Project,
