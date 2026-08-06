@@ -171,6 +171,7 @@ def render_tex(
     excluded_facts: list[str] | None = None,
     excluded_experiences: list[str] | None = None,
     excluded_projects: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> str:
     """Cheap tex-only render (no compile) -- used for the live Export preview."""
     import latex.render
@@ -186,4 +187,5 @@ def render_tex(
         excluded_facts=excluded_facts,
         excluded_experiences=excluded_experiences,
         excluded_projects=excluded_projects,
+        text_overrides=text_overrides,
     )
