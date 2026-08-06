@@ -164,6 +164,27 @@ def test_entry_order_with_stale_id_never_drops_an_entry(master):
     assert "Royal Society" in tex
 
 
+def test_section_order_reorders_top_level_sections(master):
+    tex = render_tex(master, None, section_order=["PROJECTS", "EXPERIENCE", "EDUCATION", "SKILLS"])
+    assert tex.index("Projects") < tex.index("Experience") < tex.index("Education")
+
+
+def test_section_order_default_matches_original_layout(master, tailored):
+    default_order = render_tex(master, tailored)
+    explicit_default = render_tex(
+        master, tailored, section_order=["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"]
+    )
+    assert default_order == explicit_default
+
+
+def test_section_order_with_unknown_key_never_drops_a_section(master):
+    tex = render_tex(master, None, section_order=["NOPE", "PROJECTS"])
+    assert r"\section{Education}" in tex
+    assert r"\section{Experience}" in tex
+    assert r"\section{Projects}" in tex
+    assert r"\section{Technical Skills}" in tex
+
+
 def test_injection_in_every_field_is_escaped(master):
     master.name = r"Evil \write18{rm -rf /} & Co"
     master.experiences[0].company = "100% $legit_corp^{tm}"
