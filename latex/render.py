@@ -126,6 +126,7 @@ def _tailored_rows(
     selections: dict[str, dict] | None = None,
     fact_order: dict[str, list[str]] | None = None,
     excluded_facts: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> list:
     rows = []
     for section in sections:
@@ -147,9 +148,9 @@ def _tailored_rows(
             for b in ordered_bullets
         ]
         if isinstance(source, Experience):
-            rows.append(_experience_row(source, bullets))
+            rows.append(_experience_row(source, bullets, text_overrides))
         else:
-            rows.append(_project_row(source, bullets))
+            rows.append(_project_row(source, bullets, text_overrides))
     return rows
 
 
