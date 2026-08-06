@@ -58,6 +58,7 @@ export function masterToSections(
             {
               key: `edu-${i}-coursework`,
               text: `Coursework: ${edu.coursework.join(", ")}.`,
+              overrideKey: `education:${i}:coursework`,
             },
           ]
         : [],
