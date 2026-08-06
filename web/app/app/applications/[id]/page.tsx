@@ -479,6 +479,7 @@ export default function ApplicationPage({
                         canMoveUp={position ? position.index > 0 : false}
                         canMoveDown={position ? position.index < position.length - 1 : false}
                         onMove={(direction) => moveFact(row.factId!, direction)}
+                        onDelete={() => deleteFact(row.factId!)}
                       />
                     );
                   }}
