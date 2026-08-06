@@ -76,6 +76,28 @@ export function RewriteBar({
   return (
     <div className="my-1 rounded-[7px] border border-em-softb bg-em-soft p-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {onMove && (
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => onMove("up")}
+              disabled={!canMoveUp}
+              aria-label="Move up"
+              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              onClick={() => onMove("down")}
+              disabled={!canMoveDown}
+              aria-label="Move down"
+              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+            >
+              ↓
+            </button>
+          </div>
+        )}
         {hasRealVariants && (
           <>
             <button
