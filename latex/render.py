@@ -111,6 +111,7 @@ def _tailored_rows(
     kind: str,
     selections: dict[str, dict] | None = None,
     fact_order: dict[str, list[str]] | None = None,
+    excluded_facts: list[str] | None = None,
 ) -> list:
     rows = []
     for section in sections:
@@ -119,8 +120,11 @@ def _tailored_rows(
             raise ValueError(
                 f"tailored {kind} section references unknown id {section.ref_id!r}"
             )
+        remaining_bullets = _exclude_by_key(
+            section.bullets, excluded_facts, lambda b: b.source_fact_ids[0]
+        )
         ordered_bullets = _reorder_by_key(
-            section.bullets,
+            remaining_bullets,
             (fact_order or {}).get(section.ref_id),
             lambda b: b.source_fact_ids[0],
         )
