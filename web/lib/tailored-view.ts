@@ -11,10 +11,16 @@ import type {
 // so a stale/partial order never drops a bullet.
 function reorderByKey<T>(items: T[], order: string[] | undefined, key: (item: T) => string): T[] {
   if (!order || order.length === 0) return items;
-  const byKey = new Map(items.map((item) => [key(item), item]));
+  const byKey = new Map<string, T>(items.map((item) => [key(item), item]));
   const seen = new Set(order);
-  const ordered = order.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
-  ordered.push(...items.filter((item) => !seen.has(key(item))));
+  const ordered: T[] = [];
+  for (const k of order) {
+    const item = byKey.get(k);
+    if (item !== undefined) ordered.push(item);
+  }
+  for (const item of items) {
+    if (!seen.has(key(item))) ordered.push(item);
+  }
   return ordered;
 }
 
