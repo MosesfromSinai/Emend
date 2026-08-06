@@ -16,6 +16,8 @@ from .escaping import escape_latex
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
+DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"]
+
 _env = Environment(
     loader=FileSystemLoader(_TEMPLATES_DIR),
     block_start_string=r"\BLOCK{",
