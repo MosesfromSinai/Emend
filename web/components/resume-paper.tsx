@@ -210,6 +210,7 @@ export function ResumePaper({
                   {block.sub}
                 </div>
               )}
+              {renderBlockExtra?.(block)}
               {block.rows.map((row) => (
                 <Fragment key={row.key}>
                   <div
