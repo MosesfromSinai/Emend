@@ -129,6 +129,36 @@ export default function ApplicationPage({
     setFactOrder((prev) => ({ ...prev, [position.refId]: current }));
   }
 
+  // Where an experience/project entry currently sits among its own kind --
+  // drives which up/down arrow is enabled on that entry's header.
+  const entryPositions = useMemo(() => {
+    const map = new Map<string, { kind: "experience" | "project"; index: number; length: number }>();
+    if (!version?.tailored) return map;
+    const expOrder = experienceOrder.length
+      ? experienceOrder
+      : version.tailored.experiences.map((s) => s.ref_id);
+    expOrder.forEach((refId, index) => map.set(refId, { kind: "experience", index, length: expOrder.length }));
+    const projOrder = projectOrder.length
+      ? projectOrder
+      : version.tailored.projects.map((s) => s.ref_id);
+    projOrder.forEach((refId, index) => map.set(refId, { kind: "project", index, length: projOrder.length }));
+    return map;
+  }, [version, experienceOrder, projectOrder]);
+
+  function moveEntry(refId: string, direction: "up" | "down") {
+    const position = entryPositions.get(refId);
+    if (!position) return;
+    const swapWith = direction === "up" ? position.index - 1 : position.index + 1;
+    if (swapWith < 0 || swapWith >= position.length) return;
+    const current = [...entryPositions.entries()]
+      .filter(([, p]) => p.kind === position.kind)
+      .sort((a, b) => a[1].index - b[1].index)
+      .map(([id]) => id);
+    [current[position.index], current[swapWith]] = [current[swapWith], current[position.index]];
+    if (position.kind === "experience") setExperienceOrder(current);
+    else setProjectOrder(current);
+  }
+
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
   }
