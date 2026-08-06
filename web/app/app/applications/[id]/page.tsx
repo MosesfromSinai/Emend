@@ -181,11 +181,16 @@ export default function ApplicationPage({
     const map = new Map<string, { refId: string; index: number; length: number }>();
     if (!version?.tailored) return map;
     for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
-      const order = factOrder[section.ref_id] ?? section.bullets.map((b) => b.source_fact_ids[0]);
+      const liveIds = excludeByKey(
+        section.bullets.map((b) => b.source_fact_ids[0]),
+        excludedFacts,
+        (id) => id
+      );
+      const order = reorderByKey(liveIds, factOrder[section.ref_id], (id) => id);
       order.forEach((factId, index) => map.set(factId, { refId: section.ref_id, index, length: order.length }));
     }
     return map;
-  }, [version, factOrder]);
+  }, [version, factOrder, excludedFacts]);
 
   function moveFact(factId: string, direction: "up" | "down") {
     const position = factPositions.get(factId);
