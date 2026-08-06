@@ -470,6 +470,19 @@ def test_preview_reorders_entries_via_experience_order(client, master, pipeline,
     assert tex.index("Globex") < tex.index("Acme")
 
 
+def test_preview_reorders_sections_via_section_order(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    reordered = client.post(
+        f"/applications/{app_id}/preview",
+        json={"section_order": ["PROJECTS", "EXPERIENCE", "EDUCATION", "SKILLS"]},
+    )
+    tex = reordered.json()["tex"]
+    assert tex.index(r"\section{Projects}") < tex.index(r"\section{Experience}")
+    assert tex.index(r"\section{Experience}") < tex.index(r"\section{Education}")
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
