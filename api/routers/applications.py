@@ -142,7 +142,12 @@ def preview_application(
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
     try:
         tex = core_bridge.render_tex(
-            master, _tailored_from(version), selections, body.fact_order
+            master,
+            _tailored_from(version),
+            selections,
+            body.fact_order,
+            body.experience_order,
+            body.project_order,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
@@ -160,7 +165,12 @@ def finalize_application(
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
     try:
         tex, pdf_path, log = core_bridge.render_and_compile(
-            master, _tailored_from(version), selections, body.fact_order
+            master,
+            _tailored_from(version),
+            selections,
+            body.fact_order,
+            body.experience_order,
+            body.project_order,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
