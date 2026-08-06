@@ -148,6 +148,7 @@ def preview_application(
             body.fact_order,
             body.experience_order,
             body.project_order,
+            body.section_order,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
@@ -171,6 +172,7 @@ def finalize_application(
             body.fact_order,
             body.experience_order,
             body.project_order,
+            body.section_order,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
