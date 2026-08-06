@@ -135,10 +135,23 @@ export default function ApplicationPage({
             selections,
             factOrder,
             experienceOrder,
-            projectOrder
+            projectOrder,
+            excludedFacts,
+            excludedExperiences,
+            excludedProjects
           )
         : null,
-    [master, version, selections, factOrder, experienceOrder, projectOrder]
+    [
+      master,
+      version,
+      selections,
+      factOrder,
+      experienceOrder,
+      projectOrder,
+      excludedFacts,
+      excludedExperiences,
+      excludedProjects,
+    ]
   );
 
   // The currently-visible section headings (empty sections don't render),
