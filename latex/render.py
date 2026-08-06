@@ -291,25 +291,37 @@ def render_tex(
         )
         skills = tailored.skills
 
-    links = [
+    links = []
+    for i, raw_link in enumerate(master.links):
+        link = _ov(text_overrides, f"link:{i}", raw_link)
+        links.append(
+            {
+                "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
+                "display": link.removeprefix("https://").removeprefix("http://"),
+            }
+        )
+
+    education = [
+        _education_row(edu, i, text_overrides) for i, edu in enumerate(master.education)
+    ]
+
+    skills_rows = [
         {
-            "url": (
-                link if link.startswith(("http://", "https://")) else f"https://{link}"
-            ),
-            "display": link.removeprefix("https://").removeprefix("http://"),
+            "category": category,
+            "items_text": _ov(text_overrides, f"skills:{category}", ", ".join(items)),
         }
-        for link in master.links
+        for category, items in skills.items()
     ]
 
     context = {
-        "name": master.name,
-        "email": master.email,
-        "phone": master.phone,
+        "name": _ov(text_overrides, "name", master.name),
+        "email": _ov(text_overrides, "email", master.email),
+        "phone": _ov(text_overrides, "phone", master.phone),
         "links": links,
-        "education": master.education,
+        "education": education,
         "experiences": experiences,
         "projects": projects,
-        "skills": skills,
+        "skills": skills_rows,
         "section_order": _reorder_by_key(
             DEFAULT_SECTION_ORDER, section_order, lambda s: s
         ),
