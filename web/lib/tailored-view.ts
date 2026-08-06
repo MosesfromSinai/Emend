@@ -16,6 +16,21 @@ export function resolveVariantText(bullet: TailoredBullet, selection?: BulletSel
   return bullet.variants[selection.variantIdx ?? 0];
 }
 
+// Mirrors latex/render.py's _ov -- a user's free-text edit for any
+// non-fact-backed field, keyed by a stable path string.
+function overrideText(overrides: Record<string, string>, key: string, fallback: string): string {
+  return key in overrides ? overrides[key] : fallback;
+}
+
+// Same idea for comma-joined list fields (coursework, tech, skills items) --
+// the override is one free-text blob matching how it already displays, split
+// back into a list the same way ", ".join(...)/join(", ") would read it.
+function overrideList(overrides: Record<string, string>, key: string, fallback: string[]): string[] {
+  if (!(key in overrides)) return fallback;
+  const text = overrides[key].trim();
+  return text ? text.split(",").map((s) => s.trim()) : [];
+}
+
 export function tailoredBulletsByFactId(
   tailored: TailoredResume | null
 ): Map<string, TailoredBullet> {
