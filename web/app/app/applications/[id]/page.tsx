@@ -79,6 +79,7 @@ export default function ApplicationPage({
     excludedFacts,
     excludedExperiences,
     excludedProjects,
+    textOverrides,
   };
 
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function ApplicationPage({
     excludedFacts,
     excludedExperiences,
     excludedProjects,
+    textOverrides,
   ]);
 
   const bulletsByFactId = useMemo(
