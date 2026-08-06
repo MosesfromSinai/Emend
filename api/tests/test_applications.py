@@ -76,7 +76,9 @@ def pipeline(monkeypatch, tmp_path):
             ],
         )
 
-    def render_and_compile(master, tailored, selections=None, fact_order=None):
+    def render_and_compile(
+        master, tailored, selections=None, fact_order=None, experience_order=None, project_order=None
+    ):
         calls.append("render_and_compile")
         pdf = tmp_path / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
@@ -469,7 +471,9 @@ def test_preview_fails_cleanly_when_master_no_longer_matches(
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "stale_tailored_resume"
 
-    def raising_render_and_compile(master_, tailored, selections=None, fact_order=None):
+    def raising_render_and_compile(
+        master_, tailored, selections=None, fact_order=None, experience_order=None, project_order=None
+    ):
         raise ValueError("tailored experience section references unknown id: ACME")
 
     monkeypatch.setattr(core_bridge, "render_and_compile", raising_render_and_compile)
