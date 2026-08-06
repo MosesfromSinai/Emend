@@ -137,6 +137,9 @@ def render_and_compile(
     experience_order: list[str] | None = None,
     project_order: list[str] | None = None,
     section_order: list[str] | None = None,
+    excluded_facts: list[str] | None = None,
+    excluded_experiences: list[str] | None = None,
+    excluded_projects: list[str] | None = None,
 ) -> tuple[str, str, str]:
     """(tex, pdf_path, log); pdf_path == "" means compile failure, log says why."""
     import latex
@@ -144,11 +147,14 @@ def render_and_compile(
     return latex.render_and_compile(
         master,
         tailored,
-        selections,
-        fact_order,
-        experience_order,
-        project_order,
-        section_order,
+        selections=selections,
+        fact_order=fact_order,
+        experience_order=experience_order,
+        project_order=project_order,
+        section_order=section_order,
+        excluded_facts=excluded_facts,
+        excluded_experiences=excluded_experiences,
+        excluded_projects=excluded_projects,
     )
 
 
