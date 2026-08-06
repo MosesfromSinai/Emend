@@ -79,6 +79,11 @@ class RenderRequest(BaseModel):
     # keyed by an experience/project's own id -- the full ordered list of
     # that entry's fact ids after the user's up/down moves on Export
     fact_order: dict[str, list[str]] = {}
+    # the full ordered list of experience/project entry ids (ref_ids in
+    # tailor mode, the entry's own id in refactor mode) after the user's
+    # up/down moves on an entry's header -- None means no override
+    experience_order: list[str] | None = None
+    project_order: list[str] | None = None
 
 
 class RenderPreviewResponse(BaseModel):
