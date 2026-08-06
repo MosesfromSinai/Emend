@@ -510,6 +510,27 @@ def test_preview_deletes_a_whole_entry_via_excluded_experiences(client, master, 
     assert r"\section{Experience}" not in tex
 
 
+def test_preview_applies_text_overrides(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    edited = client.post(
+        f"/applications/{app_id}/preview",
+        json={
+            "text_overrides": {
+                "name": "Sam T. Sample",
+                "experience:ACME:company": "Renamed Corp",
+                "skills:Languages": "Python, Rust",
+            }
+        },
+    )
+    tex = edited.json()["tex"]
+    assert "Sam T. Sample" in tex
+    assert "Renamed Corp" in tex
+    assert "Python, Rust" in tex
+    assert "Acme Corp" not in tex
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
