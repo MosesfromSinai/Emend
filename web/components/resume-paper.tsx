@@ -30,6 +30,13 @@ export type PaperBlock = {
   sub: string;
   dates: string;
   rows: PaperRow[];
+  // text_overrides paths backing each displayed line -- empty means that
+  // line has nothing to edit (e.g. a project has no dates line at all).
+  // A line can represent more than one underlying field (company + location
+  // shown as one "sub" line), so each is a list, not a single key.
+  titleOverrideKeys: string[];
+  subOverrideKeys: string[];
+  datesOverrideKeys: string[];
 };
 
 export type PaperSection = {
@@ -53,6 +60,9 @@ export function masterToSections(
       title: edu.school,
       sub: [edu.degree, edu.location].filter(Boolean).join(" · "),
       dates: edu.grad_date,
+      titleOverrideKeys: [`education:${i}:school`],
+      subOverrideKeys: [`education:${i}:degree`, `education:${i}:location`],
+      datesOverrideKeys: [`education:${i}:grad_date`],
       rows: edu.coursework.length
         ? [
             {
@@ -73,6 +83,9 @@ export function masterToSections(
       title: exp.title,
       sub: [exp.company, exp.location].filter(Boolean).join(" — "),
       dates: [exp.start, exp.end].filter(Boolean).join(" – "),
+      titleOverrideKeys: [`experience:${exp.id}:title`],
+      subOverrideKeys: [`experience:${exp.id}:company`, `experience:${exp.id}:location`],
+      datesOverrideKeys: [`experience:${exp.id}:start`, `experience:${exp.id}:end`],
       rows: exp.facts.map((f) => ({ key: f.id, text: f.text, factId: f.id })),
     })),
   };
@@ -85,6 +98,9 @@ export function masterToSections(
       title: p.name,
       sub: p.tech.join(" · "),
       dates: "",
+      titleOverrideKeys: [`project:${p.id}:name`],
+      subOverrideKeys: [`project:${p.id}:tech`],
+      datesOverrideKeys: [],
       rows: p.facts.map((f) => ({ key: f.id, text: f.text, factId: f.id })),
     })),
   };
@@ -100,6 +116,9 @@ export function masterToSections(
             title: "",
             sub: "",
             dates: "",
+            titleOverrideKeys: [],
+            subOverrideKeys: [],
+            datesOverrideKeys: [],
             rows: skillCategories.map(([category, items]) => ({
               key: `skills-${category}`,
               text: `${category}: ${items.join(", ")}.`,
