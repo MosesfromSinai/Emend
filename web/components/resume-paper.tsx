@@ -148,11 +148,14 @@ export function ResumePaper({
   renderRowControl,
   renderRowExtra,
   renderBlockControl,
-  renderBlockExtra,
   renderSectionControl,
-  renderHeaderControl,
-  renderHeaderExtra,
   sectionOrder,
+  activeBlockField,
+  onClickBlockField,
+  renderBlockFieldControl,
+  activeHeaderField,
+  onClickHeaderField,
+  renderHeaderFieldControl,
 }: {
   master: MasterResume;
   name: string;
@@ -169,16 +172,21 @@ export function ResumePaper({
   activeRowKey?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
+  // move/delete controls only -- editing a block's title/sub/dates happens
+  // by clicking those lines directly, see activeBlockField below
   renderBlockControl?: (block: PaperBlock) => ReactNode;
-  // rendered below a block's title/sub/dates, above its rows -- the slot
-  // for a per-entry "edit details" form (structural fields aren't rows)
-  renderBlockExtra?: (block: PaperBlock) => ReactNode;
   renderSectionControl?: (section: PaperSection) => ReactNode;
-  // same idea as renderBlockControl/renderBlockExtra, for the name/contact
-  // header -- there's no PaperBlock for it since it isn't a resume section
-  renderHeaderControl?: () => ReactNode;
-  renderHeaderExtra?: () => ReactNode;
   sectionOrder?: string[];
+  // click-to-edit for a block's title/sub/dates line -- each is one visual
+  // line even when it represents more than one text_overrides key (e.g.
+  // "sub" is company + location), matching "click any line to edit"
+  activeBlockField?: { blockKey: string; field: "title" | "sub" | "dates" } | null;
+  onClickBlockField?: (block: PaperBlock, field: "title" | "sub" | "dates") => void;
+  renderBlockFieldControl?: (block: PaperBlock, field: "title" | "sub" | "dates") => ReactNode;
+  // same idea for the name/contact header lines, which aren't a PaperBlock
+  activeHeaderField?: "name" | "contact" | null;
+  onClickHeaderField?: (field: "name" | "contact") => void;
+  renderHeaderFieldControl?: (field: "name" | "contact") => ReactNode;
 }) {
   const sections = masterToSections(master, sectionOrder);
   const isExport = size === "export";
@@ -188,14 +196,24 @@ export function ResumePaper({
       <div
         className={cn(
           "text-center font-serif font-bold text-[#111]",
-          isExport ? "text-[27px]" : "text-2xl"
+          isExport ? "text-[27px]" : "text-2xl",
+          onClickHeaderField && "cursor-pointer hover:underline"
         )}
+        onClick={() => onClickHeaderField?.("name")}
       >
         {name}
-        {renderHeaderControl?.()}
       </div>
-      <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
-      {renderHeaderExtra?.()}
+      {activeHeaderField === "name" && renderHeaderFieldControl?.("name")}
+      <div
+        className={cn(
+          "mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]",
+          onClickHeaderField && "cursor-pointer hover:underline"
+        )}
+        onClick={() => onClickHeaderField?.("contact")}
+      >
+        {contact}
+      </div>
+      {activeHeaderField === "contact" && renderHeaderFieldControl?.("contact")}
 
       {sections.map((section) => (
         <div key={section.key}>
