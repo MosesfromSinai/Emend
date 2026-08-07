@@ -59,7 +59,12 @@ export type PaperSection = {
 
 export function masterToSections(
   master: MasterResume,
-  sectionOrder: string[] = []
+  sectionOrder: string[] = [],
+  // keyed by DEFAULT_SECTION_ORDER's own keys -- there's no field on
+  // MasterResume for a section heading (unlike title/company/etc., which
+  // all come from real resume data), so this is the only path an override
+  // can reach the on-screen preview through.
+  sectionHeadings: Record<string, string> = {}
 ): PaperSection[] {
   const education: PaperSection = {
     key: "EDUCATION",
