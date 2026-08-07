@@ -45,6 +45,9 @@ export type PaperSection = {
   // to reorder against
   key: string;
   heading: string;
+  // text_overrides path for renaming the printed heading -- "Experience"
+  // to "Leadership", say -- without touching the section's actual key/order
+  headingOverrideKey: string;
   blocks: PaperBlock[];
 };
 
@@ -55,6 +58,7 @@ export function masterToSections(
   const education: PaperSection = {
     key: "EDUCATION",
     heading: "EDUCATION",
+    headingOverrideKey: "section:EDUCATION:heading",
     blocks: master.education.map((edu, i) => ({
       key: `edu-${i}`,
       title: edu.school,
@@ -78,6 +82,7 @@ export function masterToSections(
   const experience: PaperSection = {
     key: "EXPERIENCE",
     heading: "EXPERIENCE",
+    headingOverrideKey: "section:EXPERIENCE:heading",
     blocks: master.experiences.map((exp) => ({
       key: exp.id,
       title: exp.title,
@@ -93,6 +98,7 @@ export function masterToSections(
   const projects: PaperSection = {
     key: "PROJECTS",
     heading: "PROJECTS",
+    headingOverrideKey: "section:PROJECTS:heading",
     blocks: master.projects.map((p) => ({
       key: p.id,
       title: p.name,
@@ -109,6 +115,7 @@ export function masterToSections(
   const skills: PaperSection = {
     key: "SKILLS",
     heading: "TECHNICAL SKILLS",
+    headingOverrideKey: "section:SKILLS:heading",
     blocks: skillCategories.length
       ? [
           {
