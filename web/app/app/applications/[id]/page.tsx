@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { OverrideEditor } from "@/components/export/override-editor";
 import { RewriteBar } from "@/components/export/rewrite-bar";
@@ -11,6 +11,7 @@ import { ProvenancePanel } from "@/components/provenance-panel";
 import { DEFAULT_SECTION_ORDER, ResumePaper, masterToSections } from "@/components/resume-paper";
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   ApiError,
@@ -30,7 +31,7 @@ const PREVIEW_DEBOUNCE_MS = 400;
 type View = "resume" | "tex";
 
 const VIEW_HINTS: Record<View, string> = {
-  resume: "Click any line to swap in a different rewrite or your original.",
+  resume: "Click any line to edit it.",
   tex: "Every generated line carries a % grounded receipt.",
 };
 
@@ -53,8 +54,12 @@ export default function ApplicationPage({
   const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
-  const [activeEntryEdit, setActiveEntryEdit] = useState<string | null>(null);
-  const [headerEditOpen, setHeaderEditOpen] = useState(false);
+  const [activeBlockField, setActiveBlockField] = useState<{
+    blockKey: string;
+    field: "title" | "sub" | "dates";
+  } | null>(null);
+  const [activeHeaderField, setActiveHeaderField] = useState<"name" | "contact" | null>(null);
+  const paperRef = useRef<HTMLDivElement>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
   const [showReport, setShowReport] = useState(false);
@@ -370,25 +375,53 @@ export default function ApplicationPage({
     return "";
   }
 
-  // A single labeled input bound to a text_overrides path, reused across
-  // the header and per-entry "edit details" forms.
-  function overrideField(label: string, keyPath: string) {
-    return (
-      <label key={keyPath} className="flex flex-col gap-1">
-        {label}
-        <input
-          value={currentOverrideValue(keyPath)}
-          onChange={(e) => updateTextOverride(keyPath, e.target.value)}
-          className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-        />
-      </label>
-    );
+  // A short human label derived from a text_overrides path's own key
+  // segments -- "experience:ACME:start" -> "Start" -- so OverrideEditor
+  // never needs a lookup table to know what it's showing.
+  function labelForKey(key: string): string {
+    if (key.startsWith("link:")) return `Link ${Number(key.split(":")[1]) + 1}`;
+    const last = key.split(":").pop() ?? key;
+    const spaced = last.replace(/_/g, " ");
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }
+
+  // Deleting a line clears every key it represents (a composite line like
+  // "company — location" is two keys) and closes whatever editor was open.
+  function clearOverrides(keys: string[]) {
+    setTextOverrides((prev) => {
+      const next = { ...prev };
+      for (const key of keys) next[key] = "";
+      return next;
+    });
+    clearActiveEditors();
+  }
+
+  // Only one editor -- a bullet, a coursework/skills line, a structural
+  // field, or a header field -- is ever open at once.
+  function clearActiveEditors() {
+    setActiveFactId(null);
+    setActiveRowKey(null);
+    setActiveBlockField(null);
+    setActiveHeaderField(null);
   }
 
   function changeView(next: View) {
     setView(next);
     setActiveFactId(null);
   }
+
+  // Clicking off the resume paper closes whatever line is being edited --
+  // clicks inside it are already handled by each row/field's own onClick
+  // (contains() is true for those, so this is a no-op there).
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (paperRef.current && !paperRef.current.contains(e.target as Node)) {
+        clearActiveEditors();
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
@@ -521,6 +554,10 @@ export default function ApplicationPage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {view === "resume" ? (
           <div className="rounded-[10px] bg-em-line p-6.5">
+            <p className="mx-auto mb-3 max-w-215 text-center text-xs text-ink/50">
+              Click any line to edit it — your name, contact info, headings, dates, and bullets.
+              Click elsewhere to close it.
+            </p>
             {removedItems.length > 0 && (
               <div className="mx-auto mb-4 flex max-w-215 flex-wrap items-center gap-2 rounded-lg border border-em-softb bg-white px-3 py-2 text-xs text-ink/70">
                 <span className="font-semibold text-ink">
@@ -539,7 +576,7 @@ export default function ApplicationPage({
               </div>
             )}
             {renderResume && (
-              <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
+              <div ref={paperRef} className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
                 <ResumePaper
                   master={renderResume}
                   name={renderResume.name}
@@ -552,25 +589,30 @@ export default function ApplicationPage({
                   activeFactId={activeFactId}
                   activeRowKey={activeRowKey}
                   onClickRow={(row) => {
+                    const wasActive = row.factId === activeFactId || row.key === activeRowKey;
+                    clearActiveEditors();
+                    if (wasActive) return;
                     const factId = row.factId;
                     if (factId && bulletsByFactId.has(factId)) {
-                      setActiveFactId((prev) => (prev === factId ? null : factId));
-                      setActiveRowKey(null);
+                      setActiveFactId(factId);
                       return;
                     }
-                    if (row.overrideKey) {
-                      setActiveRowKey((prev) => (prev === row.key ? null : row.key));
-                      setActiveFactId(null);
-                    }
+                    if (row.overrideKey) setActiveRowKey(row.key);
                   }}
                   renderRowControl={(row) => {
                     if (row.overrideKey && row.key === activeRowKey) {
                       return (
                         <OverrideEditor
                           key={row.key}
-                          label="edit this line"
-                          value={currentOverrideValue(row.overrideKey)}
-                          onChange={(text) => updateTextOverride(row.overrideKey!, text)}
+                          fields={[
+                            {
+                              key: row.overrideKey,
+                              label: labelForKey(row.overrideKey),
+                              value: currentOverrideValue(row.overrideKey),
+                            },
+                          ]}
+                          onChange={updateTextOverride}
+                          onDelete={() => clearOverrides([row.overrideKey!])}
                         />
                       );
                     }
@@ -596,78 +638,59 @@ export default function ApplicationPage({
                   }}
                   renderBlockControl={(block) => {
                     const position = entryPositions.get(block.key);
-                    const isEducation = block.key.startsWith("edu-");
-                    if (!position && !isEducation) return null;
+                    if (!position) return null;
                     return (
-                      <div className="flex gap-1">
-                        {position && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => moveEntry(block.key, "up")}
-                              disabled={position.index === 0}
-                              aria-label={`Move ${block.title} up`}
-                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveEntry(block.key, "down")}
-                              disabled={position.index === position.length - 1}
-                              aria-label={`Move ${block.title} down`}
-                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteEntry(block.key, position.kind)}
-                              aria-label={`Delete ${block.title}`}
-                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-red-700 hover:border-red-700"
-                            >
-                              delete
-                            </button>
-                          </>
-                        )}
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => setActiveEntryEdit((prev) => (prev === block.key ? null : block.key))}
-                          aria-label={`Edit ${block.title} details`}
-                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-em-deep underline hover:border-ink"
+                          onClick={() => moveEntry(block.key, "up")}
+                          disabled={position.index === 0}
+                          aria-label={`Move ${block.title} up`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
                         >
-                          {activeEntryEdit === block.key ? "done" : "edit details"}
+                          ↑
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => moveEntry(block.key, "down")}
+                          disabled={position.index === position.length - 1}
+                          aria-label={`Move ${block.title} down`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                        >
+                          ↓
+                        </button>
+                        <DeleteButton
+                          onClick={() => deleteEntry(block.key, position.kind)}
+                          label={`Delete ${block.title}`}
+                        />
                       </div>
                     );
                   }}
-                  renderBlockExtra={(block) => {
-                    if (activeEntryEdit !== block.key) return null;
-                    const isEducation = block.key.startsWith("edu-");
-                    const fields = isEducation
-                      ? [
-                          overrideField("School", `education:${block.key.slice(4)}:school`),
-                          overrideField("Degree", `education:${block.key.slice(4)}:degree`),
-                          overrideField("Location", `education:${block.key.slice(4)}:location`),
-                          overrideField("Graduation date", `education:${block.key.slice(4)}:grad_date`),
-                          overrideField("Coursework", `education:${block.key.slice(4)}:coursework`),
-                        ]
-                      : entryPositions.get(block.key)?.kind === "project"
-                        ? [
-                            overrideField("Project name", `project:${block.key}:name`),
-                            overrideField("Tech", `project:${block.key}:tech`),
-                          ]
-                        : [
-                            overrideField("Title", `experience:${block.key}:title`),
-                            overrideField("Company", `experience:${block.key}:company`),
-                            overrideField("Location", `experience:${block.key}:location`),
-                            overrideField("Start date", `experience:${block.key}:start`),
-                            overrideField("End date", `experience:${block.key}:end`),
-                          ];
+                  activeBlockField={activeBlockField}
+                  onClickBlockField={(block, field) => {
+                    const wasActive =
+                      activeBlockField?.blockKey === block.key && activeBlockField.field === field;
+                    clearActiveEditors();
+                    if (!wasActive) setActiveBlockField({ blockKey: block.key, field });
+                  }}
+                  renderBlockFieldControl={(block, field) => {
+                    const keys =
+                      field === "title"
+                        ? block.titleOverrideKeys
+                        : field === "sub"
+                          ? block.subOverrideKeys
+                          : block.datesOverrideKeys;
+                    if (keys.length === 0) return null;
                     return (
-                      <div className="mb-2 rounded-lg border border-em-softb bg-em-soft p-3 text-xs">
-                        <div className="flex flex-col gap-2">{fields}</div>
-                      </div>
+                      <OverrideEditor
+                        fields={keys.map((key) => ({
+                          key,
+                          label: labelForKey(key),
+                          value: currentOverrideValue(key),
+                        }))}
+                        onChange={updateTextOverride}
+                        onDelete={() => clearOverrides(keys)}
+                      />
                     );
                   }}
                   sectionOrder={effectiveSectionOrder}
@@ -696,28 +719,35 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
-                  renderHeaderControl={() => (
-                    <button
-                      type="button"
-                      onClick={() => setHeaderEditOpen((v) => !v)}
-                      className="ml-2 align-middle text-xs font-normal text-em-deep underline hover:text-ink"
-                    >
-                      {headerEditOpen ? "done editing" : "edit"}
-                    </button>
-                  )}
-                  renderHeaderExtra={() =>
-                    headerEditOpen ? (
-                      <div className="mx-auto mb-4 max-w-sm rounded-lg border border-em-softb bg-em-soft p-3 text-left text-xs">
-                        <div className="mb-2 font-semibold text-ink">Edit header</div>
-                        <div className="flex flex-col gap-2">
-                          {overrideField("Name", "name")}
-                          {overrideField("Email", "email")}
-                          {overrideField("Phone", "phone")}
-                          {renderResume?.links.map((_, i) => overrideField(`Link ${i + 1}`, `link:${i}`))}
-                        </div>
-                      </div>
-                    ) : null
-                  }
+                  activeHeaderField={activeHeaderField}
+                  onClickHeaderField={(field) => {
+                    const wasActive = activeHeaderField === field;
+                    clearActiveEditors();
+                    if (!wasActive) setActiveHeaderField(field);
+                  }}
+                  renderHeaderFieldControl={(field) => {
+                    if (field === "name") {
+                      return (
+                        <OverrideEditor
+                          fields={[{ key: "name", label: "Name", value: currentOverrideValue("name") }]}
+                          onChange={updateTextOverride}
+                          onDelete={() => clearOverrides(["name"])}
+                        />
+                      );
+                    }
+                    const keys = ["email", "phone", ...renderResume.links.map((_, i) => `link:${i}`)];
+                    return (
+                      <OverrideEditor
+                        fields={keys.map((key) => ({
+                          key,
+                          label: labelForKey(key),
+                          value: currentOverrideValue(key),
+                        }))}
+                        onChange={updateTextOverride}
+                        onDelete={() => clearOverrides(keys)}
+                      />
+                    );
+                  }}
                 />
               </div>
             )}

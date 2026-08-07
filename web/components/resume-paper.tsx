@@ -30,6 +30,13 @@ export type PaperBlock = {
   sub: string;
   dates: string;
   rows: PaperRow[];
+  // text_overrides paths backing each displayed line -- empty means that
+  // line has nothing to edit (e.g. a project has no dates line at all).
+  // A line can represent more than one underlying field (company + location
+  // shown as one "sub" line), so each is a list, not a single key.
+  titleOverrideKeys: string[];
+  subOverrideKeys: string[];
+  datesOverrideKeys: string[];
 };
 
 export type PaperSection = {
@@ -53,6 +60,9 @@ export function masterToSections(
       title: edu.school,
       sub: [edu.degree, edu.location].filter(Boolean).join(" · "),
       dates: edu.grad_date,
+      titleOverrideKeys: [`education:${i}:school`],
+      subOverrideKeys: [`education:${i}:degree`, `education:${i}:location`],
+      datesOverrideKeys: [`education:${i}:grad_date`],
       rows: edu.coursework.length
         ? [
             {
@@ -73,6 +83,9 @@ export function masterToSections(
       title: exp.title,
       sub: [exp.company, exp.location].filter(Boolean).join(" — "),
       dates: [exp.start, exp.end].filter(Boolean).join(" – "),
+      titleOverrideKeys: [`experience:${exp.id}:title`],
+      subOverrideKeys: [`experience:${exp.id}:company`, `experience:${exp.id}:location`],
+      datesOverrideKeys: [`experience:${exp.id}:start`, `experience:${exp.id}:end`],
       rows: exp.facts.map((f) => ({ key: f.id, text: f.text, factId: f.id })),
     })),
   };
@@ -85,6 +98,9 @@ export function masterToSections(
       title: p.name,
       sub: p.tech.join(" · "),
       dates: "",
+      titleOverrideKeys: [`project:${p.id}:name`],
+      subOverrideKeys: [`project:${p.id}:tech`],
+      datesOverrideKeys: [],
       rows: p.facts.map((f) => ({ key: f.id, text: f.text, factId: f.id })),
     })),
   };
@@ -100,6 +116,9 @@ export function masterToSections(
             title: "",
             sub: "",
             dates: "",
+            titleOverrideKeys: [],
+            subOverrideKeys: [],
+            datesOverrideKeys: [],
             rows: skillCategories.map(([category, items]) => ({
               key: `skills-${category}`,
               text: `${category}: ${items.join(", ")}.`,
@@ -129,11 +148,14 @@ export function ResumePaper({
   renderRowControl,
   renderRowExtra,
   renderBlockControl,
-  renderBlockExtra,
   renderSectionControl,
-  renderHeaderControl,
-  renderHeaderExtra,
   sectionOrder,
+  activeBlockField,
+  onClickBlockField,
+  renderBlockFieldControl,
+  activeHeaderField,
+  onClickHeaderField,
+  renderHeaderFieldControl,
 }: {
   master: MasterResume;
   name: string;
@@ -150,16 +172,21 @@ export function ResumePaper({
   activeRowKey?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
+  // move/delete controls only -- editing a block's title/sub/dates happens
+  // by clicking those lines directly, see activeBlockField below
   renderBlockControl?: (block: PaperBlock) => ReactNode;
-  // rendered below a block's title/sub/dates, above its rows -- the slot
-  // for a per-entry "edit details" form (structural fields aren't rows)
-  renderBlockExtra?: (block: PaperBlock) => ReactNode;
   renderSectionControl?: (section: PaperSection) => ReactNode;
-  // same idea as renderBlockControl/renderBlockExtra, for the name/contact
-  // header -- there's no PaperBlock for it since it isn't a resume section
-  renderHeaderControl?: () => ReactNode;
-  renderHeaderExtra?: () => ReactNode;
   sectionOrder?: string[];
+  // click-to-edit for a block's title/sub/dates line -- each is one visual
+  // line even when it represents more than one text_overrides key (e.g.
+  // "sub" is company + location), matching "click any line to edit"
+  activeBlockField?: { blockKey: string; field: "title" | "sub" | "dates" } | null;
+  onClickBlockField?: (block: PaperBlock, field: "title" | "sub" | "dates") => void;
+  renderBlockFieldControl?: (block: PaperBlock, field: "title" | "sub" | "dates") => ReactNode;
+  // same idea for the name/contact header lines, which aren't a PaperBlock
+  activeHeaderField?: "name" | "contact" | null;
+  onClickHeaderField?: (field: "name" | "contact") => void;
+  renderHeaderFieldControl?: (field: "name" | "contact") => ReactNode;
 }) {
   const sections = masterToSections(master, sectionOrder);
   const isExport = size === "export";
@@ -169,14 +196,24 @@ export function ResumePaper({
       <div
         className={cn(
           "text-center font-serif font-bold text-[#111]",
-          isExport ? "text-[27px]" : "text-2xl"
+          isExport ? "text-[27px]" : "text-2xl",
+          onClickHeaderField && "cursor-pointer hover:underline"
         )}
+        onClick={() => onClickHeaderField?.("name")}
       >
         {name}
-        {renderHeaderControl?.()}
       </div>
-      <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
-      {renderHeaderExtra?.()}
+      {activeHeaderField === "name" && renderHeaderFieldControl?.("name")}
+      <div
+        className={cn(
+          "mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]",
+          onClickHeaderField && "cursor-pointer hover:underline"
+        )}
+        onClick={() => onClickHeaderField?.("contact")}
+      >
+        {contact}
+      </div>
+      {activeHeaderField === "contact" && renderHeaderFieldControl?.("contact")}
 
       {sections.map((section) => (
         <div key={section.key}>
@@ -196,21 +233,60 @@ export function ResumePaper({
             >
               {block.title && (
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-[13.5px] font-semibold text-ink">{block.title}</span>
+                  <span
+                    className={cn(
+                      "text-[13.5px] font-semibold text-ink",
+                      block.titleOverrideKeys.length > 0 &&
+                        onClickBlockField &&
+                        "cursor-pointer hover:underline"
+                    )}
+                    onClick={() =>
+                      block.titleOverrideKeys.length > 0 && onClickBlockField?.(block, "title")
+                    }
+                  >
+                    {block.title}
+                  </span>
                   <span className="flex items-center gap-2">
                     {block.dates && (
-                      <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
+                      <span
+                        className={cn(
+                          "font-mono text-[11.5px] text-[#8f8874]",
+                          block.datesOverrideKeys.length > 0 &&
+                            onClickBlockField &&
+                            "cursor-pointer hover:underline"
+                        )}
+                        onClick={() =>
+                          block.datesOverrideKeys.length > 0 && onClickBlockField?.(block, "dates")
+                        }
+                      >
+                        {block.dates}
+                      </span>
                     )}
                     {renderBlockControl?.(block)}
                   </span>
                 </div>
               )}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "title" &&
+                renderBlockFieldControl?.(block, "title")}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "dates" &&
+                renderBlockFieldControl?.(block, "dates")}
               {block.sub && (
-                <div className="mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic">
+                <div
+                  className={cn(
+                    "mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic",
+                    block.subOverrideKeys.length > 0 &&
+                      onClickBlockField &&
+                      "cursor-pointer hover:underline"
+                  )}
+                  onClick={() =>
+                    block.subOverrideKeys.length > 0 && onClickBlockField?.(block, "sub")
+                  }
+                >
                   {block.sub}
                 </div>
               )}
-              {renderBlockExtra?.(block)}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "sub" &&
+                renderBlockFieldControl?.(block, "sub")}
               {block.rows.map((row) => (
                 <Fragment key={row.key}>
                   <div

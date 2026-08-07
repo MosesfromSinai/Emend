@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { DeleteButton } from "@/components/ui/delete-button";
 import { cn } from "@/lib/utils";
 import type { BulletSelection, TailoredBullet } from "@/lib/types";
 
@@ -41,6 +42,12 @@ export function RewriteBar({
   // copies of the same sentence would be confusing, so hide that control
   // and say so plainly instead of "rewrite 1 of 3."
   const hasRealVariants = bullet.variants.some((v) => v !== bullet.variants[0]);
+  // In refactor mode with no edit yet, "your confirmed wording" already IS
+  // the original -- there's nothing different to reveal, so the toggle is
+  // just noise. Once there's a real rewrite to pick between, or the person
+  // has made their own edit, the two genuinely diverge and the toggle earns
+  // its place again.
+  const hasOriginalToShow = hasRealVariants || isCustom;
 
   function cycle(delta: number) {
     const next = (variantIdx + delta + bullet.variants.length) % bullet.variants.length;
@@ -64,6 +71,11 @@ export function RewriteBar({
 
   function discardEdit() {
     setEditing(false);
+    // Discarding a custom edit can make hasOriginalToShow go false (refactor
+    // mode with no real variants) -- reset this too, or the toggle's button
+    // disappears while its "showing original" state (and the edit-blocking
+    // guard in startEditing) silently stays stuck on.
+    setViewingOriginal(false);
     onChangeSelection({ variantIdx });
   }
 
@@ -147,15 +159,6 @@ export function RewriteBar({
         )}
 
         <div className="ml-auto flex items-center gap-3">
-          {onDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              className="text-xs text-red-700 underline hover:text-red-900"
-            >
-              delete this line
-            </button>
-          )}
           {showDiscard && (
             <button
               type="button"
@@ -166,17 +169,20 @@ export function RewriteBar({
               ↺ discard my edit
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setViewingOriginal((v) => !v)}
-            className="text-xs text-em-deep underline hover:text-ink"
-          >
-            {viewingOriginal
-              ? isCustom
-                ? "↩ back to my edit"
-                : "↩ back to Emend's rewrite"
-              : "view my original"}
-          </button>
+          {hasOriginalToShow && (
+            <button
+              type="button"
+              onClick={() => setViewingOriginal((v) => !v)}
+              className="text-xs text-em-deep underline hover:text-ink"
+            >
+              {viewingOriginal
+                ? isCustom
+                  ? "↩ back to my edit"
+                  : "↩ back to Emend's rewrite"
+                : "view my original"}
+            </button>
+          )}
+          {onDelete && <DeleteButton onClick={onDelete} label="Delete this line" />}
         </div>
       </div>
 
