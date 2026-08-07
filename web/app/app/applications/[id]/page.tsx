@@ -374,19 +374,34 @@ export default function ApplicationPage({
     return "";
   }
 
-  // A single labeled input bound to a text_overrides path, reused across
-  // the header and per-entry "edit details" forms.
-  function overrideField(label: string, keyPath: string) {
-    return (
-      <label key={keyPath} className="flex flex-col gap-1">
-        {label}
-        <input
-          value={currentOverrideValue(keyPath)}
-          onChange={(e) => updateTextOverride(keyPath, e.target.value)}
-          className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
-        />
-      </label>
-    );
+  // A short human label derived from a text_overrides path's own key
+  // segments -- "experience:ACME:start" -> "Start" -- so OverrideEditor
+  // never needs a lookup table to know what it's showing.
+  function labelForKey(key: string): string {
+    if (key.startsWith("link:")) return `Link ${Number(key.split(":")[1]) + 1}`;
+    const last = key.split(":").pop() ?? key;
+    const spaced = last.replace(/_/g, " ");
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }
+
+  // Deleting a line clears every key it represents (a composite line like
+  // "company — location" is two keys) and closes whatever editor was open.
+  function clearOverrides(keys: string[]) {
+    setTextOverrides((prev) => {
+      const next = { ...prev };
+      for (const key of keys) next[key] = "";
+      return next;
+    });
+    clearActiveEditors();
+  }
+
+  // Only one editor -- a bullet, a coursework/skills line, a structural
+  // field, or a header field -- is ever open at once.
+  function clearActiveEditors() {
+    setActiveFactId(null);
+    setActiveRowKey(null);
+    setActiveBlockField(null);
+    setActiveHeaderField(null);
   }
 
   function changeView(next: View) {
