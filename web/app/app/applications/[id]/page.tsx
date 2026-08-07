@@ -43,6 +43,36 @@ const DEFAULT_SECTION_HEADINGS: Record<string, string> = {
   SKILLS: "Technical Skills",
 };
 
+// Every edit on this page previously lived only in React state -- navigate
+// away (even just back to Confirm and back) and it was gone. sessionStorage
+// (cleared when the tab closes, same mechanism as the fresh-visit gate on
+// /app) keyed per application id fixes that without resurrecting stale
+// edits from a completely different session days later.
+type SavedEdits = Partial<{
+  selections: Record<string, BulletSelection>;
+  factOrder: FactOrder;
+  experienceOrder: string[];
+  projectOrder: string[];
+  sectionOrder: string[];
+  textOverrides: Record<string, string>;
+  excludedFacts: string[];
+  excludedExperiences: string[];
+  excludedProjects: string[];
+}>;
+
+function savedEditsKey(id: string): string {
+  return `emend_export_edits_${id}`;
+}
+
+function loadSavedEdits(id: string): SavedEdits {
+  try {
+    const raw = sessionStorage.getItem(savedEditsKey(id));
+    return raw ? (JSON.parse(raw) as SavedEdits) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function ApplicationPage({
   params,
 }: {
