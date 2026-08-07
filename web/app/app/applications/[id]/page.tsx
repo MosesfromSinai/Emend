@@ -492,7 +492,13 @@ export default function ApplicationPage({
 
   function changeView(next: View) {
     setView(next);
-    setActiveFactId(null);
+    // Not just setActiveFactId(null): a keyboard-driven view switch (Tab to
+    // the segmented control, Enter/Space) dispatches a synthetic click with
+    // no preceding mousedown, so the outside-click handler below never
+    // fires to close a different kind of open editor (a header/block/
+    // section field) -- clear all five here too, or it silently reopens,
+    // unclicked, when the Resume view remounts.
+    clearActiveEditors();
   }
 
   // Clicking off the resume paper closes whatever line is being edited --
