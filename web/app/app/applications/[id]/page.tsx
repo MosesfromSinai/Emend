@@ -35,6 +35,14 @@ const VIEW_HINTS: Record<View, string> = {
   tex: "Every generated line carries a % grounded receipt.",
 };
 
+// mirrors latex/render.py's default_headings
+const DEFAULT_SECTION_HEADINGS: Record<string, string> = {
+  EDUCATION: "Education",
+  EXPERIENCE: "Experience",
+  PROJECTS: "Projects",
+  SKILLS: "Technical Skills",
+};
+
 export default function ApplicationPage({
   params,
 }: {
