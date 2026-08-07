@@ -146,6 +146,25 @@ export default function ApplicationPage({
   };
 
   useEffect(() => {
+    const edits: SavedEdits = renderOptions;
+    sessionStorage.setItem(savedEditsKey(id), JSON.stringify(edits));
+    // renderOptions is a fresh object every render (see the debounce effect
+    // below for why) -- depend on its actual fields instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    id,
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+    textOverrides,
+  ]);
+
+  useEffect(() => {
     if (!version) return;
     // Same stale-response guard as Tailor's JD preview -- a slower request
     // for an older set of selections must never overwrite a faster, newer one.
