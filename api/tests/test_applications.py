@@ -681,8 +681,14 @@ def test_preview_applies_every_edit_kind_at_once_tailor_mode(
                 TailoredSection(
                     ref_id="ACME",
                     bullets=[
-                        TailoredBullet(variants=["Built the dashboard"] * 3, source_fact_ids=["ACME-01"]),
-                        TailoredBullet(variants=["Wrote the tests"] * 3, source_fact_ids=["ACME-02"]),
+                        TailoredBullet(
+                            variants=["Built the dashboard"] * 3,
+                            source_fact_ids=["ACME-01"],
+                        ),
+                        TailoredBullet(
+                            variants=["Wrote the tests"] * 3,
+                            source_fact_ids=["ACME-02"],
+                        ),
                     ],
                 )
             ],
@@ -690,7 +696,10 @@ def test_preview_applies_every_edit_kind_at_once_tailor_mode(
                 TailoredSection(
                     ref_id="PROJ",
                     bullets=[
-                        TailoredBullet(variants=["Solved scheduling"] * 3, source_fact_ids=["PROJ-01"]),
+                        TailoredBullet(
+                            variants=["Solved scheduling"] * 3,
+                            source_fact_ids=["PROJ-01"],
+                        ),
                     ],
                 )
             ],
