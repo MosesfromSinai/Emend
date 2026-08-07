@@ -68,7 +68,7 @@ export function masterToSections(
 ): PaperSection[] {
   const education: PaperSection = {
     key: "EDUCATION",
-    heading: "EDUCATION",
+    heading: sectionHeadings.EDUCATION ?? "EDUCATION",
     headingOverrideKey: "section:EDUCATION:heading",
     blocks: master.education.map((edu, i) => ({
       key: `edu-${i}`,
@@ -92,7 +92,7 @@ export function masterToSections(
 
   const experience: PaperSection = {
     key: "EXPERIENCE",
-    heading: "EXPERIENCE",
+    heading: sectionHeadings.EXPERIENCE ?? "EXPERIENCE",
     headingOverrideKey: "section:EXPERIENCE:heading",
     blocks: master.experiences.map((exp) => ({
       key: exp.id,
@@ -108,7 +108,7 @@ export function masterToSections(
 
   const projects: PaperSection = {
     key: "PROJECTS",
-    heading: "PROJECTS",
+    heading: sectionHeadings.PROJECTS ?? "PROJECTS",
     headingOverrideKey: "section:PROJECTS:heading",
     blocks: master.projects.map((p) => ({
       key: p.id,
@@ -125,7 +125,7 @@ export function masterToSections(
   const skillCategories = Object.entries(master.skills);
   const skills: PaperSection = {
     key: "SKILLS",
-    heading: "TECHNICAL SKILLS",
+    heading: sectionHeadings.SKILLS ?? "TECHNICAL SKILLS",
     headingOverrideKey: "section:SKILLS:heading",
     blocks: skillCategories.length
       ? [
