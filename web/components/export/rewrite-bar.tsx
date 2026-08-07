@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { DeleteButton } from "@/components/ui/delete-button";
 import { cn } from "@/lib/utils";
 import type { BulletSelection, TailoredBullet } from "@/lib/types";
 
@@ -41,6 +42,12 @@ export function RewriteBar({
   // copies of the same sentence would be confusing, so hide that control
   // and say so plainly instead of "rewrite 1 of 3."
   const hasRealVariants = bullet.variants.some((v) => v !== bullet.variants[0]);
+  // In refactor mode with no edit yet, "your confirmed wording" already IS
+  // the original -- there's nothing different to reveal, so the toggle is
+  // just noise. Once there's a real rewrite to pick between, or the person
+  // has made their own edit, the two genuinely diverge and the toggle earns
+  // its place again.
+  const hasOriginalToShow = hasRealVariants || isCustom;
 
   function cycle(delta: number) {
     const next = (variantIdx + delta + bullet.variants.length) % bullet.variants.length;
