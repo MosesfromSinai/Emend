@@ -10,6 +10,12 @@ import type { MasterResume } from "@/lib/types";
 // mirrors latex/render.py's DEFAULT_SECTION_ORDER
 export const DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"];
 
+// The one hover cue for "click this line to edit it" -- a soft red
+// highlight, same tone as the delete X and the active editor's own border,
+// so hovering previews the same "this is editable" signal every clickable
+// line in Export shares, before you've clicked anything.
+const EDITABLE_HOVER = "cursor-pointer rounded px-1 -mx-1 hover:bg-red-50 hover:text-red-900";
+
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
 // Experience/Project fact; coursework and skill-category rows have no real
 // fact id in the schema, so `key` alone identifies them for hover/confirm
