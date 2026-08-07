@@ -130,6 +130,13 @@ def test_fact_order_reorders_refactor_bullets(master):
     assert idx_last < idx_first
 
 
+def test_fact_order_with_duplicate_id_never_renders_twice(master):
+    # a duplicate id in an order list (client-side reorder bug, a replayed
+    # request) must not duplicate the bullet in the rendered output
+    tex = render_tex(master, None, fact_order={"BAB": ["BAB-01", "BAB-02", "BAB-01"]})
+    assert tex.count("Wrote the first published algorithm") == 1
+
+
 def test_fact_order_with_stale_id_never_drops_a_bullet(master, tailored):
     # BAB-99 doesn't exist -- a deleted/renamed fact shouldn't vanish the
     # entry it never named.

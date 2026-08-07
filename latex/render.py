@@ -134,13 +134,19 @@ def _reorder_by_key(items: list, order: list[str] | None, key) -> list:
     Items whose key isn't in `order` keep their relative position, appended
     after the ordered ones -- a stale order (referencing a fact id that's
     since been deleted) or a partial one (missing a newly added fact) can
-    never silently drop a bullet.
+    never silently drop a bullet. A key repeated in `order` (a duplicate id
+    from a client-side reorder bug or a replayed request) is only honored
+    once, at its first occurrence -- otherwise that item renders twice.
     """
     if not order:
         return items
     by_key = {key(item): item for item in items}
-    ordered = [by_key[k] for k in order if k in by_key]
-    seen = set(order)
+    seen: set[str] = set()
+    ordered = []
+    for k in order:
+        if k in by_key and k not in seen:
+            ordered.append(by_key[k])
+            seen.add(k)
     ordered.extend(item for item in items if key(item) not in seen)
     return ordered
 
