@@ -169,6 +169,9 @@ export function ResumePaper({
   activeHeaderField,
   onClickHeaderField,
   renderHeaderFieldControl,
+  activeSectionHeadingKey,
+  onClickSectionHeading,
+  renderSectionHeadingControl,
 }: {
   master: MasterResume;
   name: string;
@@ -200,6 +203,12 @@ export function ResumePaper({
   activeHeaderField?: "name" | "contact" | null;
   onClickHeaderField?: (field: "name" | "contact") => void;
   renderHeaderFieldControl?: (field: "name" | "contact") => ReactNode;
+  // click-to-edit for a section's own printed heading ("Experience" ->
+  // "Leadership") -- matched against the section's key, not its (already
+  // possibly overridden) heading text
+  activeSectionHeadingKey?: string | null;
+  onClickSectionHeading?: (section: PaperSection) => void;
+  renderSectionHeadingControl?: (section: PaperSection) => ReactNode;
 }) {
   const sections = masterToSections(master, sectionOrder);
   const isExport = size === "export";
