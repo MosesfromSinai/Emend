@@ -74,8 +74,15 @@ _LIST_LEAD_IN = re.compile(
     r"(?:experience|proficiency|expertise|background)\s+(?:with|in)|"
     r"knowledge\s+of|familiarity\s+with|skills?\s*(?:in|with)?\s*:|"
     r"requirements?\s*:|qualifications?\s*:|preferred\s+qualifications?\s*:|"
-    r"you\s+(?:have|will|are|bring|need)\s*:|"
     r"what\s+you(?:'ll|\s+will)\s+(?:do|need|bring)\s*:|"
+    # bare "You Will:"/"You Are:" is deliberately excluded -- on most
+    # postings it introduces full-sentence bullets ("You Will: Join a
+    # community of curious, supportive engineers...") whose incidental
+    # commas read as a fake list ("supportive engineers", "Pursuing"), not
+    # a real one. ", like X and Y" is a real list cue worth trusting
+    # precisely because the comma+like combination rarely opens a plain verb
+    # phrase the way bare "like" alone would ("we'd like to...").
+    r",\s+like\s+|"
     r"nice\s+to\s+have\s*:|must\s+have\s*:|such\s+as",
     re.IGNORECASE,
 )
