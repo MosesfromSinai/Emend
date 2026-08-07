@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { OverrideEditor } from "@/components/export/override-editor";
 import { RewriteBar } from "@/components/export/rewrite-bar";
@@ -53,8 +53,12 @@ export default function ApplicationPage({
   const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
-  const [activeEntryEdit, setActiveEntryEdit] = useState<string | null>(null);
-  const [headerEditOpen, setHeaderEditOpen] = useState(false);
+  const [activeBlockField, setActiveBlockField] = useState<{
+    blockKey: string;
+    field: "title" | "sub" | "dates";
+  } | null>(null);
+  const [activeHeaderField, setActiveHeaderField] = useState<"name" | "contact" | null>(null);
+  const paperRef = useRef<HTMLDivElement>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
   const [showReport, setShowReport] = useState(false);
