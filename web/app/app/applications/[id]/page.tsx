@@ -415,6 +415,7 @@ export default function ApplicationPage({
     setActiveRowKey(null);
     setActiveBlockField(null);
     setActiveHeaderField(null);
+    setActiveSectionHeadingKey(null);
   }
 
   function changeView(next: View) {
