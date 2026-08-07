@@ -1,37 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { DeleteButton } from "@/components/ui/delete-button";
 
-// A minimal click-to-edit control for non-fact-backed text (coursework,
-// skills, header fields, structural entry fields) -- no variants/original
-// to cycle through, just a free-text override. Sibling to RewriteBar, which
-// handles the fact-grounded case.
-export function OverrideEditor({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
+export interface OverrideField {
+  key: string;
+  label?: string;
   value: string;
-  onChange: (text: string) => void;
+}
+
+// The click-to-edit control for non-fact-backed text (coursework, skills,
+// header fields, structural entry fields) -- no variants/original to cycle
+// through, just free-text. Sibling to RewriteBar, which handles the
+// fact-grounded case. A "line" on the resume can back more than one
+// text_overrides key (e.g. "company — location" is one visual line, two
+// fields), so this takes a list rather than a single value.
+export function OverrideEditor({
+  fields,
+  onChange,
+  onDelete,
+}: {
+  fields: OverrideField[];
+  onChange: (key: string, text: string) => void;
+  onDelete?: () => void;
 }) {
-  const [draft, setDraft] = useState(value);
-
-  function commit() {
-    if (draft !== value) onChange(draft);
-  }
-
   return (
-    <div className="my-1 rounded-[7px] border border-em-softb bg-em-soft p-2.5">
-      <div className="mb-1 text-xs font-semibold text-em-deep">{label}</div>
-      <textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        rows={2}
-        autoFocus
-        className="w-full resize-none rounded-md border border-em-softb bg-white p-2 text-sm text-ink focus:border-em-accent focus:outline-none"
-      />
+    <div className="my-1 flex items-center gap-2 rounded-[7px] border border-em-softb bg-em-soft/70 p-2">
+      <div className="flex flex-1 flex-wrap items-center gap-2">
+        {fields.map((field, i) => (
+          <input
+            key={field.key}
+            value={field.value}
+            onChange={(e) => onChange(field.key, e.target.value)}
+            placeholder={field.label}
+            autoFocus={i === 0}
+            className="min-w-0 flex-1 rounded-md border border-em-softb bg-white px-2 py-1 text-sm text-ink focus:border-em-accent focus:outline-none"
+          />
+        ))}
+      </div>
+      {onDelete && <DeleteButton onClick={onDelete} label="Delete this line" />}
     </div>
   );
 }
