@@ -89,6 +89,18 @@ class RenderRequest(BaseModel):
     # Export -- None or a partial/unrecognized list falls back to the
     # default relative order for whatever's missing
     section_order: list[str] | None = None
+    # fact ids / entry ids the user deleted on Export -- dropped from
+    # rendering entirely. Export-time only: never touches the confirmed
+    # master resume or the stored tailored version, so undoing is just
+    # removing an id from these lists again.
+    excluded_facts: list[str] = []
+    excluded_experiences: list[str] = []
+    excluded_projects: list[str] = []
+    # free-text edits to any non-fact-backed field -- keyed by a stable path
+    # string ("name", "email", "phone", "link:<i>", "education:<i>:<field>",
+    # "experience:<id>:<field>", "project:<id>:<field>", "skills:<category>").
+    # Separate from `selections`, which stays scoped to confirmed facts.
+    text_overrides: dict[str, str] = {}
 
 
 class RenderPreviewResponse(BaseModel):

@@ -17,6 +17,7 @@ export function RewriteBar({
   canMoveUp,
   canMoveDown,
   onMove,
+  onDelete,
 }: {
   bullet: TailoredBullet;
   selection?: BulletSelection;
@@ -25,6 +26,7 @@ export function RewriteBar({
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   onMove?: (direction: "up" | "down") => void;
+  onDelete?: () => void;
 }) {
   const [viewingOriginal, setViewingOriginal] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -145,6 +147,15 @@ export function RewriteBar({
         )}
 
         <div className="ml-auto flex items-center gap-3">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="text-xs text-red-700 underline hover:text-red-900"
+            >
+              delete this line
+            </button>
+          )}
           {showDiscard && (
             <button
               type="button"

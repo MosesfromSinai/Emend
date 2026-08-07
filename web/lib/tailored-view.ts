@@ -1,4 +1,4 @@
-import { reorderByKey } from "@/lib/order";
+import { excludeByKey, reorderByKey } from "@/lib/order";
 import type {
   BulletSelection,
   FactOrder,
@@ -14,6 +14,21 @@ export function resolveVariantText(bullet: TailoredBullet, selection?: BulletSel
   if (!selection) return bullet.variants[0];
   if (selection.customText) return selection.customText;
   return bullet.variants[selection.variantIdx ?? 0];
+}
+
+// Mirrors latex/render.py's _ov -- a user's free-text edit for any
+// non-fact-backed field, keyed by a stable path string.
+function overrideText(overrides: Record<string, string>, key: string, fallback: string): string {
+  return key in overrides ? overrides[key] : fallback;
+}
+
+// Same idea for comma-joined list fields (coursework, tech, skills items) --
+// the override is one free-text blob matching how it already displays, split
+// back into a list the same way ", ".join(...)/join(", ") would read it.
+function overrideList(overrides: Record<string, string>, key: string, fallback: string[]): string[] {
+  if (!(key in overrides)) return fallback;
+  const text = overrides[key].trim();
+  return text ? text.split(",").map((s) => s.trim()) : [];
 }
 
 export function tailoredBulletsByFactId(
@@ -40,23 +55,50 @@ export function tailoredToRenderResume(
   selections: Record<string, BulletSelection>,
   factOrder: FactOrder = {},
   experienceOrder: string[] = [],
-  projectOrder: string[] = []
+  projectOrder: string[] = [],
+  excludedFacts: string[] = [],
+  excludedExperiences: string[] = [],
+  excludedProjects: string[] = [],
+  textOverrides: Record<string, string> = {}
 ): MasterResume {
-  if (!tailored) return master;
+  const name = overrideText(textOverrides, "name", master.name);
+  const email = overrideText(textOverrides, "email", master.email);
+  const phone = overrideText(textOverrides, "phone", master.phone);
+  const links = master.links.map((link, i) => overrideText(textOverrides, `link:${i}`, link));
+  const education = master.education.map((edu, i) => ({
+    ...edu,
+    school: overrideText(textOverrides, `education:${i}:school`, edu.school),
+    degree: overrideText(textOverrides, `education:${i}:degree`, edu.degree),
+    location: overrideText(textOverrides, `education:${i}:location`, edu.location),
+    grad_date: overrideText(textOverrides, `education:${i}:grad_date`, edu.grad_date),
+    coursework: overrideList(textOverrides, `education:${i}:coursework`, edu.coursework),
+  }));
+
+  if (!tailored) {
+    return { ...master, name, email, phone, links, education };
+  }
 
   const expById = new Map(master.experiences.map((e) => [e.id, e]));
   const projById = new Map(master.projects.map((p) => [p.id, p]));
 
-  const orderedExperienceSections = reorderByKey(tailored.experiences, experienceOrder, (s) => s.ref_id);
-  const orderedProjectSections = reorderByKey(tailored.projects, projectOrder, (s) => s.ref_id);
+  const liveExperienceSections = excludeByKey(tailored.experiences, excludedExperiences, (s) => s.ref_id);
+  const liveProjectSections = excludeByKey(tailored.projects, excludedProjects, (s) => s.ref_id);
+  const orderedExperienceSections = reorderByKey(liveExperienceSections, experienceOrder, (s) => s.ref_id);
+  const orderedProjectSections = reorderByKey(liveProjectSections, projectOrder, (s) => s.ref_id);
 
   const experiences = orderedExperienceSections.flatMap((section) => {
     const src = expById.get(section.ref_id);
     if (!src) return [];
-    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
+    const liveBullets = excludeByKey(section.bullets, excludedFacts, (b) => b.source_fact_ids[0]);
+    const bullets = reorderByKey(liveBullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
+        title: overrideText(textOverrides, `experience:${src.id}:title`, src.title),
+        company: overrideText(textOverrides, `experience:${src.id}:company`, src.company),
+        location: overrideText(textOverrides, `experience:${src.id}:location`, src.location),
+        start: overrideText(textOverrides, `experience:${src.id}:start`, src.start),
+        end: overrideText(textOverrides, `experience:${src.id}:end`, src.end),
         facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
@@ -68,10 +110,13 @@ export function tailoredToRenderResume(
   const projects = orderedProjectSections.flatMap((section) => {
     const src = projById.get(section.ref_id);
     if (!src) return [];
-    const bullets = reorderByKey(section.bullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
+    const liveBullets = excludeByKey(section.bullets, excludedFacts, (b) => b.source_fact_ids[0]);
+    const bullets = reorderByKey(liveBullets, factOrder[section.ref_id], (b) => b.source_fact_ids[0]);
     return [
       {
         ...src,
+        name: overrideText(textOverrides, `project:${src.id}:name`, src.name),
+        tech: overrideList(textOverrides, `project:${src.id}:tech`, src.tech),
         facts: bullets.map((b) => ({
           id: b.source_fact_ids[0],
           text: resolveVariantText(b, selections[b.source_fact_ids[0]]),
@@ -80,5 +125,13 @@ export function tailoredToRenderResume(
     ];
   });
 
-  return { ...master, experiences, projects, skills: tailored.skills ?? master.skills };
+  const baseSkills = tailored.skills ?? master.skills;
+  const skills = Object.fromEntries(
+    Object.entries(baseSkills).map(([category, items]) => [
+      category,
+      overrideList(textOverrides, `skills:${category}`, items),
+    ])
+  );
+
+  return { ...master, name, email, phone, links, education, experiences, projects, skills };
 }

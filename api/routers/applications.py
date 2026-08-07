@@ -144,11 +144,15 @@ def preview_application(
         tex = core_bridge.render_tex(
             master,
             _tailored_from(version),
-            selections,
-            body.fact_order,
-            body.experience_order,
-            body.project_order,
-            body.section_order,
+            selections=selections,
+            fact_order=body.fact_order,
+            experience_order=body.experience_order,
+            project_order=body.project_order,
+            section_order=body.section_order,
+            excluded_facts=body.excluded_facts,
+            excluded_experiences=body.excluded_experiences,
+            excluded_projects=body.excluded_projects,
+            text_overrides=body.text_overrides,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e
@@ -168,11 +172,15 @@ def finalize_application(
         tex, pdf_path, log = core_bridge.render_and_compile(
             master,
             _tailored_from(version),
-            selections,
-            body.fact_order,
-            body.experience_order,
-            body.project_order,
-            body.section_order,
+            selections=selections,
+            fact_order=body.fact_order,
+            experience_order=body.experience_order,
+            project_order=body.project_order,
+            section_order=body.section_order,
+            excluded_facts=body.excluded_facts,
+            excluded_experiences=body.excluded_experiences,
+            excluded_projects=body.excluded_projects,
+            text_overrides=body.text_overrides,
         )
     except ValueError as e:
         raise ApiError(409, "stale_tailored_resume", str(e)) from e

@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from core.schemas import (
+    Education,
     Experience,
     MasterResume,
     Project,
@@ -41,25 +42,64 @@ def _grounding_comment(ids: list[str]) -> str:
     return ", ".join(" ".join(i.split()) for i in ids)
 
 
+def _ov(overrides: dict[str, str] | None, key: str, default: str) -> str:
+    """A user's free-text edit for any non-fact-backed field (name, a
+    company name, a degree, ...) -- keyed by a stable path string, separate
+    from the fact-grounded `selections` mechanism above. No entry for a
+    key: the master/tailored value renders untouched."""
+    if overrides and key in overrides:
+        return overrides[key]
+    return default
+
+
 def _bullet_row(text: str, source_ids: list[str]) -> dict:
     return {"text": text, "grounded": _grounding_comment(source_ids)}
 
 
-def _experience_row(exp: Experience, bullets: list[dict]) -> dict:
+def _experience_row(
+    exp: Experience, bullets: list[dict], overrides: dict[str, str] | None = None
+) -> dict:
+    # start/end stay separate override keys (matching MasterResume's own
+    # fields) rather than one combined "dates" string, so the frontend's
+    # live preview -- which only has start/end, not a precomputed display
+    # string -- can apply the exact same overrides without a schema mismatch.
+    start = _ov(overrides, f"experience:{exp.id}:start", exp.start)
+    end = _ov(overrides, f"experience:{exp.id}:end", exp.end)
     return {
-        "title": exp.title,
-        "dates": f"{exp.start} -- {exp.end}",
-        "company": exp.company,
-        "location": exp.location,
+        "title": _ov(overrides, f"experience:{exp.id}:title", exp.title),
+        "dates": f"{start} -- {end}",
+        "company": _ov(overrides, f"experience:{exp.id}:company", exp.company),
+        "location": _ov(overrides, f"experience:{exp.id}:location", exp.location),
         "bullets": bullets,
     }
 
 
-def _project_row(proj: Project, bullets: list[dict]) -> dict:
+def _project_row(
+    proj: Project, bullets: list[dict], overrides: dict[str, str] | None = None
+) -> dict:
     return {
-        "name": proj.name,
-        "tech": ", ".join(proj.tech),
+        "name": _ov(overrides, f"project:{proj.id}:name", proj.name),
+        "tech": _ov(overrides, f"project:{proj.id}:tech", ", ".join(proj.tech)),
         "bullets": bullets,
+    }
+
+
+def _education_row(
+    edu: Education, index: int, overrides: dict[str, str] | None = None
+) -> dict:
+    # coursework_text overridable as one free-text blob (matching how it
+    # already displays as one joined line) rather than per-course editing;
+    # an override clearing it to "" hides the coursework line entirely.
+    coursework_text = _ov(
+        overrides, f"education:{index}:coursework", ", ".join(edu.coursework)
+    )
+    return {
+        "school": _ov(overrides, f"education:{index}:school", edu.school),
+        "degree": _ov(overrides, f"education:{index}:degree", edu.degree),
+        "location": _ov(overrides, f"education:{index}:location", edu.location),
+        "grad_date": _ov(overrides, f"education:{index}:grad_date", edu.grad_date),
+        "coursework_text": coursework_text,
+        "has_coursework": bool(coursework_text),
     }
 
 
@@ -77,6 +117,15 @@ def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     if custom:
         return custom
     return bullet.variants[sel.get("variant_idx", 0)]
+
+
+def _exclude_by_key(items: list, excluded: list[str] | None, key) -> list:
+    """Drop items whose key is in `excluded` -- the delete side of
+    reordering. None/empty excludes everything unchanged."""
+    if not excluded:
+        return items
+    excluded_set = set(excluded)
+    return [item for item in items if key(item) not in excluded_set]
 
 
 def _reorder_by_key(items: list, order: list[str] | None, key) -> list:
@@ -102,6 +151,8 @@ def _tailored_rows(
     kind: str,
     selections: dict[str, dict] | None = None,
     fact_order: dict[str, list[str]] | None = None,
+    excluded_facts: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> list:
     rows = []
     for section in sections:
@@ -110,8 +161,11 @@ def _tailored_rows(
             raise ValueError(
                 f"tailored {kind} section references unknown id {section.ref_id!r}"
             )
+        remaining_bullets = _exclude_by_key(
+            section.bullets, excluded_facts, lambda b: b.source_fact_ids[0]
+        )
         ordered_bullets = _reorder_by_key(
-            section.bullets,
+            remaining_bullets,
             (fact_order or {}).get(section.ref_id),
             lambda b: b.source_fact_ids[0],
         )
@@ -120,9 +174,9 @@ def _tailored_rows(
             for b in ordered_bullets
         ]
         if isinstance(source, Experience):
-            rows.append(_experience_row(source, bullets))
+            rows.append(_experience_row(source, bullets, text_overrides))
         else:
-            rows.append(_project_row(source, bullets))
+            rows.append(_project_row(source, bullets, text_overrides))
     return rows
 
 
@@ -134,6 +188,10 @@ def render_tex(
     experience_order: list[str] | None = None,
     project_order: list[str] | None = None,
     section_order: list[str] | None = None,
+    excluded_facts: list[str] | None = None,
+    excluded_experiences: list[str] | None = None,
+    excluded_projects: list[str] | None = None,
+    text_overrides: dict[str, str] | None = None,
 ) -> str:
     """Render the resume to LaTeX source.
 
@@ -155,6 +213,17 @@ def render_tex(
     refactor mode, by `ref_id` in tailor mode) the same way. `section_order`
     reorders the four top-level sections (values from DEFAULT_SECTION_ORDER);
     an omitted or unrecognized entry keeps its default relative position.
+    `excluded_facts`/`excluded_experiences`/`excluded_projects` drop bullets
+    or whole entries from rendering entirely -- the delete side of Export's
+    per-line/per-entry editing. Deleting is export-time only: it never
+    touches the confirmed master resume or the stored tailored version.
+
+    `text_overrides` (keyed by a stable path string -- "name", "email",
+    "phone", "link:<i>", "education:<i>:<field>", "experience:<id>:<field>",
+    "project:<id>:<field>", "skills:<category>") lets a user free-text edit
+    any non-fact-backed field on the resume -- structural fields, header
+    info, education, skills -- separate from and on top of the fact-grounded
+    `selections` mechanism above, which stays scoped to confirmed facts.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
@@ -164,25 +233,39 @@ def render_tex(
     bullets is the upstream validator's job.
     """
     if tailored is None:
+        remaining_experiences = _exclude_by_key(
+            master.experiences, excluded_experiences, lambda e: e.id
+        )
+        remaining_projects = _exclude_by_key(master.projects, excluded_projects, lambda p: p.id)
         experiences = [
             _experience_row(
                 e,
                 [
                     _bullet_row(f.text, [f.id])
-                    for f in _reorder_by_key(e.facts, (fact_order or {}).get(e.id), lambda f: f.id)
+                    for f in _reorder_by_key(
+                        _exclude_by_key(e.facts, excluded_facts, lambda f: f.id),
+                        (fact_order or {}).get(e.id),
+                        lambda f: f.id,
+                    )
                 ],
+                text_overrides,
             )
-            for e in _reorder_by_key(master.experiences, experience_order, lambda e: e.id)
+            for e in _reorder_by_key(remaining_experiences, experience_order, lambda e: e.id)
         ]
         projects = [
             _project_row(
                 p,
                 [
                     _bullet_row(f.text, [f.id])
-                    for f in _reorder_by_key(p.facts, (fact_order or {}).get(p.id), lambda f: f.id)
+                    for f in _reorder_by_key(
+                        _exclude_by_key(p.facts, excluded_facts, lambda f: f.id),
+                        (fact_order or {}).get(p.id),
+                        lambda f: f.id,
+                    )
                 ],
+                text_overrides,
             )
-            for p in _reorder_by_key(master.projects, project_order, lambda p: p.id)
+            for p in _reorder_by_key(remaining_projects, project_order, lambda p: p.id)
         ]
         skills = master.skills
     else:
@@ -190,41 +273,63 @@ def render_tex(
             e.id: e for e in master.experiences
         }
         proj_by_id: dict[str, Experience | Project] = {p.id: p for p in master.projects}
+        remaining_exp_sections = _exclude_by_key(
+            tailored.experiences, excluded_experiences, lambda s: s.ref_id
+        )
+        remaining_proj_sections = _exclude_by_key(
+            tailored.projects, excluded_projects, lambda s: s.ref_id
+        )
         experiences = _tailored_rows(
-            _reorder_by_key(tailored.experiences, experience_order, lambda s: s.ref_id),
+            _reorder_by_key(remaining_exp_sections, experience_order, lambda s: s.ref_id),
             exp_by_id,
             "experience",
             selections,
             fact_order,
+            excluded_facts,
+            text_overrides,
         )
         projects = _tailored_rows(
-            _reorder_by_key(tailored.projects, project_order, lambda s: s.ref_id),
+            _reorder_by_key(remaining_proj_sections, project_order, lambda s: s.ref_id),
             proj_by_id,
             "project",
             selections,
             fact_order,
+            excluded_facts,
+            text_overrides,
         )
         skills = tailored.skills
 
-    links = [
+    links = []
+    for i, raw_link in enumerate(master.links):
+        link = _ov(text_overrides, f"link:{i}", raw_link)
+        links.append(
+            {
+                "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
+                "display": link.removeprefix("https://").removeprefix("http://"),
+            }
+        )
+
+    education = [
+        _education_row(edu, i, text_overrides) for i, edu in enumerate(master.education)
+    ]
+
+    skills_rows = [
         {
-            "url": (
-                link if link.startswith(("http://", "https://")) else f"https://{link}"
-            ),
-            "display": link.removeprefix("https://").removeprefix("http://"),
+            "category": category,
+            "items_text": _ov(text_overrides, f"skills:{category}", ", ".join(items)),
         }
-        for link in master.links
+        for category, items in skills.items()
     ]
 
     context = {
-        "name": master.name,
-        "email": master.email,
-        "phone": master.phone,
+        "name": _ov(text_overrides, "name", master.name),
+        "email": _ov(text_overrides, "email", master.email),
+        "phone": _ov(text_overrides, "phone", master.phone),
         "links": links,
-        "education": master.education,
+        "education": education,
         "experiences": experiences,
         "projects": projects,
-        "skills": skills,
+        "skills": skills_rows,
         "section_order": _reorder_by_key(
             DEFAULT_SECTION_ORDER, section_order, lambda s: s
         ),

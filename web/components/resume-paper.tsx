@@ -18,6 +18,10 @@ export type PaperRow = {
   key: string;
   text: string;
   factId?: string;
+  // stable text_overrides path (mirrors api's RenderRequest.text_overrides)
+  // for rows with no fact id -- coursework and skills lines are confirmed
+  // master data, editable as free text, not grounded generated content.
+  overrideKey?: string;
 };
 
 export type PaperBlock = {
@@ -54,6 +58,7 @@ export function masterToSections(
             {
               key: `edu-${i}-coursework`,
               text: `Coursework: ${edu.coursework.join(", ")}.`,
+              overrideKey: `education:${i}:coursework`,
             },
           ]
         : [],
@@ -98,6 +103,7 @@ export function masterToSections(
             rows: skillCategories.map(([category, items]) => ({
               key: `skills-${category}`,
               text: `${category}: ${items.join(", ")}.`,
+              overrideKey: `skills:${category}`,
             })),
           },
         ]
@@ -119,10 +125,14 @@ export function ResumePaper({
   size = "default",
   confirmedKeys,
   activeFactId,
+  activeRowKey,
   renderRowControl,
   renderRowExtra,
   renderBlockControl,
+  renderBlockExtra,
   renderSectionControl,
+  renderHeaderControl,
+  renderHeaderExtra,
   sectionOrder,
 }: {
   master: MasterResume;
@@ -135,10 +145,20 @@ export function ResumePaper({
   size?: "default" | "export";
   confirmedKeys?: Set<string>;
   activeFactId?: string | null;
+  // matched against a row's own `key` -- the click-to-edit affordance for
+  // rows with no fact id (coursework, skills), separate from activeFactId
+  activeRowKey?: string | null;
   renderRowControl?: (row: PaperRow) => ReactNode;
   renderRowExtra?: (row: PaperRow) => ReactNode;
   renderBlockControl?: (block: PaperBlock) => ReactNode;
+  // rendered below a block's title/sub/dates, above its rows -- the slot
+  // for a per-entry "edit details" form (structural fields aren't rows)
+  renderBlockExtra?: (block: PaperBlock) => ReactNode;
   renderSectionControl?: (section: PaperSection) => ReactNode;
+  // same idea as renderBlockControl/renderBlockExtra, for the name/contact
+  // header -- there's no PaperBlock for it since it isn't a resume section
+  renderHeaderControl?: () => ReactNode;
+  renderHeaderExtra?: () => ReactNode;
   sectionOrder?: string[];
 }) {
   const sections = masterToSections(master, sectionOrder);
@@ -153,8 +173,10 @@ export function ResumePaper({
         )}
       >
         {name}
+        {renderHeaderControl?.()}
       </div>
       <div className="mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]">{contact}</div>
+      {renderHeaderExtra?.()}
 
       {sections.map((section) => (
         <div key={section.key}>
@@ -188,6 +210,7 @@ export function ResumePaper({
                   {block.sub}
                 </div>
               )}
+              {renderBlockExtra?.(block)}
               {block.rows.map((row) => (
                 <Fragment key={row.key}>
                   <div
@@ -218,7 +241,9 @@ export function ResumePaper({
                     )}
                     {renderRowExtra?.(row)}
                   </div>
-                  {activeFactId === row.factId && renderRowControl?.(row)}
+                  {((row.factId !== undefined && row.factId === activeFactId) ||
+                    (row.overrideKey !== undefined && row.key === activeRowKey)) &&
+                    renderRowControl?.(row)}
                 </Fragment>
               ))}
             </div>

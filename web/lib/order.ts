@@ -15,3 +15,10 @@ export function reorderByKey<T>(items: T[], order: string[] | undefined, key: (i
   }
   return ordered;
 }
+
+// Mirrors latex/render.py's _exclude_by_key -- the delete side of reordering.
+export function excludeByKey<T>(items: T[], excluded: string[] | undefined, key: (item: T) => string): T[] {
+  if (!excluded || excluded.length === 0) return items;
+  const excludedSet = new Set(excluded);
+  return items.filter((item) => !excludedSet.has(key(item)));
+}

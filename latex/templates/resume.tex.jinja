@@ -120,9 +120,9 @@
     \resumeSubheading
       {\VAR{edu.school}}{\VAR{edu.location}}
       {\VAR{edu.degree}}{\VAR{edu.grad_date}}
-    \BLOCK{if edu.coursework}
+    \BLOCK{if edu.has_coursework}
     \resumeItemListStart
-      \resumeItem{\textbf{Relevant Coursework}{: \VAR{edu.coursework | join(', ')}}}
+      \resumeItem{\textbf{Relevant Coursework}{: \VAR{edu.coursework_text}}}
     \resumeItemListEnd
     \BLOCK{endif}
     \BLOCK{endfor}
@@ -163,8 +163,8 @@
 \section{Technical Skills}
  \begin{itemize}[leftmargin=0.15in, label={}]
     \small{\item{
-     \BLOCK{for category, items in skills.items()}
-     \textbf{\VAR{category}}{: \VAR{items | join(', ')}}\BLOCK{if not loop.last} \\\BLOCK{endif}
+     \BLOCK{for row in skills}
+     \textbf{\VAR{row.category}}{: \VAR{row.items_text}}\BLOCK{if not loop.last} \\\BLOCK{endif}
      \BLOCK{endfor}
     }}
  \end{itemize}

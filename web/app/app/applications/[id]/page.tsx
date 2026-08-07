@@ -2,6 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 
+import { OverrideEditor } from "@/components/export/override-editor";
 import { RewriteBar } from "@/components/export/rewrite-bar";
 import { GroundedPill } from "@/components/grounded-pill";
 import { KeywordChips } from "@/components/keyword-chips";
@@ -11,8 +12,15 @@ import { DEFAULT_SECTION_ORDER, ResumePaper, masterToSections } from "@/componen
 import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { ApiError, artifactUrl, finalizeApplication, getMaster, previewApplication } from "@/lib/api";
-import { reorderByKey } from "@/lib/order";
+import {
+  ApiError,
+  artifactUrl,
+  finalizeApplication,
+  getMaster,
+  previewApplication,
+  type RenderOptions,
+} from "@/lib/api";
+import { excludeByKey, reorderByKey } from "@/lib/order";
 import { tailoredBulletsByFactId, tailoredToRenderResume } from "@/lib/tailored-view";
 import { usePollApplication } from "@/lib/use-poll-application";
 import type { BulletSelection, FactOrder, MasterResume } from "@/lib/types";
@@ -39,7 +47,14 @@ export default function ApplicationPage({
   const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
   const [sectionOrder, setSectionOrder] = useState<string[]>([]);
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
+  const [excludedFacts, setExcludedFacts] = useState<string[]>([]);
+  const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
+  const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
+  const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
+  const [activeEntryEdit, setActiveEntryEdit] = useState<string | null>(null);
+  const [headerEditOpen, setHeaderEditOpen] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
   const [showReport, setShowReport] = useState(false);
@@ -55,6 +70,21 @@ export default function ApplicationPage({
 
   const version = application?.version ?? null;
 
+  // Single bag of "what the user has changed on Export" -- fed to both the
+  // live preview effect below and finalize() on download, so the two never
+  // drift out of sync with each other.
+  const renderOptions: RenderOptions = {
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+    textOverrides,
+  };
+
   useEffect(() => {
     if (!version) return;
     // Same stale-response guard as Tailor's JD preview -- a slower request
@@ -62,14 +92,7 @@ export default function ApplicationPage({
     let stale = false;
     const timer = setTimeout(async () => {
       try {
-        const result = await previewApplication(
-          id,
-          selections,
-          factOrder,
-          experienceOrder,
-          projectOrder,
-          sectionOrder
-        );
+        const result = await previewApplication(id, renderOptions);
         if (!stale) setLivePreviewTex(result.tex);
       } catch {
         // keep showing the last good tex rather than blanking the pane
@@ -79,7 +102,23 @@ export default function ApplicationPage({
       stale = true;
       clearTimeout(timer);
     };
-  }, [id, version, selections, factOrder, experienceOrder, projectOrder, sectionOrder]);
+    // renderOptions is a fresh object every render -- depending on it
+    // directly would re-fire this debounced effect on every render instead
+    // of only when one of its underlying fields actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    id,
+    version,
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+    textOverrides,
+  ]);
 
   const bulletsByFactId = useMemo(
     () => tailoredBulletsByFactId(version?.tailored ?? null),
@@ -107,10 +146,25 @@ export default function ApplicationPage({
             selections,
             factOrder,
             experienceOrder,
-            projectOrder
+            projectOrder,
+            excludedFacts,
+            excludedExperiences,
+            excludedProjects,
+            textOverrides
           )
         : null,
-    [master, version, selections, factOrder, experienceOrder, projectOrder]
+    [
+      master,
+      version,
+      selections,
+      factOrder,
+      experienceOrder,
+      projectOrder,
+      excludedFacts,
+      excludedExperiences,
+      excludedProjects,
+      textOverrides,
+    ]
   );
 
   // The currently-visible section headings (empty sections don't render),
@@ -140,11 +194,16 @@ export default function ApplicationPage({
     const map = new Map<string, { refId: string; index: number; length: number }>();
     if (!version?.tailored) return map;
     for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
-      const order = factOrder[section.ref_id] ?? section.bullets.map((b) => b.source_fact_ids[0]);
+      const liveIds = excludeByKey(
+        section.bullets.map((b) => b.source_fact_ids[0]),
+        excludedFacts,
+        (id) => id
+      );
+      const order = reorderByKey(liveIds, factOrder[section.ref_id], (id) => id);
       order.forEach((factId, index) => map.set(factId, { refId: section.ref_id, index, length: order.length }));
     }
     return map;
-  }, [version, factOrder]);
+  }, [version, factOrder, excludedFacts]);
 
   function moveFact(factId: string, direction: "up" | "down") {
     const position = factPositions.get(factId);
@@ -164,16 +223,22 @@ export default function ApplicationPage({
   const entryPositions = useMemo(() => {
     const map = new Map<string, { kind: "experience" | "project"; index: number; length: number }>();
     if (!version?.tailored) return map;
-    const expOrder = experienceOrder.length
-      ? experienceOrder
-      : version.tailored.experiences.map((s) => s.ref_id);
+    const liveExpIds = excludeByKey(
+      version.tailored.experiences.map((s) => s.ref_id),
+      excludedExperiences,
+      (id) => id
+    );
+    const expOrder = reorderByKey(liveExpIds, experienceOrder, (id) => id);
     expOrder.forEach((refId, index) => map.set(refId, { kind: "experience", index, length: expOrder.length }));
-    const projOrder = projectOrder.length
-      ? projectOrder
-      : version.tailored.projects.map((s) => s.ref_id);
+    const liveProjIds = excludeByKey(
+      version.tailored.projects.map((s) => s.ref_id),
+      excludedProjects,
+      (id) => id
+    );
+    const projOrder = reorderByKey(liveProjIds, projectOrder, (id) => id);
     projOrder.forEach((refId, index) => map.set(refId, { kind: "project", index, length: projOrder.length }));
     return map;
-  }, [version, experienceOrder, projectOrder]);
+  }, [version, experienceOrder, projectOrder, excludedExperiences, excludedProjects]);
 
   function moveEntry(refId: string, direction: "up" | "down") {
     const position = entryPositions.get(refId);
@@ -189,8 +254,135 @@ export default function ApplicationPage({
     else setProjectOrder(current);
   }
 
+  // Deleting is export-time only: it hides a bullet/entry from this
+  // rendered output, never the confirmed master resume or the stored
+  // tailored version -- so "undo" is just removing the id again, no
+  // separate confirm step needed.
+  function deleteFact(factId: string) {
+    setExcludedFacts((prev) => (prev.includes(factId) ? prev : [...prev, factId]));
+    setActiveFactId(null);
+  }
+
+  function restoreFact(factId: string) {
+    setExcludedFacts((prev) => prev.filter((id) => id !== factId));
+  }
+
+  function deleteEntry(refId: string, kind: "experience" | "project") {
+    if (kind === "experience") {
+      setExcludedExperiences((prev) => (prev.includes(refId) ? prev : [...prev, refId]));
+    } else {
+      setExcludedProjects((prev) => (prev.includes(refId) ? prev : [...prev, refId]));
+    }
+  }
+
+  function restoreEntry(refId: string, kind: "experience" | "project") {
+    if (kind === "experience") setExcludedExperiences((prev) => prev.filter((id) => id !== refId));
+    else setExcludedProjects((prev) => prev.filter((id) => id !== refId));
+  }
+
+  // Everything currently hidden from this export, so deleting never feels
+  // like a one-way door -- each entry restores with a single click.
+  const removedItems = useMemo(() => {
+    const items: { key: string; label: string; restore: () => void }[] = [];
+    if (!version?.tailored) return items;
+    for (const section of [...version.tailored.experiences, ...version.tailored.projects]) {
+      for (const bullet of section.bullets) {
+        const factId = bullet.source_fact_ids[0];
+        if (!excludedFacts.includes(factId)) continue;
+        const text = bullet.variants[0];
+        items.push({
+          key: `fact-${factId}`,
+          label: text.length > 50 ? `${text.slice(0, 50)}…` : text,
+          restore: () => restoreFact(factId),
+        });
+      }
+    }
+    for (const section of version.tailored.experiences) {
+      if (!excludedExperiences.includes(section.ref_id)) continue;
+      const exp = master?.experiences.find((e) => e.id === section.ref_id);
+      items.push({
+        key: `exp-${section.ref_id}`,
+        label: exp?.company ?? section.ref_id,
+        restore: () => restoreEntry(section.ref_id, "experience"),
+      });
+    }
+    for (const section of version.tailored.projects) {
+      if (!excludedProjects.includes(section.ref_id)) continue;
+      const proj = master?.projects.find((p) => p.id === section.ref_id);
+      items.push({
+        key: `proj-${section.ref_id}`,
+        label: proj?.name ?? section.ref_id,
+        restore: () => restoreEntry(section.ref_id, "project"),
+      });
+    }
+    return items;
+  }, [version, master, excludedFacts, excludedExperiences, excludedProjects]);
+
   function updateSelection(factId: string, selection: BulletSelection) {
     setSelections((prev) => ({ ...prev, [factId]: selection }));
+  }
+
+  // Free-text edits to anything that isn't a fact-backed bullet -- header
+  // info, education, skills, structural entry fields. Separate from
+  // selections/updateSelection above, which stays scoped to confirmed facts.
+  function updateTextOverride(key: string, value: string) {
+    setTextOverrides((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // The current effective (already-overridden) raw value for a given
+  // text_overrides path -- used to seed an editor's starting text, since
+  // a row's display text (e.g. "Coursework: A, B.") isn't the raw value.
+  function currentOverrideValue(key: string): string {
+    if (!renderResume) return "";
+    const [kind, a, b] = key.split(":");
+    if (kind === "name") return renderResume.name;
+    if (kind === "email") return renderResume.email;
+    if (kind === "phone") return renderResume.phone;
+    if (kind === "link") return renderResume.links[Number(a)] ?? "";
+    if (kind === "education") {
+      const edu = renderResume.education[Number(a)];
+      if (!edu) return "";
+      if (b === "coursework") return edu.coursework.join(", ");
+      if (b === "school") return edu.school;
+      if (b === "degree") return edu.degree;
+      if (b === "location") return edu.location;
+      if (b === "grad_date") return edu.grad_date;
+    }
+    if (kind === "experience") {
+      const exp = renderResume.experiences.find((e) => e.id === a);
+      if (!exp) return "";
+      if (b === "title") return exp.title;
+      if (b === "company") return exp.company;
+      if (b === "location") return exp.location;
+      if (b === "start") return exp.start;
+      if (b === "end") return exp.end;
+    }
+    if (kind === "project") {
+      const proj = renderResume.projects.find((p) => p.id === a);
+      if (!proj) return "";
+      if (b === "name") return proj.name;
+      if (b === "tech") return proj.tech.join(", ");
+    }
+    if (kind === "skills") {
+      const category = key.slice("skills:".length);
+      return (renderResume.skills[category] ?? []).join(", ");
+    }
+    return "";
+  }
+
+  // A single labeled input bound to a text_overrides path, reused across
+  // the header and per-entry "edit details" forms.
+  function overrideField(label: string, keyPath: string) {
+    return (
+      <label key={keyPath} className="flex flex-col gap-1">
+        {label}
+        <input
+          value={currentOverrideValue(keyPath)}
+          onChange={(e) => updateTextOverride(keyPath, e.target.value)}
+          className="rounded-md border border-em-softb bg-white p-1.5 text-ink"
+        />
+      </label>
+    );
   }
 
   function changeView(next: View) {
@@ -208,14 +400,7 @@ export default function ApplicationPage({
     // activation window has elapsed and Safari/Chrome silently block it.
     const tab = window.open("", "_blank");
     try {
-      const updated = await finalizeApplication(
-        id,
-        selections,
-        factOrder,
-        experienceOrder,
-        projectOrder,
-        sectionOrder
-      );
+      const updated = await finalizeApplication(id, renderOptions);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
       const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
       if (tab) {
@@ -336,6 +521,23 @@ export default function ApplicationPage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {view === "resume" ? (
           <div className="rounded-[10px] bg-em-line p-6.5">
+            {removedItems.length > 0 && (
+              <div className="mx-auto mb-4 flex max-w-215 flex-wrap items-center gap-2 rounded-lg border border-em-softb bg-white px-3 py-2 text-xs text-ink/70">
+                <span className="font-semibold text-ink">
+                  {removedItems.length} removed from this export:
+                </span>
+                {removedItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.restore}
+                    className="rounded-full border border-em-softb px-2 py-0.5 hover:border-ink hover:text-ink"
+                  >
+                    {item.label} · restore
+                  </button>
+                ))}
+              </div>
+            )}
             {renderResume && (
               <div className="mx-auto max-w-215 rounded-md bg-white px-16 py-13 shadow-lg">
                 <ResumePaper
@@ -348,12 +550,30 @@ export default function ApplicationPage({
                   hoveredKey={hoveredKey}
                   onHoverRow={setHoveredKey}
                   activeFactId={activeFactId}
+                  activeRowKey={activeRowKey}
                   onClickRow={(row) => {
                     const factId = row.factId;
-                    if (!factId || !bulletsByFactId.has(factId)) return;
-                    setActiveFactId((prev) => (prev === factId ? null : factId));
+                    if (factId && bulletsByFactId.has(factId)) {
+                      setActiveFactId((prev) => (prev === factId ? null : factId));
+                      setActiveRowKey(null);
+                      return;
+                    }
+                    if (row.overrideKey) {
+                      setActiveRowKey((prev) => (prev === row.key ? null : row.key));
+                      setActiveFactId(null);
+                    }
                   }}
                   renderRowControl={(row) => {
+                    if (row.overrideKey && row.key === activeRowKey) {
+                      return (
+                        <OverrideEditor
+                          key={row.key}
+                          label="edit this line"
+                          value={currentOverrideValue(row.overrideKey)}
+                          onChange={(text) => updateTextOverride(row.overrideKey!, text)}
+                        />
+                      );
+                    }
                     const bullet = row.factId ? bulletsByFactId.get(row.factId) : undefined;
                     if (!bullet || !row.factId) return null;
                     const position = factPositions.get(row.factId);
@@ -370,32 +590,83 @@ export default function ApplicationPage({
                         canMoveUp={position ? position.index > 0 : false}
                         canMoveDown={position ? position.index < position.length - 1 : false}
                         onMove={(direction) => moveFact(row.factId!, direction)}
+                        onDelete={() => deleteFact(row.factId!)}
                       />
                     );
                   }}
                   renderBlockControl={(block) => {
                     const position = entryPositions.get(block.key);
-                    if (!position) return null;
+                    const isEducation = block.key.startsWith("edu-");
+                    if (!position && !isEducation) return null;
                     return (
                       <div className="flex gap-1">
+                        {position && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => moveEntry(block.key, "up")}
+                              disabled={position.index === 0}
+                              aria-label={`Move ${block.title} up`}
+                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveEntry(block.key, "down")}
+                              disabled={position.index === position.length - 1}
+                              aria-label={`Move ${block.title} down`}
+                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteEntry(block.key, position.kind)}
+                              aria-label={`Delete ${block.title}`}
+                              className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-red-700 hover:border-red-700"
+                            >
+                              delete
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
-                          onClick={() => moveEntry(block.key, "up")}
-                          disabled={position.index === 0}
-                          aria-label={`Move ${block.title} up`}
-                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
+                          onClick={() => setActiveEntryEdit((prev) => (prev === block.key ? null : block.key))}
+                          aria-label={`Edit ${block.title} details`}
+                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-em-deep underline hover:border-ink"
                         >
-                          ↑
+                          {activeEntryEdit === block.key ? "done" : "edit details"}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => moveEntry(block.key, "down")}
-                          disabled={position.index === position.length - 1}
-                          aria-label={`Move ${block.title} down`}
-                          className="rounded-md border border-em-softb bg-white px-1.5 py-0.5 text-xs text-ink hover:border-ink disabled:cursor-default disabled:opacity-30 disabled:hover:border-em-softb"
-                        >
-                          ↓
-                        </button>
+                      </div>
+                    );
+                  }}
+                  renderBlockExtra={(block) => {
+                    if (activeEntryEdit !== block.key) return null;
+                    const isEducation = block.key.startsWith("edu-");
+                    const fields = isEducation
+                      ? [
+                          overrideField("School", `education:${block.key.slice(4)}:school`),
+                          overrideField("Degree", `education:${block.key.slice(4)}:degree`),
+                          overrideField("Location", `education:${block.key.slice(4)}:location`),
+                          overrideField("Graduation date", `education:${block.key.slice(4)}:grad_date`),
+                          overrideField("Coursework", `education:${block.key.slice(4)}:coursework`),
+                        ]
+                      : entryPositions.get(block.key)?.kind === "project"
+                        ? [
+                            overrideField("Project name", `project:${block.key}:name`),
+                            overrideField("Tech", `project:${block.key}:tech`),
+                          ]
+                        : [
+                            overrideField("Title", `experience:${block.key}:title`),
+                            overrideField("Company", `experience:${block.key}:company`),
+                            overrideField("Location", `experience:${block.key}:location`),
+                            overrideField("Start date", `experience:${block.key}:start`),
+                            overrideField("End date", `experience:${block.key}:end`),
+                          ];
+                    return (
+                      <div className="mb-2 rounded-lg border border-em-softb bg-em-soft p-3 text-xs">
+                        <div className="flex flex-col gap-2">{fields}</div>
                       </div>
                     );
                   }}
@@ -425,6 +696,28 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
+                  renderHeaderControl={() => (
+                    <button
+                      type="button"
+                      onClick={() => setHeaderEditOpen((v) => !v)}
+                      className="ml-2 align-middle text-xs font-normal text-em-deep underline hover:text-ink"
+                    >
+                      {headerEditOpen ? "done editing" : "edit"}
+                    </button>
+                  )}
+                  renderHeaderExtra={() =>
+                    headerEditOpen ? (
+                      <div className="mx-auto mb-4 max-w-sm rounded-lg border border-em-softb bg-em-soft p-3 text-left text-xs">
+                        <div className="mb-2 font-semibold text-ink">Edit header</div>
+                        <div className="flex flex-col gap-2">
+                          {overrideField("Name", "name")}
+                          {overrideField("Email", "email")}
+                          {overrideField("Phone", "phone")}
+                          {renderResume?.links.map((_, i) => overrideField(`Link ${i + 1}`, `link:${i}`))}
+                        </div>
+                      </div>
+                    ) : null
+                  }
                 />
               </div>
             )}
