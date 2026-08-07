@@ -192,10 +192,11 @@ def test_extract_keywords_ignores_pronoun_led_fragments():
     assert "You Will" not in keywords
 
 
-def test_extract_keywords_pulls_from_you_have_and_you_will_lead_ins():
-    # common ATS bold-lead-in pattern in place of real "Requirements"/
-    # "Responsibilities" headings -- must read as a real list, not get
-    # discarded as a pronoun-led sentence fragment
+def test_extract_keywords_still_catches_capitalized_terms_after_you_have_will():
+    # "You Have:"/"You Will:" is deliberately NOT a recognized list lead-in
+    # (see test_extract_keywords_ignores_prose_after_you_will_and_you_are
+    # below) -- but real product/tool names right after it still surface via
+    # the proper-noun heuristic on its own, lead-in or not.
     text = (
         "You Have: 3+ years with Kubernetes and Terraform. "
         "You Will: Build reliable, scalable infrastructure."
@@ -203,6 +204,61 @@ def test_extract_keywords_pulls_from_you_have_and_you_will_lead_ins():
     keywords = extract_keywords(text)
     assert "Kubernetes" in keywords
     assert "Terraform" in keywords
+
+
+def test_extract_keywords_ignores_prose_after_you_will_and_you_are():
+    # regression: "You Will:"/"You Are:" on most postings introduces
+    # full-sentence responsibilities/qualifications, not a literal list --
+    # treating it as a list lead-in shredded ordinary prose commas into fake
+    # keywords like "supportive engineers" and "Pursuing" (from a real
+    # Roblox posting: "You Will: Join a community of curious, supportive
+    # engineers, actively engaging..." and "You Are: Pursuing or in
+    # possession of...").
+    text = (
+        "You Will: Join a community of curious, supportive engineers, "
+        "actively engaging in architectural discussions and system design. "
+        "You Are: Pursuing or in possession of an undergraduate degree."
+    )
+    keywords = extract_keywords(text)
+    assert "supportive engineers" not in keywords
+    assert "Pursuing" not in keywords
+
+
+def test_extract_keywords_reads_comma_like_lists():
+    # "technologies, like X and Y" is a reliable list cue precisely because
+    # it requires the preceding comma -- bare "like" elsewhere (e.g. "we'd
+    # like to") is not a list lead-in and must not be treated as one.
+    text = (
+        "Investigate cutting-edge technologies, like machine learning "
+        "frameworks and large language models (LLMs), to solve problems. "
+        "We'd like to hear from you about your career goals."
+    )
+    keywords = extract_keywords(text)
+    assert "machine learning frameworks" in keywords
+    assert "large language models (LLMs)" in keywords
+    assert not any("like to hear" in k.lower() for k in keywords)
+
+
+def test_extract_keywords_keeps_symbol_suffixed_languages_whole():
+    # regression: a trailing \b after a symbol class member (# or +) can
+    # never match when immediately followed by another non-word char (a
+    # comma) -- that silently truncated "C#"/"C++" down to a bare "C".
+    text = "Proficient in C#, Lua, Java, Go, Node.js, Ruby, Python, C++, and Swift."
+    keywords = extract_keywords(text)
+    assert "C#" in keywords
+    assert "C++" in keywords
+    assert "C" not in keywords
+
+
+def test_extract_keywords_does_not_fracture_a_four_word_title():
+    # regression: a 3-word cap on the proper-noun run split "Early Career
+    # Software Engineer" into "Early Career Software" + a stray "Engineer"
+    # instead of one coherent phrase.
+    text = "As an Early Career Software Engineer at Roblox, your story begins."
+    keywords = extract_keywords(text)
+    assert "Early Career Software Engineer" in keywords
+    assert "Engineer" not in keywords
+    assert "Early Career Software" not in keywords
 
 
 def test_extract_keywords_does_not_truncate_mid_word_at_the_window_cutoff():
