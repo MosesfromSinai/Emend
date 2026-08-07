@@ -71,6 +71,11 @@ export function RewriteBar({
 
   function discardEdit() {
     setEditing(false);
+    // Discarding a custom edit can make hasOriginalToShow go false (refactor
+    // mode with no real variants) -- reset this too, or the toggle's button
+    // disappears while its "showing original" state (and the edit-blocking
+    // guard in startEditing) silently stays stuck on.
+    setViewingOriginal(false);
     onChangeSelection({ variantIdx });
   }
 
@@ -154,15 +159,6 @@ export function RewriteBar({
         )}
 
         <div className="ml-auto flex items-center gap-3">
-          {onDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              className="text-xs text-red-700 underline hover:text-red-900"
-            >
-              delete this line
-            </button>
-          )}
           {showDiscard && (
             <button
               type="button"
@@ -173,17 +169,20 @@ export function RewriteBar({
               ↺ discard my edit
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setViewingOriginal((v) => !v)}
-            className="text-xs text-em-deep underline hover:text-ink"
-          >
-            {viewingOriginal
-              ? isCustom
-                ? "↩ back to my edit"
-                : "↩ back to Emend's rewrite"
-              : "view my original"}
-          </button>
+          {hasOriginalToShow && (
+            <button
+              type="button"
+              onClick={() => setViewingOriginal((v) => !v)}
+              className="text-xs text-em-deep underline hover:text-ink"
+            >
+              {viewingOriginal
+                ? isCustom
+                  ? "↩ back to my edit"
+                  : "↩ back to Emend's rewrite"
+                : "view my original"}
+            </button>
+          )}
+          {onDelete && <DeleteButton onClick={onDelete} label="Delete this line" />}
         </div>
       </div>
 
