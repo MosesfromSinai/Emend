@@ -642,6 +642,15 @@ export default function ApplicationPage({
         <span className="text-xs text-ink/50">{VIEW_HINTS[view]}</span>
 
         <div className="ml-auto flex gap-2">
+          {hasAnyEdits && (
+            <button
+              type="button"
+              onClick={resetAllEdits}
+              className="text-xs text-red-700 underline hover:text-red-900"
+            >
+              Reset all edits
+            </button>
+          )}
           <Button onClick={() => download("pdf")} disabled={downloadBusy !== null}>
             {downloadBusy === "pdf" ? "Preparing…" : "Download PDF"}
           </Button>
