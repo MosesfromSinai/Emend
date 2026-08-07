@@ -81,15 +81,31 @@ export default function ApplicationPage({
   const { id } = use(params);
   const { application, error } = usePollApplication(id);
   const [master, setMaster] = useState<MasterResume | null>(null);
-  const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
-  const [factOrder, setFactOrder] = useState<FactOrder>({});
-  const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
-  const [projectOrder, setProjectOrder] = useState<string[]>([]);
-  const [sectionOrder, setSectionOrder] = useState<string[]>([]);
-  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
-  const [excludedFacts, setExcludedFacts] = useState<string[]>([]);
-  const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
-  const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
+  const [selections, setSelections] = useState<Record<string, BulletSelection>>(
+    () => loadSavedEdits(id).selections ?? {}
+  );
+  const [factOrder, setFactOrder] = useState<FactOrder>(() => loadSavedEdits(id).factOrder ?? {});
+  const [experienceOrder, setExperienceOrder] = useState<string[]>(
+    () => loadSavedEdits(id).experienceOrder ?? []
+  );
+  const [projectOrder, setProjectOrder] = useState<string[]>(
+    () => loadSavedEdits(id).projectOrder ?? []
+  );
+  const [sectionOrder, setSectionOrder] = useState<string[]>(
+    () => loadSavedEdits(id).sectionOrder ?? []
+  );
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>(
+    () => loadSavedEdits(id).textOverrides ?? {}
+  );
+  const [excludedFacts, setExcludedFacts] = useState<string[]>(
+    () => loadSavedEdits(id).excludedFacts ?? []
+  );
+  const [excludedExperiences, setExcludedExperiences] = useState<string[]>(
+    () => loadSavedEdits(id).excludedExperiences ?? []
+  );
+  const [excludedProjects, setExcludedProjects] = useState<string[]>(
+    () => loadSavedEdits(id).excludedProjects ?? []
+  );
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
   const [activeBlockField, setActiveBlockField] = useState<{
