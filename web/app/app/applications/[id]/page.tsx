@@ -128,6 +128,38 @@ export default function ApplicationPage({
       .catch(() => setMaster(null));
   }, []);
 
+  // Education has no stable id in the schema (unlike experience/project,
+  // which key overrides off the entry's own id) -- `education:<i>:*`
+  // overrides are keyed by array position instead. Combined with these
+  // overrides now surviving in sessionStorage across visits, editing the
+  // master resume's education list (removing an entry) between saves could
+  // otherwise leave a stale override silently pointed at whatever now sits
+  // at that index. This prunes overrides whose index no longer exists;
+  // it can't detect a *reordered* (but still in-range) entry, which would
+  // need a real per-entry id -- a schema/contract change, not a quick fix.
+  useEffect(() => {
+    if (!master) return;
+    // Synchronizing against master (an external, asynchronously-loaded
+    // resource) loading/changing -- not state derivable during render, and
+    // the functional updater bails out to the same `prev` reference (a
+    // React no-op) when nothing is actually stale.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTextOverrides((prev) => {
+      const validCount = master.education.length;
+      const next: Record<string, string> = {};
+      let changed = false;
+      for (const [key, value] of Object.entries(prev)) {
+        const match = key.match(/^education:(\d+):/);
+        if (match && Number(match[1]) >= validCount) {
+          changed = true;
+          continue;
+        }
+        next[key] = value;
+      }
+      return changed ? next : prev;
+    });
+  }, [master]);
+
   const version = application?.version ?? null;
 
   // Single bag of "what the user has changed on Export" -- fed to both the
