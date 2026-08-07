@@ -289,6 +289,12 @@ def test_override_replaces_skills_category_text(master):
     assert "Assembly" not in tex
 
 
+def test_override_renames_a_section_heading(master):
+    tex = render_tex(master, None, text_overrides={"section:EXPERIENCE:heading": "Leadership"})
+    assert r"\section{Leadership}" in tex
+    assert r"\section{Experience}" not in tex
+
+
 def test_unknown_override_keys_are_ignored(master):
     tex = render_tex(master, None, text_overrides={"experience:NOPE:company": "Ghost Corp"})
     assert "Ghost Corp" not in tex
