@@ -233,7 +233,9 @@ def render_tex(
     bullets is the upstream validator's job.
     """
     if tailored is None:
-        remaining_experiences = _exclude_by_key(master.experiences, excluded_experiences, lambda e: e.id)
+        remaining_experiences = _exclude_by_key(
+            master.experiences, excluded_experiences, lambda e: e.id
+        )
         remaining_projects = _exclude_by_key(master.projects, excluded_projects, lambda p: p.id)
         experiences = [
             _experience_row(
