@@ -501,6 +501,32 @@ export default function ApplicationPage({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  const hasAnyEdits =
+    Object.keys(selections).length > 0 ||
+    Object.keys(factOrder).length > 0 ||
+    experienceOrder.length > 0 ||
+    projectOrder.length > 0 ||
+    sectionOrder.length > 0 ||
+    Object.keys(textOverrides).length > 0 ||
+    excludedFacts.length > 0 ||
+    excludedExperiences.length > 0 ||
+    excludedProjects.length > 0;
+
+  function resetAllEdits() {
+    if (!window.confirm("Discard every edit made on this export? This can't be undone.")) return;
+    setSelections({});
+    setFactOrder({});
+    setExperienceOrder([]);
+    setProjectOrder([]);
+    setSectionOrder([]);
+    setTextOverrides({});
+    setExcludedFacts([]);
+    setExcludedExperiences([]);
+    setExcludedProjects([]);
+    clearActiveEditors();
+    sessionStorage.removeItem(savedEditsKey(id));
+  }
+
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
