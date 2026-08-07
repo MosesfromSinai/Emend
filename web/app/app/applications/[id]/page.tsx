@@ -380,6 +380,9 @@ export default function ApplicationPage({
       const category = key.slice("skills:".length);
       return (renderResume.skills[category] ?? []).join(", ");
     }
+    if (kind === "section" && b === "heading") {
+      return textOverrides[key] ?? DEFAULT_SECTION_HEADINGS[a] ?? "";
+    }
     return "";
   }
 
