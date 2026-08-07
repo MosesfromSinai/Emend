@@ -210,7 +210,7 @@ export function ResumePaper({
         className={cn(
           "text-center font-serif font-bold text-[#111]",
           isExport ? "text-[27px]" : "text-2xl",
-          onClickHeaderField && "cursor-pointer hover:underline"
+          onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("name")}
       >
@@ -220,7 +220,7 @@ export function ResumePaper({
       <div
         className={cn(
           "mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]",
-          onClickHeaderField && "cursor-pointer hover:underline"
+          onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("contact")}
       >
@@ -251,7 +251,7 @@ export function ResumePaper({
                       "text-[13.5px] font-semibold text-ink",
                       block.titleOverrideKeys.length > 0 &&
                         onClickBlockField &&
-                        "cursor-pointer hover:underline"
+                        EDITABLE_HOVER
                     )}
                     onClick={() =>
                       block.titleOverrideKeys.length > 0 && onClickBlockField?.(block, "title")
@@ -266,7 +266,7 @@ export function ResumePaper({
                           "font-mono text-[11.5px] text-[#8f8874]",
                           block.datesOverrideKeys.length > 0 &&
                             onClickBlockField &&
-                            "cursor-pointer hover:underline"
+                            EDITABLE_HOVER
                         )}
                         onClick={() =>
                           block.datesOverrideKeys.length > 0 && onClickBlockField?.(block, "dates")
@@ -289,7 +289,7 @@ export function ResumePaper({
                     "mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic",
                     block.subOverrideKeys.length > 0 &&
                       onClickBlockField &&
-                      "cursor-pointer hover:underline"
+                      EDITABLE_HOVER
                   )}
                   onClick={() =>
                     block.subOverrideKeys.length > 0 && onClickBlockField?.(block, "sub")
