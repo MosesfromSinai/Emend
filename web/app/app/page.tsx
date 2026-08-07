@@ -50,12 +50,19 @@ export default function OnboardingPage() {
   // from the api, so ParseError's api-error-shaped messaging doesn't apply
   const [fileError, setFileError] = useState<string | null>(null);
 
-  // Reopening /app (e.g. the new "back to confirm" link from Tailor, or the
-  // header logo) shouldn't force a full re-paste when a resume is already
-  // saved -- load it straight into an editable confirm view instead. Facts
-  // already went through one real review before this save, so they open
-  // pre-confirmed rather than demanding a second full pass.
+  // Reopening /app via in-app back-navigation (e.g. the "back to confirm"
+  // link from Tailor) shouldn't force a full re-paste when a resume was
+  // already confirmed this visit -- load it straight into an editable
+  // confirm view instead. But a genuinely fresh visit (new tab, or this
+  // tab reopened after being closed) should start clean at paste, not
+  // silently reload whatever was saved hours or days earlier -- sessionStorage
+  // (cleared when the tab closes, unlike the year-long session cookie) is
+  // what tells those two cases apart.
   useEffect(() => {
+    const visitedThisTab = sessionStorage.getItem("emend_app_visited");
+    sessionStorage.setItem("emend_app_visited", "1");
+    if (!visitedThisTab) return;
+
     let cancelled = false;
     getMaster()
       .then((saved) => {
