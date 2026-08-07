@@ -130,6 +130,13 @@ def test_fact_order_reorders_refactor_bullets(master):
     assert idx_last < idx_first
 
 
+def test_fact_order_with_duplicate_id_never_renders_twice(master):
+    # a duplicate id in an order list (client-side reorder bug, a replayed
+    # request) must not duplicate the bullet in the rendered output
+    tex = render_tex(master, None, fact_order={"BAB": ["BAB-01", "BAB-02", "BAB-01"]})
+    assert tex.count("Wrote the first published algorithm") == 1
+
+
 def test_fact_order_with_stale_id_never_drops_a_bullet(master, tailored):
     # BAB-99 doesn't exist -- a deleted/renamed fact shouldn't vanish the
     # entry it never named.
@@ -287,6 +294,12 @@ def test_override_replaces_skills_category_text(master):
     tex = render_tex(master, None, text_overrides={"skills:Languages": "Ada, Python, Rust"})
     assert r"\textbf{Languages}{: Ada, Python, Rust}" in tex
     assert "Assembly" not in tex
+
+
+def test_override_renames_a_section_heading(master):
+    tex = render_tex(master, None, text_overrides={"section:EXPERIENCE:heading": "Leadership"})
+    assert r"\section{Leadership}" in tex
+    assert r"\section{Experience}" not in tex
 
 
 def test_unknown_override_keys_are_ignored(master):

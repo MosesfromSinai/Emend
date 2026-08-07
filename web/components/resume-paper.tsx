@@ -10,6 +10,12 @@ import type { MasterResume } from "@/lib/types";
 // mirrors latex/render.py's DEFAULT_SECTION_ORDER
 export const DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"];
 
+// The one hover cue for "click this line to edit it" -- a soft red
+// highlight, same tone as the delete X and the active editor's own border,
+// so hovering previews the same "this is editable" signal every clickable
+// line in Export shares, before you've clicked anything.
+const EDITABLE_HOVER = "cursor-pointer rounded px-1 -mx-1 hover:bg-red-50 hover:text-red-900";
+
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
 // Experience/Project fact; coursework and skill-category rows have no real
 // fact id in the schema, so `key` alone identifies them for hover/confirm
@@ -45,16 +51,25 @@ export type PaperSection = {
   // to reorder against
   key: string;
   heading: string;
+  // text_overrides path for renaming the printed heading -- "Experience"
+  // to "Leadership", say -- without touching the section's actual key/order
+  headingOverrideKey: string;
   blocks: PaperBlock[];
 };
 
 export function masterToSections(
   master: MasterResume,
-  sectionOrder: string[] = []
+  sectionOrder: string[] = [],
+  // keyed by DEFAULT_SECTION_ORDER's own keys -- there's no field on
+  // MasterResume for a section heading (unlike title/company/etc., which
+  // all come from real resume data), so this is the only path an override
+  // can reach the on-screen preview through.
+  sectionHeadings: Record<string, string> = {}
 ): PaperSection[] {
   const education: PaperSection = {
     key: "EDUCATION",
-    heading: "EDUCATION",
+    heading: sectionHeadings.EDUCATION ?? "EDUCATION",
+    headingOverrideKey: "section:EDUCATION:heading",
     blocks: master.education.map((edu, i) => ({
       key: `edu-${i}`,
       title: edu.school,
@@ -77,7 +92,8 @@ export function masterToSections(
 
   const experience: PaperSection = {
     key: "EXPERIENCE",
-    heading: "EXPERIENCE",
+    heading: sectionHeadings.EXPERIENCE ?? "EXPERIENCE",
+    headingOverrideKey: "section:EXPERIENCE:heading",
     blocks: master.experiences.map((exp) => ({
       key: exp.id,
       title: exp.title,
@@ -92,7 +108,8 @@ export function masterToSections(
 
   const projects: PaperSection = {
     key: "PROJECTS",
-    heading: "PROJECTS",
+    heading: sectionHeadings.PROJECTS ?? "PROJECTS",
+    headingOverrideKey: "section:PROJECTS:heading",
     blocks: master.projects.map((p) => ({
       key: p.id,
       title: p.name,
@@ -108,7 +125,8 @@ export function masterToSections(
   const skillCategories = Object.entries(master.skills);
   const skills: PaperSection = {
     key: "SKILLS",
-    heading: "TECHNICAL SKILLS",
+    heading: sectionHeadings.SKILLS ?? "TECHNICAL SKILLS",
+    headingOverrideKey: "section:SKILLS:heading",
     blocks: skillCategories.length
       ? [
           {
@@ -156,6 +174,10 @@ export function ResumePaper({
   activeHeaderField,
   onClickHeaderField,
   renderHeaderFieldControl,
+  activeSectionHeadingKey,
+  onClickSectionHeading,
+  renderSectionHeadingControl,
+  sectionHeadings,
 }: {
   master: MasterResume;
   name: string;
@@ -187,8 +209,15 @@ export function ResumePaper({
   activeHeaderField?: "name" | "contact" | null;
   onClickHeaderField?: (field: "name" | "contact") => void;
   renderHeaderFieldControl?: (field: "name" | "contact") => ReactNode;
+  // click-to-edit for a section's own printed heading ("Experience" ->
+  // "Leadership") -- matched against the section's key, not its (already
+  // possibly overridden) heading text
+  activeSectionHeadingKey?: string | null;
+  onClickSectionHeading?: (section: PaperSection) => void;
+  renderSectionHeadingControl?: (section: PaperSection) => ReactNode;
+  sectionHeadings?: Record<string, string>;
 }) {
-  const sections = masterToSections(master, sectionOrder);
+  const sections = masterToSections(master, sectionOrder, sectionHeadings);
   const isExport = size === "export";
 
   return (
@@ -197,7 +226,7 @@ export function ResumePaper({
         className={cn(
           "text-center font-serif font-bold text-[#111]",
           isExport ? "text-[27px]" : "text-2xl",
-          onClickHeaderField && "cursor-pointer hover:underline"
+          onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("name")}
       >
@@ -207,7 +236,7 @@ export function ResumePaper({
       <div
         className={cn(
           "mt-1 mb-4.5 text-center font-mono text-[10.5px] text-[#555]",
-          onClickHeaderField && "cursor-pointer hover:underline"
+          onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("contact")}
       >
@@ -218,11 +247,18 @@ export function ResumePaper({
       {sections.map((section) => (
         <div key={section.key}>
           <div className="mt-3.5 mb-2.5 flex items-center justify-between border-b border-[#111] pb-0.5">
-            <span className="font-serif text-[13px] font-bold tracking-widest text-[#111]">
+            <span
+              className={cn(
+                "font-serif text-[13px] font-bold tracking-widest text-[#111]",
+                onClickSectionHeading && EDITABLE_HOVER
+              )}
+              onClick={() => onClickSectionHeading?.(section)}
+            >
               {section.heading}
             </span>
             {renderSectionControl?.(section)}
           </div>
+          {activeSectionHeadingKey === section.key && renderSectionHeadingControl?.(section)}
           {section.blocks.map((block) => (
             <div
               key={block.key}
@@ -238,7 +274,7 @@ export function ResumePaper({
                       "text-[13.5px] font-semibold text-ink",
                       block.titleOverrideKeys.length > 0 &&
                         onClickBlockField &&
-                        "cursor-pointer hover:underline"
+                        EDITABLE_HOVER
                     )}
                     onClick={() =>
                       block.titleOverrideKeys.length > 0 && onClickBlockField?.(block, "title")
@@ -253,7 +289,7 @@ export function ResumePaper({
                           "font-mono text-[11.5px] text-[#8f8874]",
                           block.datesOverrideKeys.length > 0 &&
                             onClickBlockField &&
-                            "cursor-pointer hover:underline"
+                            EDITABLE_HOVER
                         )}
                         onClick={() =>
                           block.datesOverrideKeys.length > 0 && onClickBlockField?.(block, "dates")
@@ -276,7 +312,7 @@ export function ResumePaper({
                     "mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic",
                     block.subOverrideKeys.length > 0 &&
                       onClickBlockField &&
-                      "cursor-pointer hover:underline"
+                      EDITABLE_HOVER
                   )}
                   onClick={() =>
                     block.subOverrideKeys.length > 0 && onClickBlockField?.(block, "sub")

@@ -35,8 +35,10 @@ _STOPWORDS = {
     "we", "you", "your", "will", "who", "role", "team", "job", "work",
     "about", "overview", "responsibilities", "requirements", "qualifications",
     "why", "what", "us", "here", "join", "every", "each", "any", "all",
-    "it", "its", "i", "experience", "familiarity", "proficiency",
-    "expertise", "background", "knowledge", "skill", "skills",
+    "it", "its", "i", "experience", "experienced", "familiarity", "familiar",
+    "proficiency", "proficient", "expertise", "expert", "background",
+    "knowledge", "knowledgeable", "skill", "skills", "skilled", "adept",
+    "competent", "capable",
     "strong", "contribute", "company", "polished", "united", "states",
     "usd", "u.s", "annual", "professional", "training", "location",
     "business", "needs", "demand", "market", "career", "id",
@@ -72,8 +74,15 @@ _LIST_LEAD_IN = re.compile(
     r"(?:experience|proficiency|expertise|background)\s+(?:with|in)|"
     r"knowledge\s+of|familiarity\s+with|skills?\s*(?:in|with)?\s*:|"
     r"requirements?\s*:|qualifications?\s*:|preferred\s+qualifications?\s*:|"
-    r"you\s+(?:have|will|are|bring|need)\s*:|"
     r"what\s+you(?:'ll|\s+will)\s+(?:do|need|bring)\s*:|"
+    # bare "You Will:"/"You Are:" is deliberately excluded -- on most
+    # postings it introduces full-sentence bullets ("You Will: Join a
+    # community of curious, supportive engineers...") whose incidental
+    # commas read as a fake list ("supportive engineers", "Pursuing"), not
+    # a real one. ", like X and Y" is a real list cue worth trusting
+    # precisely because the comma+like combination rarely opens a plain verb
+    # phrase the way bare "like" alone would ("we'd like to...").
+    r",\s+like\s+|"
     r"nice\s+to\s+have\s*:|must\s+have\s*:|such\s+as",
     re.IGNORECASE,
 )
@@ -94,10 +103,18 @@ _FILLER_EDGES = {
 # a sentence-final "Python." doesn't drag its period along). The connector
 # is horizontal whitespace only -- plain \s+ crosses newlines, which would
 # fuse three separate bullet items ("Python\nDocker\nStrong") into one fake
-# multi-word phrase.
+# multi-word phrase. No trailing \b: one already sits at the end of the
+# character class's own reach, and requiring a *second* word-boundary right
+# after a symbol like "#" or "+" can never succeed when the very next
+# character is also non-word (a comma) -- that forced "C#"/"C++" to
+# backtrack down to a bare "C" instead of matching whole. Capped at
+# MAX_PHRASE_WORDS, same as every other phrase heuristic here, so a real
+# 4-word run like "Early Career Software Engineer" is captured (and can
+# still be filtered whole, e.g. by drop_known_names) instead of fracturing
+# into "Early Career Software" + a stray leftover "Engineer".
 _PROPER_NOUN = re.compile(
     r"\b[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*"
-    r"(?:[ \t]+[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*){0,2}\b"
+    rf"(?:[ \t]+[A-Z][A-Za-z0-9+#]*(?:\.[A-Za-z0-9+#]+)*){{0,{MAX_PHRASE_WORDS - 1}}}"
 )
 # A fresh bullet marker ("- Analyze...") or a colon introducing a clause
 # ("About Acme: Founded in 2005...") is just as much a boundary as a period

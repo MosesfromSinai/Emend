@@ -134,13 +134,19 @@ def _reorder_by_key(items: list, order: list[str] | None, key) -> list:
     Items whose key isn't in `order` keep their relative position, appended
     after the ordered ones -- a stale order (referencing a fact id that's
     since been deleted) or a partial one (missing a newly added fact) can
-    never silently drop a bullet.
+    never silently drop a bullet. A key repeated in `order` (a duplicate id
+    from a client-side reorder bug or a replayed request) is only honored
+    once, at its first occurrence -- otherwise that item renders twice.
     """
     if not order:
         return items
     by_key = {key(item): item for item in items}
-    ordered = [by_key[k] for k in order if k in by_key]
-    seen = set(order)
+    seen: set[str] = set()
+    ordered = []
+    for k in order:
+        if k in by_key and k not in seen:
+            ordered.append(by_key[k])
+            seen.add(k)
     ordered.extend(item for item in items if key(item) not in seen)
     return ordered
 
@@ -220,10 +226,12 @@ def render_tex(
 
     `text_overrides` (keyed by a stable path string -- "name", "email",
     "phone", "link:<i>", "education:<i>:<field>", "experience:<id>:<field>",
-    "project:<id>:<field>", "skills:<category>") lets a user free-text edit
-    any non-fact-backed field on the resume -- structural fields, header
-    info, education, skills -- separate from and on top of the fact-grounded
-    `selections` mechanism above, which stays scoped to confirmed facts.
+    "project:<id>:<field>", "skills:<category>", "section:<KEY>:heading" for
+    KEY in DEFAULT_SECTION_ORDER) lets a user free-text edit any
+    non-fact-backed field on the resume -- structural fields, header info,
+    education, skills, even a section's own printed heading -- separate
+    from and on top of the fact-grounded `selections` mechanism above,
+    which stays scoped to confirmed facts.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
@@ -321,6 +329,17 @@ def render_tex(
         for category, items in skills.items()
     ]
 
+    default_headings = {
+        "EDUCATION": "Education",
+        "EXPERIENCE": "Experience",
+        "PROJECTS": "Projects",
+        "SKILLS": "Technical Skills",
+    }
+    section_headings = {
+        key: _ov(text_overrides, f"section:{key}:heading", default)
+        for key, default in default_headings.items()
+    }
+
     context = {
         "name": _ov(text_overrides, "name", master.name),
         "email": _ov(text_overrides, "email", master.email),
@@ -330,6 +349,7 @@ def render_tex(
         "experiences": experiences,
         "projects": projects,
         "skills": skills_rows,
+        "section_headings": section_headings,
         "section_order": _reorder_by_key(
             DEFAULT_SECTION_ORDER, section_order, lambda s: s
         ),

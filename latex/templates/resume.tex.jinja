@@ -114,7 +114,7 @@
 \BLOCK{for section_key in section_order}
 \BLOCK{if section_key == "EDUCATION" and education}
 %-----------EDUCATION-----------
-\section{Education}
+\section{\VAR{section_headings["EDUCATION"]}}
   \resumeSubHeadingListStart
     \BLOCK{for edu in education}
     \resumeSubheading
@@ -129,7 +129,7 @@
   \resumeSubHeadingListEnd
 \BLOCK{elif section_key == "EXPERIENCE" and experiences}
 %-----------EXPERIENCE-----------
-\section{Experience}
+\section{\VAR{section_headings["EXPERIENCE"]}}
   \resumeSubHeadingListStart
     \BLOCK{for exp in experiences}
     \resumeSubheading
@@ -145,7 +145,7 @@
   \resumeSubHeadingListEnd
 \BLOCK{elif section_key == "PROJECTS" and projects}
 %-----------PROJECTS-----------
-\section{Projects}
+\section{\VAR{section_headings["PROJECTS"]}}
     \resumeSubHeadingListStart
       \BLOCK{for proj in projects}
       \resumeProjectHeading
@@ -160,7 +160,7 @@
     \resumeSubHeadingListEnd
 \BLOCK{elif section_key == "SKILLS" and skills}
 %-----------TECHNICAL SKILLS-----------
-\section{Technical Skills}
+\section{\VAR{section_headings["SKILLS"]}}
  \begin{itemize}[leftmargin=0.15in, label={}]
     \small{\item{
      \BLOCK{for row in skills}

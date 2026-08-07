@@ -35,6 +35,44 @@ const VIEW_HINTS: Record<View, string> = {
   tex: "Every generated line carries a % grounded receipt.",
 };
 
+// mirrors latex/render.py's default_headings
+const DEFAULT_SECTION_HEADINGS: Record<string, string> = {
+  EDUCATION: "Education",
+  EXPERIENCE: "Experience",
+  PROJECTS: "Projects",
+  SKILLS: "Technical Skills",
+};
+
+// Every edit on this page previously lived only in React state -- navigate
+// away (even just back to Confirm and back) and it was gone. sessionStorage
+// (cleared when the tab closes, same mechanism as the fresh-visit gate on
+// /app) keyed per application id fixes that without resurrecting stale
+// edits from a completely different session days later.
+type SavedEdits = Partial<{
+  selections: Record<string, BulletSelection>;
+  factOrder: FactOrder;
+  experienceOrder: string[];
+  projectOrder: string[];
+  sectionOrder: string[];
+  textOverrides: Record<string, string>;
+  excludedFacts: string[];
+  excludedExperiences: string[];
+  excludedProjects: string[];
+}>;
+
+function savedEditsKey(id: string): string {
+  return `emend_export_edits_${id}`;
+}
+
+function loadSavedEdits(id: string): SavedEdits {
+  try {
+    const raw = sessionStorage.getItem(savedEditsKey(id));
+    return raw ? (JSON.parse(raw) as SavedEdits) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function ApplicationPage({
   params,
 }: {
@@ -43,15 +81,31 @@ export default function ApplicationPage({
   const { id } = use(params);
   const { application, error } = usePollApplication(id);
   const [master, setMaster] = useState<MasterResume | null>(null);
-  const [selections, setSelections] = useState<Record<string, BulletSelection>>({});
-  const [factOrder, setFactOrder] = useState<FactOrder>({});
-  const [experienceOrder, setExperienceOrder] = useState<string[]>([]);
-  const [projectOrder, setProjectOrder] = useState<string[]>([]);
-  const [sectionOrder, setSectionOrder] = useState<string[]>([]);
-  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
-  const [excludedFacts, setExcludedFacts] = useState<string[]>([]);
-  const [excludedExperiences, setExcludedExperiences] = useState<string[]>([]);
-  const [excludedProjects, setExcludedProjects] = useState<string[]>([]);
+  const [selections, setSelections] = useState<Record<string, BulletSelection>>(
+    () => loadSavedEdits(id).selections ?? {}
+  );
+  const [factOrder, setFactOrder] = useState<FactOrder>(() => loadSavedEdits(id).factOrder ?? {});
+  const [experienceOrder, setExperienceOrder] = useState<string[]>(
+    () => loadSavedEdits(id).experienceOrder ?? []
+  );
+  const [projectOrder, setProjectOrder] = useState<string[]>(
+    () => loadSavedEdits(id).projectOrder ?? []
+  );
+  const [sectionOrder, setSectionOrder] = useState<string[]>(
+    () => loadSavedEdits(id).sectionOrder ?? []
+  );
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>(
+    () => loadSavedEdits(id).textOverrides ?? {}
+  );
+  const [excludedFacts, setExcludedFacts] = useState<string[]>(
+    () => loadSavedEdits(id).excludedFacts ?? []
+  );
+  const [excludedExperiences, setExcludedExperiences] = useState<string[]>(
+    () => loadSavedEdits(id).excludedExperiences ?? []
+  );
+  const [excludedProjects, setExcludedProjects] = useState<string[]>(
+    () => loadSavedEdits(id).excludedProjects ?? []
+  );
   const [activeFactId, setActiveFactId] = useState<string | null>(null);
   const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
   const [activeBlockField, setActiveBlockField] = useState<{
@@ -59,6 +113,7 @@ export default function ApplicationPage({
     field: "title" | "sub" | "dates";
   } | null>(null);
   const [activeHeaderField, setActiveHeaderField] = useState<"name" | "contact" | null>(null);
+  const [activeSectionHeadingKey, setActiveSectionHeadingKey] = useState<string | null>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
@@ -72,6 +127,38 @@ export default function ApplicationPage({
       .then(setMaster)
       .catch(() => setMaster(null));
   }, []);
+
+  // Education has no stable id in the schema (unlike experience/project,
+  // which key overrides off the entry's own id) -- `education:<i>:*`
+  // overrides are keyed by array position instead. Combined with these
+  // overrides now surviving in sessionStorage across visits, editing the
+  // master resume's education list (removing an entry) between saves could
+  // otherwise leave a stale override silently pointed at whatever now sits
+  // at that index. This prunes overrides whose index no longer exists;
+  // it can't detect a *reordered* (but still in-range) entry, which would
+  // need a real per-entry id -- a schema/contract change, not a quick fix.
+  useEffect(() => {
+    if (!master) return;
+    // Synchronizing against master (an external, asynchronously-loaded
+    // resource) loading/changing -- not state derivable during render, and
+    // the functional updater bails out to the same `prev` reference (a
+    // React no-op) when nothing is actually stale.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTextOverrides((prev) => {
+      const validCount = master.education.length;
+      const next: Record<string, string> = {};
+      let changed = false;
+      for (const [key, value] of Object.entries(prev)) {
+        const match = key.match(/^education:(\d+):/);
+        if (match && Number(match[1]) >= validCount) {
+          changed = true;
+          continue;
+        }
+        next[key] = value;
+      }
+      return changed ? next : prev;
+    });
+  }, [master]);
 
   const version = application?.version ?? null;
 
@@ -89,6 +176,32 @@ export default function ApplicationPage({
     excludedProjects,
     textOverrides,
   };
+
+  useEffect(() => {
+    const edits: SavedEdits = renderOptions;
+    try {
+      sessionStorage.setItem(savedEditsKey(id), JSON.stringify(edits));
+    } catch {
+      // Safari private browsing throws on setItem; storage quota can too on
+      // a very large pasted override. Either way, losing edit persistence
+      // for this tab is a much smaller problem than an uncaught throw here
+      // breaking every future edit on the page.
+    }
+    // renderOptions is a fresh object every render (see the debounce effect
+    // below for why) -- depend on its actual fields instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    id,
+    selections,
+    factOrder,
+    experienceOrder,
+    projectOrder,
+    sectionOrder,
+    excludedFacts,
+    excludedExperiences,
+    excludedProjects,
+    textOverrides,
+  ]);
 
   useEffect(() => {
     if (!version) return;
@@ -372,6 +485,9 @@ export default function ApplicationPage({
       const category = key.slice("skills:".length);
       return (renderResume.skills[category] ?? []).join(", ");
     }
+    if (kind === "section" && b === "heading") {
+      return textOverrides[key] ?? DEFAULT_SECTION_HEADINGS[a] ?? "";
+    }
     return "";
   }
 
@@ -403,11 +519,18 @@ export default function ApplicationPage({
     setActiveRowKey(null);
     setActiveBlockField(null);
     setActiveHeaderField(null);
+    setActiveSectionHeadingKey(null);
   }
 
   function changeView(next: View) {
     setView(next);
-    setActiveFactId(null);
+    // Not just setActiveFactId(null): a keyboard-driven view switch (Tab to
+    // the segmented control, Enter/Space) dispatches a synthetic click with
+    // no preceding mousedown, so the outside-click handler below never
+    // fires to close a different kind of open editor (a header/block/
+    // section field) -- clear all five here too, or it silently reopens,
+    // unclicked, when the Resume view remounts.
+    clearActiveEditors();
   }
 
   // Clicking off the resume paper closes whatever line is being edited --
@@ -422,6 +545,32 @@ export default function ApplicationPage({
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  const hasAnyEdits =
+    Object.keys(selections).length > 0 ||
+    Object.keys(factOrder).length > 0 ||
+    experienceOrder.length > 0 ||
+    projectOrder.length > 0 ||
+    sectionOrder.length > 0 ||
+    Object.keys(textOverrides).length > 0 ||
+    excludedFacts.length > 0 ||
+    excludedExperiences.length > 0 ||
+    excludedProjects.length > 0;
+
+  function resetAllEdits() {
+    if (!window.confirm("Discard every edit made on this export? This can't be undone.")) return;
+    setSelections({});
+    setFactOrder({});
+    setExperienceOrder([]);
+    setProjectOrder([]);
+    setSectionOrder([]);
+    setTextOverrides({});
+    setExcludedFacts([]);
+    setExcludedExperiences([]);
+    setExcludedProjects([]);
+    clearActiveEditors();
+    sessionStorage.removeItem(savedEditsKey(id));
+  }
 
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
@@ -538,6 +687,15 @@ export default function ApplicationPage({
         <span className="text-xs text-ink/50">{VIEW_HINTS[view]}</span>
 
         <div className="ml-auto flex gap-2">
+          {hasAnyEdits && (
+            <button
+              type="button"
+              onClick={resetAllEdits}
+              className="text-xs text-red-700 underline hover:text-red-900"
+            >
+              Reset all edits
+            </button>
+          )}
           <Button onClick={() => download("pdf")} disabled={downloadBusy !== null}>
             {downloadBusy === "pdf" ? "Preparing…" : "Download PDF"}
           </Button>
@@ -719,6 +877,33 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
+                  sectionHeadings={Object.fromEntries(
+                    DEFAULT_SECTION_ORDER.map((key) => [key, currentOverrideValue(`section:${key}:heading`)])
+                  )}
+                  activeSectionHeadingKey={activeSectionHeadingKey}
+                  onClickSectionHeading={(section) => {
+                    const wasActive = activeSectionHeadingKey === section.key;
+                    clearActiveEditors();
+                    if (!wasActive) setActiveSectionHeadingKey(section.key);
+                  }}
+                  renderSectionHeadingControl={(section) => (
+                    <OverrideEditor
+                      fields={[
+                        {
+                          key: section.headingOverrideKey,
+                          label: "Heading",
+                          value: currentOverrideValue(section.headingOverrideKey),
+                        },
+                      ]}
+                      onChange={updateTextOverride}
+                      onDelete={() => {
+                        // "delete" resets the rename rather than blanking
+                        // it -- an empty \section{} divider helps no one
+                        updateTextOverride(section.headingOverrideKey, DEFAULT_SECTION_HEADINGS[section.key]);
+                        clearActiveEditors();
+                      }}
+                    />
+                  )}
                   activeHeaderField={activeHeaderField}
                   onClickHeaderField={(field) => {
                     const wasActive = activeHeaderField === field;
