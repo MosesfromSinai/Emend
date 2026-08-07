@@ -240,11 +240,18 @@ export function ResumePaper({
       {sections.map((section) => (
         <div key={section.key}>
           <div className="mt-3.5 mb-2.5 flex items-center justify-between border-b border-[#111] pb-0.5">
-            <span className="font-serif text-[13px] font-bold tracking-widest text-[#111]">
+            <span
+              className={cn(
+                "font-serif text-[13px] font-bold tracking-widest text-[#111]",
+                onClickSectionHeading && EDITABLE_HOVER
+              )}
+              onClick={() => onClickSectionHeading?.(section)}
+            >
               {section.heading}
             </span>
             {renderSectionControl?.(section)}
           </div>
+          {activeSectionHeadingKey === section.key && renderSectionHeadingControl?.(section)}
           {section.blocks.map((block) => (
             <div
               key={block.key}
