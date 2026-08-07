@@ -147,7 +147,14 @@ export default function ApplicationPage({
 
   useEffect(() => {
     const edits: SavedEdits = renderOptions;
-    sessionStorage.setItem(savedEditsKey(id), JSON.stringify(edits));
+    try {
+      sessionStorage.setItem(savedEditsKey(id), JSON.stringify(edits));
+    } catch {
+      // Safari private browsing throws on setItem; storage quota can too on
+      // a very large pasted override. Either way, losing edit persistence
+      // for this tab is a much smaller problem than an uncaught throw here
+      // breaking every future edit on the page.
+    }
     // renderOptions is a fresh object every render (see the debounce effect
     // below for why) -- depend on its actual fields instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
