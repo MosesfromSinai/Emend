@@ -732,6 +732,33 @@ export default function ApplicationPage({
                       </div>
                     );
                   }}
+                  sectionHeadings={Object.fromEntries(
+                    DEFAULT_SECTION_ORDER.map((key) => [key, currentOverrideValue(`section:${key}:heading`)])
+                  )}
+                  activeSectionHeadingKey={activeSectionHeadingKey}
+                  onClickSectionHeading={(section) => {
+                    const wasActive = activeSectionHeadingKey === section.key;
+                    clearActiveEditors();
+                    if (!wasActive) setActiveSectionHeadingKey(section.key);
+                  }}
+                  renderSectionHeadingControl={(section) => (
+                    <OverrideEditor
+                      fields={[
+                        {
+                          key: section.headingOverrideKey,
+                          label: "Heading",
+                          value: currentOverrideValue(section.headingOverrideKey),
+                        },
+                      ]}
+                      onChange={updateTextOverride}
+                      onDelete={() => {
+                        // "delete" resets the rename rather than blanking
+                        // it -- an empty \section{} divider helps no one
+                        updateTextOverride(section.headingOverrideKey, DEFAULT_SECTION_HEADINGS[section.key]);
+                        clearActiveEditors();
+                      }}
+                    />
+                  )}
                   activeHeaderField={activeHeaderField}
                   onClickHeaderField={(field) => {
                     const wasActive = activeHeaderField === field;
