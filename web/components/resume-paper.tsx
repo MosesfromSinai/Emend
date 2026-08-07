@@ -177,6 +177,7 @@ export function ResumePaper({
   activeSectionHeadingKey,
   onClickSectionHeading,
   renderSectionHeadingControl,
+  sectionHeadings,
 }: {
   master: MasterResume;
   name: string;
@@ -214,8 +215,9 @@ export function ResumePaper({
   activeSectionHeadingKey?: string | null;
   onClickSectionHeading?: (section: PaperSection) => void;
   renderSectionHeadingControl?: (section: PaperSection) => ReactNode;
+  sectionHeadings?: Record<string, string>;
 }) {
-  const sections = masterToSections(master, sectionOrder);
+  const sections = masterToSections(master, sectionOrder, sectionHeadings);
   const isExport = size === "export";
 
   return (
