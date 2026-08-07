@@ -409,6 +409,20 @@ export default function ApplicationPage({
     setActiveFactId(null);
   }
 
+  // Clicking off the resume paper closes whatever line is being edited --
+  // clicks inside it are already handled by each row/field's own onClick
+  // (contains() is true for those, so this is a no-op there).
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (paperRef.current && !paperRef.current.contains(e.target as Node)) {
+        clearActiveEditors();
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
