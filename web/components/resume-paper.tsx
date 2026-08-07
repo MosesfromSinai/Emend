@@ -233,21 +233,60 @@ export function ResumePaper({
             >
               {block.title && (
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-[13.5px] font-semibold text-ink">{block.title}</span>
+                  <span
+                    className={cn(
+                      "text-[13.5px] font-semibold text-ink",
+                      block.titleOverrideKeys.length > 0 &&
+                        onClickBlockField &&
+                        "cursor-pointer hover:underline"
+                    )}
+                    onClick={() =>
+                      block.titleOverrideKeys.length > 0 && onClickBlockField?.(block, "title")
+                    }
+                  >
+                    {block.title}
+                  </span>
                   <span className="flex items-center gap-2">
                     {block.dates && (
-                      <span className="font-mono text-[11.5px] text-[#8f8874]">{block.dates}</span>
+                      <span
+                        className={cn(
+                          "font-mono text-[11.5px] text-[#8f8874]",
+                          block.datesOverrideKeys.length > 0 &&
+                            onClickBlockField &&
+                            "cursor-pointer hover:underline"
+                        )}
+                        onClick={() =>
+                          block.datesOverrideKeys.length > 0 && onClickBlockField?.(block, "dates")
+                        }
+                      >
+                        {block.dates}
+                      </span>
                     )}
                     {renderBlockControl?.(block)}
                   </span>
                 </div>
               )}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "title" &&
+                renderBlockFieldControl?.(block, "title")}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "dates" &&
+                renderBlockFieldControl?.(block, "dates")}
               {block.sub && (
-                <div className="mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic">
+                <div
+                  className={cn(
+                    "mt-0.5 mb-1.5 text-xs font-serif text-ink/70 italic",
+                    block.subOverrideKeys.length > 0 &&
+                      onClickBlockField &&
+                      "cursor-pointer hover:underline"
+                  )}
+                  onClick={() =>
+                    block.subOverrideKeys.length > 0 && onClickBlockField?.(block, "sub")
+                  }
+                >
                   {block.sub}
                 </div>
               )}
-              {renderBlockExtra?.(block)}
+              {activeBlockField?.blockKey === block.key && activeBlockField.field === "sub" &&
+                renderBlockFieldControl?.(block, "sub")}
               {block.rows.map((row) => (
                 <Fragment key={row.key}>
                   <div
