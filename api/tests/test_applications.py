@@ -607,6 +607,125 @@ def test_version_freezes_source_facts_at_generation_time(client, master, pipelin
     assert refetched["source_facts"]["ACME-01"] == "Built an internal reporting dashboard"
 
 
+def test_preview_applies_every_edit_kind_at_once_refactor_mode(client, master, pipeline):
+    """The full "edit every line on Just Typeset It" path: header, education,
+    experience/project structural fields, skills, a section rename, a
+    reorder, and a delete, all in one request -- proving none of these
+    features step on each other when combined, the way a real editing
+    session actually would."""
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+
+    body = {
+        "fact_order": {"ACME": ["ACME-02", "ACME-01"]},
+        "excluded_facts": ["PROJ-01"],
+        "text_overrides": {
+            "name": "Samantha T. Sample",
+            "email": "samantha@newmail.com",
+            "phone": "555-9999",
+            "link:0": "linkedin.com/in/samantha",
+            "education:0:school": "Sample State University (Honors)",
+            "education:0:degree": "B.S. in Computer Science",
+            "education:0:coursework": "Distributed Systems, Compilers",
+            "experience:ACME:title": "Senior Software Engineering Intern",
+            "experience:ACME:company": "Acme Corporation",
+            "experience:ACME:start": "May 2025",
+            "project:PROJ:name": "Course Scheduler 2.0",
+            "project:PROJ:tech": "Rust, SQLite",
+            "skills:Languages": "Python, SQL, Rust",
+            "section:EXPERIENCE:heading": "Leadership",
+        },
+    }
+    r = client.post(f"/applications/{app_id}/preview", json=body)
+    assert r.status_code == 200
+    tex = r.json()["tex"]
+
+    # header
+    assert "Samantha T. Sample" in tex
+    assert "samantha@newmail.com" in tex
+    assert "555-9999" in tex
+    assert "samantha" in tex
+    # education
+    assert "Sample State University (Honors)" in tex
+    assert "B.S. in Computer Science" in tex
+    assert "Distributed Systems, Compilers" in tex
+    # experience structural fields + renamed section heading
+    assert "Senior Software Engineering Intern" in tex
+    assert "Acme Corporation" in tex
+    assert "May 2025" in tex
+    assert r"\section{Leadership}" in tex
+    assert r"\section{Experience}" not in tex
+    # project structural fields
+    assert "Course Scheduler 2.0" in tex
+    assert "Rust, SQLite" in tex
+    # skills
+    assert r"\textbf{Languages}{: Python, SQL, Rust}" in tex
+    # reorder: ACME-02's bullet before ACME-01's
+    assert tex.index("Wrote integration tests") < tex.index("Built an internal reporting")
+    # delete: PROJ's only bullet is gone but the project entry itself remains
+    assert "Constraint solver for course timetables" not in tex
+    assert "Course Scheduler 2.0" in tex
+
+
+def test_preview_applies_every_edit_kind_at_once_tailor_mode(
+    client, master, pipeline, monkeypatch
+):
+    """Same combined-edit proof as the refactor-mode version above, but for
+    an actual tailored (job-posting-matched) resume -- editing must work
+    identically whether or not a real tailor pass produced the bullets."""
+
+    def tailor(master_, jd):
+        return TailoredResume(
+            summary_of_strategy="x",
+            experiences=[
+                TailoredSection(
+                    ref_id="ACME",
+                    bullets=[
+                        TailoredBullet(variants=["Built the dashboard"] * 3, source_fact_ids=["ACME-01"]),
+                        TailoredBullet(variants=["Wrote the tests"] * 3, source_fact_ids=["ACME-02"]),
+                    ],
+                )
+            ],
+            projects=[
+                TailoredSection(
+                    ref_id="PROJ",
+                    bullets=[
+                        TailoredBullet(variants=["Solved scheduling"] * 3, source_fact_ids=["PROJ-01"]),
+                    ],
+                )
+            ],
+            skills={"Languages": ["Python", "SQL"]},
+        )
+
+    monkeypatch.setattr(core_bridge, "tailor", tailor)
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    body = {
+        "fact_order": {"ACME": ["ACME-02", "ACME-01"]},
+        "excluded_facts": ["PROJ-01"],
+        "text_overrides": {
+            "name": "Samantha T. Sample",
+            "experience:ACME:title": "Senior Software Engineering Intern",
+            "project:PROJ:name": "Course Scheduler 2.0",
+            "skills:Languages": "Python, SQL, Rust",
+            "section:PROJECTS:heading": "Side Projects",
+        },
+    }
+    r = client.post(f"/applications/{app_id}/preview", json=body)
+    assert r.status_code == 200
+    tex = r.json()["tex"]
+
+    assert "Samantha T. Sample" in tex
+    assert "Senior Software Engineering Intern" in tex
+    assert "Course Scheduler 2.0" in tex
+    assert r"\textbf{Languages}{: Python, SQL, Rust}" in tex
+    assert r"\section{Side Projects}" in tex
+    assert tex.index("Wrote the tests") < tex.index("Built the dashboard")
+    assert "Solved scheduling" not in tex
+    assert "Course Scheduler 2.0" in tex
+
+
 def test_jd_text_capped(client, master, pipeline):
     from api.config import settings
 
