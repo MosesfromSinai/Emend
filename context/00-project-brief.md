@@ -25,7 +25,9 @@ Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import w
 
 ## Explicitly deferred — do NOT build
 
-Application autofill / browser extension · accounts & auth · **live** per-sentence rewrite cycling or accept/reject editing in the workspace (the landing demo is scripted — see reconciliations) · chat refinement · diff views · in-browser `.tex` editing · rate limiting · Redis/queues · additional templates · object storage.
+Application autofill / browser extension · accounts & auth · chat refinement · diff views · rate limiting · Redis/queues · additional templates · object storage.
+
+**No longer deferred, now shipped (see "Full customization" below):** live per-sentence rewrite cycling/editing in the actual workspace (not just the scripted landing demo) and in-browser `.tex` editing — both are real on Export as of 2026-08-06/07, driven by a `text_overrides` mechanism, not the landing page's client-side-only simulation.
 
 ## Design system ("Ink & Paper")
 
@@ -118,7 +120,7 @@ Worth hardening later (e.g. a retry step in `deploy.yml`), not urgent.
 Operational detail — secrets map, migrations, rollback per service, rebuilding
 the Tectonic cache layer — lives in `infra/runbook.md`.
 
-## App screens rebuild — done on branch `import-tailor`, not yet merged to main
+## App screens rebuild — merged to main (was branch `import-tailor`)
 
 Full plan at `/Users/mosesavila/.claude/plans/glowing-popping-giraffe.md`
 (local machine, not in-repo) — all 7 parts complete as of 2026-08-04: 3 real
@@ -132,7 +134,13 @@ bidirectional paper↔panel hover sync, Tailor has a live debounced
 `/jd/preview` score card, Export has real 3-variant rewrite cycling backed
 by `/applications/{id}/preview` (live) and `/finalize` (on download).
 Accounts stay explicitly deferred per this brief's existing scope — nothing
-in this work adds auth. Single branch, phased commits, not yet PR'd/merged.
+in this work adds auth. `import-tailor` is now the standing working branch
+for all follow-up passes (small phased commits, merged via PR once green) —
+everything through the reorder/delete/full-edit-mode work in "Full
+customization on Export" below shipped this way; as of this writing the
+newest pass (the keyword-extraction fixes, section renaming, hover
+highlighting, and edit-persistence sub-bullets there) is committed locally
+on `import-tailor` but not yet pushed/PR'd.
 
 **Tailor pipeline hardening — same branch, 2026-08-04.** Keyword extraction
 was reworked from a curated skills dictionary to literal, deterministic
@@ -196,6 +204,61 @@ header stepper now syncs with the actual confirm-step state instead of
 always showing "Import" active during confirmation; PDF/.tex downloads no
 longer silently fail to popup blockers (the `window.open` call now happens
 inside the click handler's activation window, before the `await`).
+
+**Full customization on Export — same branch, 2026-08-06/07.** Reorder,
+delete, and the base `text_overrides` editing mechanism are merged to main;
+the keyword-extraction fixes, section renaming, hover highlighting, and
+edit-persistence sub-bullets below are the newest pass, committed locally
+on `import-tailor` but not yet pushed/PR'd as of this writing.
+Export grew from "pick a variant or write a custom edit per bullet" into a
+full manual resume editor layered on top of tailoring, without touching the
+grounding guarantee (AI-generated content is still fact-checked; user edits
+are the user's own words, never validated as claims):
+- **Reorder** — up/down arrows move a bullet within its entry, an entry
+  within its section type, or a whole section (Education/Experience/
+  Projects/Skills) relative to the others. Backend: `fact_order`/
+  `experience_order`/`project_order`/`section_order` on `RenderRequest`,
+  applied in `latex/render.py` before rendering; the LaTeX template's four
+  sections are now one data-driven loop over `section_order` instead of
+  four hardcoded blocks.
+- **Delete** — a bullet or a whole experience/project entry can be dropped
+  from just this export (`excluded_facts`/`excluded_experiences`/
+  `excluded_projects`), never touching the confirmed master resume or the
+  stored tailored version; a "removed from this export" bar lists
+  everything hidden with one-click restore.
+- **Edit anything** — a new `text_overrides: dict[str, str]` mechanism
+  (stable path keys like `experience:ACME:title`, `section:EDUCATION:heading`)
+  lets a user free-text edit any non-fact-backed field: name, email, phone,
+  every link, education fields, structural experience/project fields
+  (title, company, location, dates, tech), skills, and now a section's own
+  printed heading (rename "Experience" to "Leadership" without touching
+  its order/key). This is deliberately separate from the fact-grounded
+  `selections` mechanism, which stays scoped to confirmed facts — tailoring
+  itself is unchanged, this is a layer on top.
+- **UX** — unified into "click any line, get an inline editor, click a red
+  X to delete" (replacing an earlier, now-removed "edit details" toggle
+  form per entry); a persistent hint reads "Click any line to edit it";
+  clicking off the resume closes whatever was open.
+- **Session fixes** — the Confirm/Import page's "reopen with saved resume"
+  behavior is now gated behind a `sessionStorage` flag so a genuinely fresh
+  visit (new tab, or the tab reopened after being closed) starts clean at
+  paste instead of silently reloading a resume confirmed hours or days
+  earlier; back-navigation within one active visit still restores progress
+  as before. Export's own edits (every override/reorder/exclusion above)
+  now persist to `sessionStorage` per application id too, so navigating
+  away and back no longer loses in-progress work; a "Reset all edits"
+  button clears everything at once.
+- **Keyword extraction fixes** (`core/matching.py`, found via a real Roblox
+  posting): a regex trailing `\b` was silently truncating "C#"/"C++" down
+  to bare "C" (a boundary can't match right after a symbol char immediately
+  followed by another non-word char); the proper-noun word-run cap was too
+  short (3 words) for real 4-word titles like "Early Career Software
+  Engineer", fracturing them into junk fragments; a bare "You Will:"/"You
+  Are:" lead-in pattern was misreading full-sentence responsibility prose
+  as a comma-separated skill list (producing keywords like "supportive
+  engineers", "Pursuing"); a narrower ", like X and Y" lead-in was added,
+  catching phrases like "machine learning frameworks" and "large language
+  models (LLMs)" that the old heuristics missed entirely.
 
 **Still open, needs a product decision (not auto-fixed):**
 - Footer's "Privacy policy"/"Terms of service" links are dead (`href="#"`) —
