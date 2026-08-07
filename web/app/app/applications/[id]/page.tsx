@@ -67,6 +67,7 @@ export default function ApplicationPage({
     field: "title" | "sub" | "dates";
   } | null>(null);
   const [activeHeaderField, setActiveHeaderField] = useState<"name" | "contact" | null>(null);
+  const [activeSectionHeadingKey, setActiveSectionHeadingKey] = useState<string | null>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [view, setView] = useState<View>("resume");
