@@ -420,7 +420,9 @@ _COMPOUND_FILLER = {
     "day-to-day", "up-to-date", "on-site", "off-site", "well-rounded",
     "self-motivated", "cutting-edge", "state-of-the-art", "in-house",
     "expert-level", "entry-level", "senior-level", "junior-level",
-    "mid-level",
+    "mid-level", "cross-functionally", "cross-functional", "problem-solving",
+    "results-driven", "detail-oriented", "team-oriented", "world-class",
+    "best-in-class",
 }
 _COMPOUND_EXTEND_MAX_WORDS = 2
 
@@ -501,6 +503,14 @@ _NARRATIVE_FILLER_PHRASES = {
     "simple", "safety", "related techniques", "numerical simulations",
     "dispersion handling", "performance-oriented implementation",
     "careful performance-oriented implementation", "low-overhead solutions",
+    "large-scale runs", "reliability for large-scale runs", "tooling/visualization",
+    # "dynamics" alone is too vague to claim as a skill, but the same
+    # posting's "(e.g., game engines, multi-body dynamics, robotics...)"
+    # also yields the specific "multi-body dynamics" -- excluding the bare
+    # word here (rather than after the fact) keeps _drop_redundant_superstrings
+    # from doing what it normally should and preferring the shorter one,
+    # which here would throw away the more specific, more useful phrase.
+    "dynamics",
 }
 
 
