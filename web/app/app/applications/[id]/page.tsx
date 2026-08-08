@@ -572,6 +572,18 @@ export default function ApplicationPage({
     sessionStorage.removeItem(savedEditsKey(id));
   }
 
+  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf" -- falls back to a plain
+  // "Resume.ext" if the name is missing or has nothing filename-safe in it.
+  function resumeFileName(name: string, extension: "pdf" | "tex"): string {
+    const parts = name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part.replace(/[^a-zA-Z0-9'-]/g, ""))
+      .filter(Boolean);
+    const base = parts.length > 0 ? `${parts.join("_")}_Resume` : "Resume";
+    return `${base}.${extension}`;
+  }
+
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
