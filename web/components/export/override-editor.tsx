@@ -6,6 +6,9 @@ export interface OverrideField {
   key: string;
   label?: string;
   value: string;
+  // per-field, not per-editor: a composite line like "email | phone | a
+  // link" must let someone delete just the phone number, not the whole line
+  onDelete?: () => void;
 }
 
 // The click-to-edit control for non-fact-backed text (coursework, skills,
@@ -17,27 +20,26 @@ export interface OverrideField {
 export function OverrideEditor({
   fields,
   onChange,
-  onDelete,
 }: {
   fields: OverrideField[];
   onChange: (key: string, text: string) => void;
-  onDelete?: () => void;
 }) {
   return (
-    <div className="my-1 flex items-center gap-2 rounded-[7px] border border-em-softb bg-em-soft/70 p-2">
-      <div className="flex flex-1 flex-wrap items-center gap-2">
-        {fields.map((field, i) => (
+    <div className="my-1 flex flex-wrap items-center gap-2 rounded-[7px] border border-em-softb bg-em-soft/70 p-2">
+      {fields.map((field, i) => (
+        <div key={field.key} className="flex min-w-0 flex-1 items-center gap-1.5">
           <input
-            key={field.key}
             value={field.value}
             onChange={(e) => onChange(field.key, e.target.value)}
             placeholder={field.label}
             autoFocus={i === 0}
             className="min-w-0 flex-1 rounded-md border border-em-softb bg-white px-2 py-1 text-sm text-ink focus:border-em-accent focus:outline-none"
           />
-        ))}
-      </div>
-      {onDelete && <DeleteButton onClick={onDelete} label="Delete this line" />}
+          {field.onDelete && (
+            <DeleteButton onClick={field.onDelete} label={`Delete ${field.label ?? "this field"}`} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
