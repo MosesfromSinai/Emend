@@ -767,10 +767,10 @@ export default function ApplicationPage({
                               key: row.overrideKey,
                               label: labelForKey(row.overrideKey),
                               value: currentOverrideValue(row.overrideKey),
+                              onDelete: () => clearOverrides([row.overrideKey!]),
                             },
                           ]}
                           onChange={updateTextOverride}
-                          onDelete={() => clearOverrides([row.overrideKey!])}
                         />
                       );
                     }
