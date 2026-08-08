@@ -918,9 +918,15 @@ export default function ApplicationPage({
                     if (field === "name") {
                       return (
                         <OverrideEditor
-                          fields={[{ key: "name", label: "Name", value: currentOverrideValue("name") }]}
+                          fields={[
+                            {
+                              key: "name",
+                              label: "Name",
+                              value: currentOverrideValue("name"),
+                              onDelete: () => clearOverrides(["name"]),
+                            },
+                          ]}
                           onChange={updateTextOverride}
-                          onDelete={() => clearOverrides(["name"])}
                         />
                       );
                     }
@@ -931,9 +937,9 @@ export default function ApplicationPage({
                           key,
                           label: labelForKey(key),
                           value: currentOverrideValue(key),
+                          onDelete: () => clearOverrides([key]),
                         }))}
                         onChange={updateTextOverride}
-                        onDelete={() => clearOverrides(keys)}
                       />
                     );
                   }}
