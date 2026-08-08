@@ -307,13 +307,28 @@ def render_tex(
         )
         skills = tailored.skills
 
-    links = []
+    # A user deleting their phone, email, or a link (clearing its override to
+    # "") should make it vanish from the header line entirely -- not leave a
+    # broken empty \href{mailto:}{} or a stray "$|$" separator with nothing
+    # on one side. Building one ordered, pre-filtered list (instead of fixed
+    # phone/email slots plus a separate links loop) lets the template join
+    # whatever's actually present with no special-casing for what's missing.
+    phone = _ov(text_overrides, "phone", master.phone)
+    email = _ov(text_overrides, "email", master.email)
+    header_pieces = []
+    if phone:
+        header_pieces.append({"kind": "text", "text": phone})
+    if email:
+        header_pieces.append({"kind": "email", "text": email})
     for i, raw_link in enumerate(master.links):
         link = _ov(text_overrides, f"link:{i}", raw_link)
-        links.append(
+        if not link:
+            continue
+        header_pieces.append(
             {
+                "kind": "link",
                 "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
-                "display": link.removeprefix("https://").removeprefix("http://"),
+                "text": link.removeprefix("https://").removeprefix("http://"),
             }
         )
 
@@ -342,9 +357,7 @@ def render_tex(
 
     context = {
         "name": _ov(text_overrides, "name", master.name),
-        "email": _ov(text_overrides, "email", master.email),
-        "phone": _ov(text_overrides, "phone", master.phone),
-        "links": links,
+        "header_pieces": header_pieces,
         "education": education,
         "experiences": experiences,
         "projects": projects,
