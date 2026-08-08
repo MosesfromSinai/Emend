@@ -556,6 +556,10 @@ _NARRATIVE_FILLER_PHRASES = {
     # to match the `phrase.lower()` key these are checked against below.
     "gnc-specific data visualization", "power/propulsion/control hardware",
     "engine-level simulation",
+    # "STEM" is shaped exactly like a real acronym (short, all-caps) and
+    # passes _looks_like_acronym on that basis alone, but it names a
+    # degree field ("Bachelor's in a STEM discipline"), not a technology.
+    "stem",
 }
 
 # Almost every US job posting ends with the same non-technical tail:
