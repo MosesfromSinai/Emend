@@ -22,6 +22,7 @@ import re
 from itertools import zip_longest
 
 from core.schemas import JDExtract, MasterResume
+from core.tech_names import ALL_TECH_NAMES
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
@@ -43,6 +44,11 @@ _STOPWORDS = {
     "strong", "contribute", "company", "polished", "united", "states",
     "usd", "u.s", "annual", "professional", "training", "location",
     "business", "needs", "demand", "market", "career", "id",
+    "today", "tomorrow", "yesterday", "currently", "now",
+    # a mission-statement intro ("...enabling human life on Mars") reads as
+    # a real proper noun by capitalization alone, but a planet is never a
+    # skill a candidate could claim
+    "mars", "moon",
 }
 
 # A phrase's head noun can be generic even when every individual word
@@ -67,7 +73,17 @@ _PROCESS_NOISE = {
     "professionalism", "attitude", "passion", "curiosity", "creativity",
     "flexibility", "adaptability", "accountability", "integrity",
     "environment", "opportunity", "opportunities", "growth", "level",
-    "handling", "teams", "implementation",
+    "handling", "teams", "implementation", "representation", "representations",
+    # generic paradigm-nouns: the *category* a real framework/library/tool
+    # would belong to, never a specific one -- "computing", not "CUDA";
+    # "architecture", not "microservices". Never blocks a phrase where the
+    # other word is genuinely specific ("machine learning frameworks"
+    # survives since "machine"/"learning" aren't noise), only one where
+    # every word is this generic ("parallel computing", "scalable
+    # architectures").
+    "computing", "architecture", "architectures", "system", "systems",
+    "infrastructure", "framework", "frameworks", "processing", "platform",
+    "platforms", "hardware",
 }
 
 # A generic degree/manner modifier dressing up a noise noun shouldn't
@@ -76,6 +92,16 @@ _GENERIC_MODIFIERS = {
     "related", "straightforward", "simple", "ongoing", "major", "expert",
     "expert-level", "entry-level", "senior-level", "junior-level",
     "mid-level",
+    # paradigm/quality adjectives that describe an *approach*, not a
+    # nameable framework/library/language/tool -- "real-time systems" and
+    # "scalable architectures" read like resume keywords but aren't
+    # anything a candidate could literally list the way "React" or
+    # "Docker" is; paired with a matching generic noun in _PROCESS_NOISE
+    # below, the whole phrase is rejected since neither word is specific.
+    "real-time", "scalable", "parallel", "distributed", "high-level",
+    "low-level", "large-scale", "small-scale", "object-oriented",
+    "cross-platform", "multi-platform", "high-performance",
+    "performance-critical",
 }
 
 # A JD flattened to one line (see core/jd_text.py) still has real sentences
@@ -371,7 +397,9 @@ def _proper_noun_phrases(text: str) -> list[str]:
 
 
 _PAREN_CONTENT = re.compile(r"\(([^()]{1,150})\)")
-_PAREN_ASIDE_PREFIX = re.compile(r"^(?:e\.g\.,?|i\.e\.,?|such\s+as|including)\s*", re.IGNORECASE)
+_PAREN_ASIDE_PREFIX = re.compile(
+    r"^(?:e\.g\.,?|i\.e\.,?|such\s+as|including|think)\s*", re.IGNORECASE
+)
 _TRAILING_ETC = re.compile(r",?\s*etc\.?$", re.IGNORECASE)
 
 # "(favoring straightforward, low-overhead solutions over complex
@@ -423,7 +451,16 @@ _COMPOUND_FILLER = {
     "expert-level", "entry-level", "senior-level", "junior-level",
     "mid-level", "cross-functionally", "cross-functional", "problem-solving",
     "results-driven", "detail-oriented", "team-oriented", "world-class",
-    "best-in-class",
+    "best-in-class", "high-impact", "high-value", "high-priority",
+    "mission-critical", "value-added",
+    # paradigm/quality adjectives with nothing after them to name (the
+    # extend loop already blocks a *matching* generic noun from tacking
+    # on, per _PROCESS_NOISE, but a bare occurrence with no noun at all --
+    # "real-time" followed by punctuation, not a word -- needs its own
+    # exclusion here since there's no second word for that check to see).
+    "real-time", "high-performance", "data-oriented", "high-level",
+    "low-level", "large-scale", "small-scale", "object-oriented",
+    "cross-platform", "multi-platform", "performance-critical",
 }
 _COMPOUND_EXTEND_MAX_WORDS = 2
 
@@ -445,7 +482,7 @@ def _compound_phrases(text: str) -> list[str]:
         pos = match.end()
         for _ in range(_COMPOUND_EXTEND_MAX_WORDS):
             extend = _COMPOUND_EXTEND_WORD.match(text[pos : pos + 30])
-            if not extend or extend.group(1).lower() in _STOPWORDS | _TRAILING_PREPOSITIONS:
+            if not extend or extend.group(1).lower() in _NOISE_WORDS | _TRAILING_PREPOSITIONS:
                 break
             words.append(extend.group(1))
             pos += extend.end()
@@ -512,7 +549,78 @@ _NARRATIVE_FILLER_PHRASES = {
     # from doing what it normally should and preferring the shorter one,
     # which here would throw away the more specific, more useful phrase.
     "dynamics",
+    # one-off compound extensions built from a company/team-specific
+    # modifier ("GNC-specific", "engine-level") -- neither is a nameable
+    # framework/library/language/tool, just a JD's own narrower phrasing
+    # of one, and neither generalizes into a rule worth writing. Lowercase
+    # to match the `phrase.lower()` key these are checked against below.
+    "gnc-specific data visualization", "power/propulsion/control hardware",
+    "engine-level simulation",
 }
+
+# Almost every US job posting ends with the same non-technical tail:
+# compensation/benefits, then legal/export-control/EEO boilerplate. None of
+# it is ever a real requirement -- it's where things like "Pay Range",
+# "Employee Stock Purchase Plan", "Seattle", "Refugee", "U.S.C", "Asylee"
+# come from, all four heuristics above being equally happy to extract a
+# Capitalized run, a colon-list item, or a short line from a legal
+# paragraph as from a real qualifications section. Cutting the text off at
+# the first sign of this tail -- rather than trying to word-list every
+# possible benefit/legal term one at a time -- fixes every heuristic at
+# once, the same way _strip_chrome_sections in core/jd_text.py removes a
+# "Related Jobs" carousel structurally instead of denylisting its content.
+# Anchored to distinctive multi-word legal/HR phrasing, not solo words like
+# "benefits" or "requirements" that also appear naturally in real
+# technical prose ("the benefits of a data-oriented design...").
+_BOILERPLATE_SECTION_START = re.compile(
+    r"\b(?:"
+    r"compensation\s+and\s+benefits|compensation\s*&\s*benefits|"
+    r"pay\s+range|salary\s+range|total\s+rewards\s+package|"
+    r"itar\s+requirements|export\s+control|"
+    r"u\.?s\.?\s+government\s+export\s+regulations|"
+    r"equal\s+opportunity\s+employer|equal\s+employment\s+opportunity|"
+    r"affirmative\s+action|reasonable\s+accommodation|"
+    r"additional\s+requirements"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_boilerplate_tail(text: str) -> str:
+    match = _BOILERPLATE_SECTION_START.search(text)
+    return text[: match.start()] if match else text
+
+
+# No structural rule can tell "Docker" (a tool) from "Monte Carlo" (a
+# named mathematical technique) apart -- both are a plain capitalized
+# proper noun, or "multi-body dynamics" (a physics concept) from a real
+# multi-word tool name -- both are an ordinary lowercase phrase. A real
+# acronym is the one shape that's a reliable enough signal on its own
+# (GNC, HITL, STL, HPC, STEM, C++, C#): mostly-uppercase letters, or a
+# language-symbol suffix, and short -- a full ALL-CAPS section heading
+# ("REQUIREMENTS") is long enough to fail the length check on its own.
+_ACRONYM_MAX_LETTERS = 8
+
+
+def _looks_like_acronym(phrase: str) -> bool:
+    letters = [c for c in phrase if c.isalpha()]
+    if not letters or len(letters) > _ACRONYM_MAX_LETTERS:
+        return False
+    if any(c in "+#" for c in phrase):
+        return True
+    return sum(c.isupper() for c in letters) / len(letters) >= 0.6
+
+
+def _is_known_technical(phrase: str) -> bool:
+    key = phrase.lower()
+    if key in ALL_TECH_NAMES or _looks_like_acronym(phrase):
+        return True
+    # "machine learning frameworks" isn't itself a listed name, but it
+    # contains one ("machine learning") as a contiguous run -- the same
+    # containment check _drop_redundant_superstrings uses below, just
+    # against the reference list instead of against other candidates.
+    words = key.split()
+    return any(_is_word_run(name.split(), words) for name in ALL_TECH_NAMES)
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -520,6 +628,7 @@ def extract_keywords(text: str) -> list[str]:
     Deterministic (the same text always yields the same list) and literal
     (every result is a real substring of `text`, first-seen order, capped
     at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
+    text = _strip_boilerplate_tail(text)
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
     # round-robined one-per-heuristic instead of concatenated -- a strict
@@ -545,23 +654,30 @@ def extract_keywords(text: str) -> list[str]:
     deduped: list[str] = []
     for phrase in candidates:
         key = phrase.lower()
-        if key not in seen and key not in _NARRATIVE_FILLER_PHRASES:
+        if (
+            key not in seen
+            and key not in _NARRATIVE_FILLER_PHRASES
+            and _is_known_technical(phrase)
+        ):
             seen.add(key)
             deduped.append(phrase)
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
 
 
-_NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s")
+_NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s|[()]")
 
 
 def drop_known_names(keywords: list[str], *names: str) -> list[str]:
     """Neither the posting's own employer name nor its own job title is a
     skill a candidate could ever claim -- filtered out wherever a keyword
     IS the posting's own employer name or job title, or one of its natural
-    comma/dash-separated segments, verbatim.
+    comma/dash/parenthetical-separated segments, verbatim.
 
     "Software Engineer, User Frameworks" splits into "Software Engineer"
     and "User Frameworks" -- both are still just the title, not a claim.
+    "Software Engineer, C++ Simulations (Starlink)" also splits out
+    "Starlink" on its own -- a team/product name parenthesized onto a
+    title names the team, not a skill, same as the title's other segments.
     "Java Developer" has no such separator, so a keyword "Java" (a real,
     independently-listed requirement that happens to share a word with the
     title) is a plain substring, not a segment, and survives."""

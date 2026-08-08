@@ -141,15 +141,18 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     assert keywords == ["machine learning", "k8s"]
 
 
-def test_extract_keywords_catches_soft_skill_phrases_in_a_list():
-    # the exact class of phrase a fixed tech-skills dictionary would miss
+def test_extract_keywords_drops_soft_skill_phrases_in_a_list():
+    # only a real language/framework/library/platform/tool counts now --
+    # a structurally perfect list item is still dropped if it isn't one,
+    # while a genuine technology in the very same list survives
     text = (
-        "Requirements: experience with cross-functional collaboration "
-        "and stakeholder management."
+        "Requirements: experience with cross-functional collaboration, "
+        "stakeholder management, and Kubernetes."
     )
     keywords = extract_keywords(text)
-    assert "cross-functional collaboration" in keywords
-    assert "stakeholder management" in keywords
+    assert "cross-functional collaboration" not in keywords
+    assert "stakeholder management" not in keywords
+    assert "Kubernetes" in keywords
 
 
 def test_extract_keywords_keeps_short_terms_that_are_letter_substrings():
@@ -254,15 +257,15 @@ def test_extract_keywords_keeps_symbol_suffixed_languages_whole():
     assert "C" not in keywords
 
 
-def test_extract_keywords_does_not_fracture_a_four_word_title():
-    # regression: a 3-word cap on the proper-noun run split "Early Career
-    # Software Engineer" into "Early Career Software" + a stray "Engineer"
+def test_extract_keywords_does_not_fracture_a_four_word_tech_name():
+    # regression: a 3-word cap on the proper-noun run split a real 4-word
+    # technology name into a truncated fragment + a stray leftover word
     # instead of one coherent phrase.
-    text = "As an Early Career Software Engineer at Roblox, your story begins."
+    text = "Requirements: production experience with Amazon Web Services required."
     keywords = extract_keywords(text)
-    assert "Early Career Software Engineer" in keywords
-    assert "Engineer" not in keywords
-    assert "Early Career Software" not in keywords
+    assert "Amazon Web Services" in keywords
+    assert "Services" not in keywords
+    assert "Amazon Web" not in keywords
 
 
 def test_extract_keywords_does_not_truncate_mid_word_at_the_window_cutoff():
@@ -314,6 +317,18 @@ def test_drop_known_names_drops_a_comma_separated_title_segment():
     assert keywords == ["Lua"]
 
 
+def test_drop_known_names_drops_a_parenthesized_team_name():
+    # regression: "Software Engineer, C++ Simulations (Starlink)" only
+    # split on the comma, so "Starlink" (parenthesized onto the title to
+    # name the team, not a skill) never became its own blocked segment
+    keywords = drop_known_names(
+        ["STARLINK", "C++", "Python"],
+        "SpaceX",
+        "Software Engineer, C++ Simulations (Starlink)",
+    )
+    assert keywords == ["C++", "Python"]
+
+
 def test_extract_keywords_ignores_city_state_addresses():
     text = "Software Engineer San Mateo, CA, United States. Experience with Kubernetes required."
     keywords = extract_keywords(text)
@@ -324,16 +339,16 @@ def test_extract_keywords_ignores_city_state_addresses():
 
 def test_extract_keywords_reads_such_as_lists_in_prose():
     # a "such as" clause mid-sentence is as reliable a list signal as an
-    # explicit "Requirements:" heading, and often the only place lowercase
-    # quality-adjacent terms like "accessibility" ever show up literally
+    # explicit "Requirements:" heading -- real technologies named in one
+    # survive, generic quality adjectives named alongside them do not
     text = (
-        "An understanding of software quality fundamentals such as "
-        "performance, accessibility, and maintainability."
+        "An understanding of backend frameworks such as "
+        "Django, accessibility, and Flask."
     )
     keywords = extract_keywords(text)
-    assert "performance" in keywords
-    assert "accessibility" in keywords
-    assert "maintainability" in keywords
+    assert "Django" in keywords
+    assert "Flask" in keywords
+    assert "accessibility" not in keywords
 
 
 def test_extract_keywords_ignores_bullet_leading_verbs():
@@ -369,3 +384,35 @@ def test_extract_keywords_does_not_shred_a_whole_flattened_page():
     text = "Build accessible components and contribute to design systems " * 20
     keywords = extract_keywords(text.strip())
     assert all(len(k.split()) <= MAX_PHRASE_WORDS for k in keywords)
+
+
+def test_extract_keywords_ignores_compensation_and_legal_boilerplate():
+    # regression: a real SpaceX posting's compensation/benefits and
+    # ITAR/EEO legal tail produced keywords like "Pay Range", "Level",
+    # "Employee Stock Purchase Plan", "Seattle", "Refugee", "U.S.C", and
+    # "Asylee" -- none of it is ever a real technical requirement, and it
+    # comes after the real qualifications on every posting that has it, so
+    # the whole tail must be cut before any heuristic ever sees it.
+    text = (
+        "Requirements: Experience with Python and Kubernetes.\n"
+        "ADDITIONAL REQUIREMENTS:\n"
+        "Willing to work extended hours and weekends when needed.\n"
+        "COMPENSATION AND BENEFITS:\n"
+        "Pay Range:\n"
+        "Level 1: $125,000.00 - $165,000.00\n"
+        "You may purchase stock through an Employee Stock Purchase Plan. "
+        "Company shuttles are offered from select Seattle locations.\n"
+        "ITAR REQUIREMENTS:\n"
+        "Applicant must be a U.S. citizen, or a Refugee under 8 U.S.C. "
+        "Section 1157, or an Asylee under 8 U.S.C. Section 1158.\n"
+        "SpaceX is an Equal Opportunity Employer."
+    )
+    keywords = extract_keywords(text)
+    assert "Python" in keywords
+    assert "Kubernetes" in keywords
+    for banned in (
+        "ADDITIONAL REQUIREMENTS", "Pay Range", "Level",
+        "Employee Stock Purchase Plan", "Seattle", "Refugee", "U.S.C",
+        "Asylee",
+    ):
+        assert banned not in keywords
