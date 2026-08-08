@@ -587,23 +587,29 @@ export default function ApplicationPage({
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
-    // Open the tab synchronously, inside the click handler's transient-activation
-    // window, so popup blockers see it as a direct response to the user's
-    // gesture. We navigate it to the real URL once the (slow) finalize call
-    // resolves, instead of calling window.open() after the await -- by then the
-    // activation window has elapsed and Safari/Chrome silently block it.
-    const tab = window.open("", "_blank");
+    // Fetching the file ourselves and saving it via a blob URL, instead of
+    // navigating a tab to the artifact URL, means no new tab and no leaving
+    // this page at all -- and it's the only way to get a real filename on
+    // it, since <a download> is ignored by browsers for a cross-origin href
+    // (the API and the web app are on different domains in production).
     try {
       const updated = await finalizeApplication(id, renderOptions);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
-      const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
-      if (tab) {
-        tab.location.href = finalUrl;
-      } else {
-        setDownloadError("Your browser blocked the download tab. Please allow pop-ups for this site and try again.");
-      }
+      const response = await fetch(`${artifactUrl(url)}?v=${Date.now()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const name = renderResume?.name ?? master?.name ?? "";
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = resumeFileName(name, kind);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
     } catch (e) {
-      tab?.close();
       setDownloadError(e instanceof ApiError ? e.message : "Couldn't prepare that file.");
     } finally {
       setDownloadBusy(null);
