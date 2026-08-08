@@ -893,15 +893,19 @@ export default function ApplicationPage({
                           key: section.headingOverrideKey,
                           label: "Heading",
                           value: currentOverrideValue(section.headingOverrideKey),
+                          onDelete: () => {
+                            // "delete" resets the rename rather than
+                            // blanking it -- an empty \section{} divider
+                            // helps no one
+                            updateTextOverride(
+                              section.headingOverrideKey,
+                              DEFAULT_SECTION_HEADINGS[section.key]
+                            );
+                            clearActiveEditors();
+                          },
                         },
                       ]}
                       onChange={updateTextOverride}
-                      onDelete={() => {
-                        // "delete" resets the rename rather than blanking
-                        // it -- an empty \section{} divider helps no one
-                        updateTextOverride(section.headingOverrideKey, DEFAULT_SECTION_HEADINGS[section.key]);
-                        clearActiveEditors();
-                      }}
                     />
                   )}
                   activeHeaderField={activeHeaderField}
