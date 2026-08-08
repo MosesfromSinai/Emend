@@ -13,6 +13,7 @@ import { TexPane } from "@/components/tex-pane";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { TailoringProgress } from "@/components/tailoring-progress";
 import {
   ApiError,
   artifactUrl,
@@ -572,26 +573,44 @@ export default function ApplicationPage({
     sessionStorage.removeItem(savedEditsKey(id));
   }
 
+  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf" -- falls back to a plain
+  // "Resume.ext" if the name is missing or has nothing filename-safe in it.
+  function resumeFileName(name: string, extension: "pdf" | "tex"): string {
+    const parts = name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part.replace(/[^a-zA-Z0-9'-]/g, ""))
+      .filter(Boolean);
+    const base = parts.length > 0 ? `${parts.join("_")}_Resume` : "Resume";
+    return `${base}.${extension}`;
+  }
+
   async function download(kind: "pdf" | "tex") {
     setDownloadBusy(kind);
     setDownloadError(null);
-    // Open the tab synchronously, inside the click handler's transient-activation
-    // window, so popup blockers see it as a direct response to the user's
-    // gesture. We navigate it to the real URL once the (slow) finalize call
-    // resolves, instead of calling window.open() after the await -- by then the
-    // activation window has elapsed and Safari/Chrome silently block it.
-    const tab = window.open("", "_blank");
+    // Fetching the file ourselves and saving it via a blob URL, instead of
+    // navigating a tab to the artifact URL, means no new tab and no leaving
+    // this page at all -- and it's the only way to get a real filename on
+    // it, since <a download> is ignored by browsers for a cross-origin href
+    // (the API and the web app are on different domains in production).
     try {
       const updated = await finalizeApplication(id, renderOptions);
       const url = kind === "pdf" ? updated.pdf_url : updated.tex_url;
-      const finalUrl = `${artifactUrl(url)}?v=${Date.now()}`;
-      if (tab) {
-        tab.location.href = finalUrl;
-      } else {
-        setDownloadError("Your browser blocked the download tab. Please allow pop-ups for this site and try again.");
-      }
+      const response = await fetch(`${artifactUrl(url)}?v=${Date.now()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const name = renderResume?.name ?? master?.name ?? "";
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = resumeFileName(name, kind);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
     } catch (e) {
-      tab?.close();
       setDownloadError(e instanceof ApiError ? e.message : "Couldn't prepare that file.");
     } finally {
       setDownloadBusy(null);
@@ -607,17 +626,11 @@ export default function ApplicationPage({
         ? "Rewriting your resume to match the posting…"
         : "Typesetting your resume…";
     return (
-      <div className="flex flex-col items-center gap-2 py-16 text-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-em-softb border-t-em-accent" />
+      <div className="flex flex-col items-center gap-3 py-16 text-center">
         <p className="text-sm text-ink/70">
           {application.status === "queued" ? "Queued…" : runningLabel}
         </p>
-        {application.status === "running" && application.mode === "tailor" && (
-          <p className="text-xs text-ink/50">
-            Every line gets checked against your confirmed facts before it ships,
-            so this can take up to a minute.
-          </p>
-        )}
+        <TailoringProgress mode={application.mode} />
       </div>
     );
   }
@@ -767,10 +780,10 @@ export default function ApplicationPage({
                               key: row.overrideKey,
                               label: labelForKey(row.overrideKey),
                               value: currentOverrideValue(row.overrideKey),
+                              onDelete: () => clearOverrides([row.overrideKey!]),
                             },
                           ]}
                           onChange={updateTextOverride}
-                          onDelete={() => clearOverrides([row.overrideKey!])}
                         />
                       );
                     }
@@ -845,9 +858,9 @@ export default function ApplicationPage({
                           key,
                           label: labelForKey(key),
                           value: currentOverrideValue(key),
+                          onDelete: () => clearOverrides([key]),
                         }))}
                         onChange={updateTextOverride}
-                        onDelete={() => clearOverrides(keys)}
                       />
                     );
                   }}
@@ -893,15 +906,19 @@ export default function ApplicationPage({
                           key: section.headingOverrideKey,
                           label: "Heading",
                           value: currentOverrideValue(section.headingOverrideKey),
+                          onDelete: () => {
+                            // "delete" resets the rename rather than
+                            // blanking it -- an empty \section{} divider
+                            // helps no one
+                            updateTextOverride(
+                              section.headingOverrideKey,
+                              DEFAULT_SECTION_HEADINGS[section.key]
+                            );
+                            clearActiveEditors();
+                          },
                         },
                       ]}
                       onChange={updateTextOverride}
-                      onDelete={() => {
-                        // "delete" resets the rename rather than blanking
-                        // it -- an empty \section{} divider helps no one
-                        updateTextOverride(section.headingOverrideKey, DEFAULT_SECTION_HEADINGS[section.key]);
-                        clearActiveEditors();
-                      }}
                     />
                   )}
                   activeHeaderField={activeHeaderField}
@@ -914,9 +931,15 @@ export default function ApplicationPage({
                     if (field === "name") {
                       return (
                         <OverrideEditor
-                          fields={[{ key: "name", label: "Name", value: currentOverrideValue("name") }]}
+                          fields={[
+                            {
+                              key: "name",
+                              label: "Name",
+                              value: currentOverrideValue("name"),
+                              onDelete: () => clearOverrides(["name"]),
+                            },
+                          ]}
                           onChange={updateTextOverride}
-                          onDelete={() => clearOverrides(["name"])}
                         />
                       );
                     }
@@ -927,9 +950,9 @@ export default function ApplicationPage({
                           key,
                           label: labelForKey(key),
                           value: currentOverrideValue(key),
+                          onDelete: () => clearOverrides([key]),
                         }))}
                         onChange={updateTextOverride}
-                        onDelete={() => clearOverrides(keys)}
                       />
                     );
                   }}

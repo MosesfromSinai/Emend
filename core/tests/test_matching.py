@@ -162,8 +162,12 @@ def test_extract_keywords_keeps_short_terms_that_are_letter_substrings():
 
 
 def test_extract_keywords_reads_one_bullet_per_line():
+    # "Strong communication skills" is exactly the generic soft-skill
+    # boilerplate _PROCESS_NOISE exists to drop -- every word in it is
+    # noise ("strong"/"skills" are stopwords, "communication" is process
+    # noise), so only the two real bulleted technologies survive.
     text = "Requirements:\nPython\nDocker\nStrong communication skills\n"
-    assert extract_keywords(text) == ["Python", "Docker", "Strong communication skills"]
+    assert extract_keywords(text) == ["Python", "Docker"]
 
 
 def test_extract_keywords_ignores_capitalized_sentence_starters():

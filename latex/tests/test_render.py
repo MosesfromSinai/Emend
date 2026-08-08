@@ -236,6 +236,30 @@ def test_override_replaces_link_display(master):
     assert "countess-lovelace" in tex
 
 
+def test_clearing_phone_omits_it_without_stray_separator(master):
+    tex = render_tex(master, None, text_overrides={"phone": ""})
+    assert master.phone not in tex
+    assert master.email in tex
+    header = tex[tex.index(r"\small") : tex.index(r"\end{center}")]
+    assert not header.strip().startswith("$|$")
+
+
+def test_clearing_a_link_omits_only_that_one(master):
+    tex = render_tex(master, None, text_overrides={"link:0": ""})
+    header = tex[tex.index(r"\small") : tex.index(r"\end{center}")]
+    assert "ada-lovelace" not in header
+    assert "adal" in header
+    assert header.count("$|$") == 2  # phone, email, remaining link -> 2 joins
+
+
+def test_clearing_email_and_phone_leaves_only_links(master):
+    tex = render_tex(master, None, text_overrides={"email": "", "phone": ""})
+    header = tex[tex.index(r"\small") : tex.index(r"\end{center}")]
+    assert master.email not in header
+    assert master.phone not in header
+    assert "ada-lovelace" in header
+
+
 def test_override_replaces_experience_structural_fields(master):
     tex = render_tex(master, None, text_overrides={
         "experience:BAB:company": "Analytical Engines Ltd",

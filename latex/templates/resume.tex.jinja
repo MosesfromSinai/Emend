@@ -105,9 +105,10 @@
 %----------HEADING----------
 \begin{center}
     \textbf{\Huge \scshape \VAR{name}} \\ \vspace{1pt}
-    \small \VAR{phone} $|$ \href{mailto:\VAR{email}}{\underline{\VAR{email}}}
-    \BLOCK{for link in links}
-    $|$ \href{\VAR{link.url}}{\underline{\VAR{link.display}}}
+    \small
+    \BLOCK{for piece in header_pieces}
+    \BLOCK{if not loop.first} $|$ \BLOCK{endif}
+    \BLOCK{if piece.kind == "email"}\href{mailto:\VAR{piece.text}}{\underline{\VAR{piece.text}}}\BLOCK{elif piece.kind == "link"}\href{\VAR{piece.url}}{\underline{\VAR{piece.text}}}\BLOCK{else}\VAR{piece.text}\BLOCK{endif}
     \BLOCK{endfor}
 \end{center}
 

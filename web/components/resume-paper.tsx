@@ -245,7 +245,7 @@ export function ResumePaper({
       {activeHeaderField === "contact" && renderHeaderFieldControl?.("contact")}
 
       {sections.map((section) => (
-        <div key={section.key}>
+        <div key={section.key} data-section-key={section.key} data-section-heading={section.heading}>
           <div className="mt-3.5 mb-2.5 flex items-center justify-between border-b border-[#111] pb-0.5">
             <span
               className={cn(
