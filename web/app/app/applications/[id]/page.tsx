@@ -845,9 +845,9 @@ export default function ApplicationPage({
                           key,
                           label: labelForKey(key),
                           value: currentOverrideValue(key),
+                          onDelete: () => clearOverrides([key]),
                         }))}
                         onChange={updateTextOverride}
-                        onDelete={() => clearOverrides(keys)}
                       />
                     );
                   }}
