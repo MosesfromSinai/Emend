@@ -25,7 +25,7 @@ from core.schemas import JDExtract, MasterResume
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
-MAX_KEYWORDS = 30
+MAX_KEYWORDS = 40
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
@@ -42,6 +42,39 @@ _STOPWORDS = {
     "strong", "contribute", "company", "polished", "united", "states",
     "usd", "u.s", "annual", "professional", "training", "location",
     "business", "needs", "demand", "market", "career", "id",
+}
+
+# A phrase's head noun can be generic even when every individual word
+# passes the stopword check on its own ("major refactors", "the design",
+# "related techniques") -- these are the words that make a phrase read as
+# narration about work, not a thing a candidate could claim as a skill.
+# Never applied to single technical words already caught elsewhere (e.g.
+# a real acronym); only used to veto a phrase whose *entire* remaining
+# content, once real stopwords are also excluded, is one of these.
+_PROCESS_NOISE = {
+    "design", "redesign", "redesigns", "refactor", "refactors", "refactoring",
+    "rewrite", "rewrites", "overhaul", "overhauls", "revamp", "evolution",
+    "iteration", "iterations", "solution", "solutions", "approach",
+    "approaches", "technique", "techniques", "methodology", "methodologies",
+    "practice", "practices", "initiative", "initiatives", "leadership",
+    "mentorship", "mentoring", "ownership", "collaboration", "communication",
+    "teamwork", "culture", "mindset", "safety", "usability", "simplicity",
+    "clarity", "quality", "excellence", "capability", "capabilities",
+    "understanding", "exposure", "insight", "insights", "ability",
+    "abilities", "value", "values", "impact", "outcome", "outcomes",
+    "success", "efficiency", "effectiveness", "productivity",
+    "professionalism", "attitude", "passion", "curiosity", "creativity",
+    "flexibility", "adaptability", "accountability", "integrity",
+    "environment", "opportunity", "opportunities", "growth", "level",
+    "handling", "teams", "implementation",
+}
+
+# A generic degree/manner modifier dressing up a noise noun shouldn't
+# rescue the phrase ("Expert-level" + "implementation" is still noise).
+_GENERIC_MODIFIERS = {
+    "related", "straightforward", "simple", "ongoing", "major", "expert",
+    "expert-level", "entry-level", "senior-level", "junior-level",
+    "mid-level",
 }
 
 # A JD flattened to one line (see core/jd_text.py) still has real sentences
@@ -64,7 +97,7 @@ _CALENDAR_WORDS = {
 _SECTION_HEADING_STARTS = {
     "role", "summary", "overview", "about", "responsibilities",
     "qualifications", "requirements", "benefits", "rewards", "total",
-    "equal", "opportunity", "compensation", "perks",
+    "equal", "opportunity", "compensation", "perks", "basic", "preferred",
 }
 
 # "Requirements: Python, Docker, strong communication skills" -- a lead-in
@@ -83,7 +116,26 @@ _LIST_LEAD_IN = re.compile(
     # precisely because the comma+like combination rarely opens a plain verb
     # phrase the way bare "like" alone would ("we'd like to...").
     r",\s+like\s+|"
-    r"nice\s+to\s+have\s*:|must\s+have\s*:|such\s+as",
+    r"nice\s+to\s+have\s*:|must\s+have\s*:|such\s+as|including",
+    re.IGNORECASE,
+)
+
+# A colon almost never appears in JD prose except to introduce an
+# elaboration or list -- catches lead-ins no fixed keyword list could
+# enumerate ("...writing safe code: strong command of...", "HPC
+# background:") without needing a word in front of it at all. A colon
+# glued to digits ("9:00", a ratio "3:1") is a time/ratio, not a list cue.
+_GENERIC_COLON = re.compile(r"(?<!\d):(?!\d)")
+
+# A colon closing a section heading or a "You Will:"/"You Are:" bullet
+# opener introduces a whole block of prose, not a literal list -- treating
+# it as one shreds an ordinary sentence's incidental commas into fake
+# keywords ("major refactors" out of "Lead the design, major refactors,
+# redesigns..." under a bare "RESPONSIBILITIES:" heading). Checked against
+# the run of text immediately before the colon, not the whole document, so
+# a real label like "HPC background:" is untouched.
+_NARRATIVE_COLON_HEAD = re.compile(
+    r"(?:responsibilities|role|summary|overview|about|you\s+will|you\s+are|you'll)\s*$",
     re.IGNORECASE,
 )
 
@@ -139,14 +191,23 @@ def _trim_filler(phrase: str) -> str:
         words.pop()
     while words and words[0].lower().strip(".,") in _FILLER_EDGES:
         words.pop(0)
+    # a phrase never legitimately ends on a dangling preposition
+    # ("ongoing evolution of", "low-overhead solutions over") -- whatever
+    # it was introducing got cut off by a list/window boundary before the
+    # object arrived, so the preposition itself is never part of the term.
+    while words and words[-1].lower().strip(".,") in _TRAILING_PREPOSITIONS:
+        words.pop()
     return " ".join(words)
+
+
+_NOISE_WORDS = _STOPWORDS | _PROCESS_NOISE | _GENERIC_MODIFIERS
 
 
 def _is_plausible_keyword(phrase: str) -> bool:
     words = phrase.split()
     if not words or len(words) > MAX_PHRASE_WORDS:
         return False
-    return not all(w.lower().strip(".,") in _STOPWORDS for w in words)
+    return not all(w.lower().strip(".,") in _NOISE_WORDS for w in words)
 
 
 def _candidate(raw_item: str) -> str | None:
@@ -154,29 +215,95 @@ def _candidate(raw_item: str) -> str | None:
     return phrase if _is_plausible_keyword(phrase) else None
 
 
+_MAX_LIST_ITEM_WORDS = 4
+
+# "continuous integration for C++ codebases" -- the last item in an Oxford
+# list often runs straight into the sentence's own trailing prepositional
+# phrase with no comma to mark where the item actually ends. Rather than
+# discarding a >4-word item outright, cut it at the last preposition that
+# still leaves a short-enough prefix -- "continuous integration" is a real
+# keyword, "for C++ codebases" never was part of the list.
+_TRAILING_PREPOSITIONS = {
+    "for", "in", "with", "on", "to", "of", "at", "by", "over", "than",
+    "without", "through",
+}
+
+
+def _shorten_trailing_clause(phrase: str, max_words: int) -> str:
+    words = phrase.split()
+    if len(words) <= max_words:
+        return phrase
+    for i in range(min(max_words, len(words) - 1), 0, -1):
+        if words[i].lower() in _TRAILING_PREPOSITIONS:
+            return " ".join(words[:i])
+    return phrase
+
+
+_LIST_WINDOW_CHARS = 220
+
+# A flattened page runs a section heading straight into whatever comes next
+# with no punctuation at all ("...numerical simulations PREFERRED SKILLS
+# AND EXPERIENCE: Expert-level...") -- a run of 2+ ALL-CAPS words is that
+# transition, and is just as much a hard stop as a period, even though
+# nothing but capitalization marks the seam. Single ALL-CAPS words are
+# excluded (a real acronym like "C++ OR" would otherwise falsely trip this).
+_HEADING_RUN = re.compile(r"[A-Z]{2,}(?:\s+[A-Z]{2,}){1,}")
+
+# "large language models (LLMs)" -- a short acronym gloss immediately
+# after the term it abbreviates is part of that same list item, not a
+# separate parenthetical aside, so it must not trip the open-paren
+# boundary below the way a real aside ("(favoring straightforward...)")
+# should.
+_INLINE_ACRONYM_GLOSS = re.compile(r"\([A-Z][A-Za-z0-9]{1,6}\)")
+
+
+def _items_in_window(text: str, start: int) -> list[str]:
+    window = text[start : start + _LIST_WINDOW_CHARS]
+    # stop at the first sentence end, line break, semicolon, open-paren, or
+    # heading-run seam -- a cue phrase immediately followed by its own
+    # newline-separated bullet list (handled by _phrases_from_short_lines
+    # instead), a second clause past a semicolon, a trailing parenthetical
+    # aside ("...implementation (favoring straightforward...)"), or the next
+    # section's own heading must not bleed into the list itself.
+    boundaries = [m.start() for m in re.finditer(r"[.\n;]", window)]
+    boundaries += [
+        m.start()
+        for m in re.finditer(r"\(", window)
+        if not _INLINE_ACRONYM_GLOSS.match(window, m.start())
+    ]
+    boundaries += [m.start() for m in _HEADING_RUN.finditer(window)]
+    boundary_pos = min(boundaries, default=None)
+    has_boundary = boundary_pos is not None
+    tail = window[:boundary_pos] if has_boundary else window
+    items = _LIST_SPLIT.split(tail)
+    if not has_boundary and items:
+        # the window ended at the char cutoff, not a real sentence boundary --
+        # the last split item is likely a word chopped mid-way
+        # ("...one or more langu[age]s") rather than a genuine list item
+        items = items[:-1]
+    found = []
+    for item in items:
+        candidate = _candidate(item)
+        if not candidate:
+            continue
+        # a genuine list item is short; anything longer without ever
+        # hitting a comma/and/or is more likely a prose continuation
+        # than a keyword ("an interest in building practical" vs "Python")
+        if len(candidate.split()) > _MAX_LIST_ITEM_WORDS:
+            candidate = _shorten_trailing_clause(candidate, _MAX_LIST_ITEM_WORDS)
+        if len(candidate.split()) <= _MAX_LIST_ITEM_WORDS:
+            found.append(candidate)
+    return found
+
+
 def _phrases_from_lead_in_lists(text: str) -> list[str]:
     found = []
     for match in _LIST_LEAD_IN.finditer(text):
-        window = text[match.end() : match.end() + 120]
-        # stop at the first sentence end OR line break -- a cue phrase
-        # immediately followed by its own newline-separated bullet list
-        # (handled by _phrases_from_short_lines instead) must not bleed
-        # into whatever comes after those newlines.
-        boundary = re.search(r"[.\n]", window)
-        tail = window[: boundary.start()] if boundary else window
-        items = _LIST_SPLIT.split(tail)
-        if boundary is None and items:
-            # the window ended at the 120-char cutoff, not a real sentence
-            # boundary -- the last split item is likely a word chopped mid-way
-            # ("...one or more langu[age]s") rather than a genuine list item
-            items = items[:-1]
-        for item in items:
-            candidate = _candidate(item)
-            # a genuine list item is short; anything longer without ever
-            # hitting a comma/and/or is more likely a prose continuation
-            # than a keyword ("an interest in building practical" vs "Python")
-            if candidate and len(candidate.split()) <= 4:
-                found.append(candidate)
+        found.extend(_items_in_window(text, match.end()))
+    for match in _GENERIC_COLON.finditer(text):
+        if _NARRATIVE_COLON_HEAD.search(text[max(0, match.start() - 30) : match.start()]):
+            continue
+        found.extend(_items_in_window(text, match.end()))
     return found
 
 
@@ -242,6 +369,99 @@ def _proper_noun_phrases(text: str) -> list[str]:
     return found
 
 
+_PAREN_CONTENT = re.compile(r"\(([^()]{1,150})\)")
+_PAREN_ASIDE_PREFIX = re.compile(r"^(?:e\.g\.,?|i\.e\.,?|such\s+as|including)\s*", re.IGNORECASE)
+_TRAILING_ETC = re.compile(r",?\s*etc\.?$", re.IGNORECASE)
+
+# "(favoring straightforward, low-overhead solutions over complex
+# abstractions or heavy STL use when they compromise speed or safety)" has
+# the same comma/or shape as a real examples-list, but opens by framing a
+# preference/tradeoff, not by naming things -- a real list of terms never
+# opens this way.
+_PAREN_NARRATIVE_PREFIX = re.compile(
+    r"^(?:favoring|preferring|emphasizing|prioritizing)\b", re.IGNORECASE
+)
+
+
+def _phrases_from_parentheticals(text: str) -> list[str]:
+    """"...or related techniques (Monte Carlo, distributed sims, etc.)" --
+    a posting's own examples-in-parens are exactly the kind of concrete
+    keyword a lead-in-list or generic-chain scan never reaches, since the
+    outer sentence's commas belong to a different, longer list. Only
+    treated as a list when it actually has comma/and/or structure --
+    a bare aside like "(HPC)" or "(Starlink)" is a single term, not a list,
+    and is left to the proper-noun heuristic instead."""
+    found = []
+    for match in _PAREN_CONTENT.finditer(text):
+        inner = _TRAILING_ETC.sub("", _PAREN_ASIDE_PREFIX.sub("", match.group(1).strip())).strip()
+        if not re.search(r",|\band\b|\bor\b", inner, re.IGNORECASE):
+            continue
+        if _PAREN_NARRATIVE_PREFIX.match(inner):
+            continue
+        for item in _LIST_SPLIT.split(inner):
+            candidate = _candidate(item)
+            if candidate and len(candidate.split()) <= _MAX_LIST_ITEM_WORDS:
+                found.append(candidate)
+    return found
+
+
+# A hyphen or slash joining two bare words is almost always a technical
+# term of art regardless of case ("real-time", "data-oriented",
+# "multi-threading/concurrency", "hardware-in-the-loop") -- unlike the
+# Capitalized-run heuristic above, this is the only thing in this module
+# that catches lowercase compound jargon. A handful of generic hyphenated
+# filler words that fit the same shape but never a "skill" are excluded
+# outright rather than left for the stopword-plurality check, since a
+# 2-word compound like "fast-paced" would otherwise sail through it.
+_COMPOUND_CORE = re.compile(r"\b[A-Za-z]+(?:[-/][A-Za-z]+)+\b")
+_COMPOUND_EXTEND_WORD = re.compile(r"^ ([A-Za-z][A-Za-z-]*)(?![A-Za-z+#])")
+_COMPOUND_FILLER = {
+    "fast-paced", "full-time", "part-time", "long-term", "short-term",
+    "day-to-day", "up-to-date", "on-site", "off-site", "well-rounded",
+    "self-motivated", "cutting-edge", "state-of-the-art", "in-house",
+    "expert-level", "entry-level", "senior-level", "junior-level",
+    "mid-level",
+}
+_COMPOUND_EXTEND_MAX_WORDS = 2
+
+
+def _compound_phrases(text: str) -> list[str]:
+    """The same compound often shows up once bare ("...high-performance
+    C++...", extension blocked by the C++ that follows) and once extended
+    ("high-performance simulations", "High-performance computing")
+    elsewhere in the same posting -- each extended occurrence is a real,
+    distinct phrase worth keeping, but a bare occurrence of a core that
+    extends successfully anywhere else in the text is just the same term
+    caught before its noun, so only bare occurrences get suppressed."""
+    raw: list[tuple[str, str, bool]] = []
+    for match in _COMPOUND_CORE.finditer(text):
+        core = match.group(0)
+        if core.lower() in _COMPOUND_FILLER:
+            continue
+        words = [core]
+        pos = match.end()
+        for _ in range(_COMPOUND_EXTEND_MAX_WORDS):
+            extend = _COMPOUND_EXTEND_WORD.match(text[pos : pos + 30])
+            if not extend or extend.group(1).lower() in _STOPWORDS | _TRAILING_PREPOSITIONS:
+                break
+            words.append(extend.group(1))
+            pos += extend.end()
+        candidate = _candidate(" ".join(words))
+        if candidate:
+            raw.append((core.lower(), candidate, len(words) > 1))
+    extended_cores = {core for core, _, extended in raw if extended}
+    found = []
+    seen: set[str] = set()
+    for core, candidate, extended in raw:
+        if not extended and core in extended_cores:
+            continue
+        key = candidate.lower()
+        if key not in seen:
+            seen.add(key)
+            found.append(candidate)
+    return found
+
+
 def _is_word_run(shorter: list[str], longer: list[str]) -> bool:
     """True if `shorter`'s words appear as a contiguous run inside `longer`."""
     n, m = len(shorter), len(longer)
@@ -269,21 +489,43 @@ def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
     ]
 
 
+# A handful of phrases pass every structural check above (a real lead-in,
+# a real comma boundary, every individual word technically not a stopword)
+# and still read as narration, not a claimable skill, with no regex able
+# to tell them apart from a neighboring genuine item in the same list --
+# e.g. "or related techniques" sits right next to "scalable architectures"
+# in an otherwise-real requirements list. Same idiom as _COMPOUND_FILLER/
+# _CALENDAR_WORDS above: a small, named, hand-curated exclusion, not a
+# skills dictionary -- it can only ever suppress a phrase, never grant one.
+_NARRATIVE_FILLER_PHRASES = {
+    "simple", "safety", "related techniques", "numerical simulations",
+    "dispersion handling", "performance-oriented implementation",
+    "careful performance-oriented implementation", "low-overhead solutions",
+}
+
+
 def extract_keywords(text: str) -> list[str]:
     """Candidate keyword phrases straight out of the posting's own text.
     Deterministic (the same text always yields the same list) and literal
     (every result is a real substring of `text`, first-seen order, capped
     at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
+    # Ordered by confidence, most to least, since MAX_KEYWORDS caps the
+    # total: a named technology/acronym and a structural hyphen/slash
+    # compound are rarely wrong and spread evenly across a dense posting,
+    # so they're prioritized ahead of the window-scanned list extractions,
+    # which occasionally still let a borderline phrase through.
     candidates = [
-        *_phrases_from_lead_in_lists(text),
-        *_phrases_from_short_lines(text),
         *_proper_noun_phrases(text),
+        *_compound_phrases(text),
+        *_phrases_from_lead_in_lists(text),
+        *_phrases_from_parentheticals(text),
+        *_phrases_from_short_lines(text),
     ]
     seen: set[str] = set()
     deduped: list[str] = []
     for phrase in candidates:
         key = phrase.lower()
-        if key not in seen:
+        if key not in seen and key not in _NARRATIVE_FILLER_PHRASES:
             seen.add(key)
             deduped.append(phrase)
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
