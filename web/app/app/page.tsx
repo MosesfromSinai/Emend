@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import {
   ConfirmPill,
@@ -42,6 +42,7 @@ export default function OnboardingPage() {
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SectionHeading>("EDUCATION");
+  const resumePaperRef = useRef<HTMLDivElement>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
@@ -162,6 +163,18 @@ export default function OnboardingPage() {
     });
   }
 
+  // Auto-advance (section-panel.tsx) moves activeSection once every fact in
+  // a section is confirmed -- follow it here so the resume side jumps to
+  // the new section too, instead of leaving the user staring at the old one.
+  useEffect(() => {
+    const container = resumePaperRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(
+      `[data-section-heading="${activeSection}"]`,
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [activeSection]);
+
   function sectionForKey(key: string): SectionHeading | null {
     if (!master) return null;
     for (const section of masterToSections(master)) {
@@ -241,7 +254,10 @@ export default function OnboardingPage() {
             instead of growing past it and defeating every overflow-y-auto
             below. lg:flex-[1.35]/[1] approximates the old 1.35fr/1fr split. */}
         <div className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row">
-          <div className="min-h-0 overflow-y-auto rounded-xl border border-em-line bg-white p-6 lg:h-full lg:flex-[1.35]">
+          <div
+            ref={resumePaperRef}
+            className="min-h-0 overflow-y-auto rounded-xl border border-em-line bg-white p-6 lg:h-full lg:flex-[1.35]"
+          >
             <ResumePaper
               master={master}
               name={master.name}
