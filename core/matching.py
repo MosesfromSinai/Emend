@@ -19,13 +19,14 @@ stop agreeing on what the phrase actually looked like.
 """
 
 import re
+from itertools import zip_longest
 
 from core.schemas import JDExtract, MasterResume
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
-MAX_KEYWORDS = 40
+MAX_KEYWORDS = 20
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
@@ -519,17 +520,26 @@ def extract_keywords(text: str) -> list[str]:
     Deterministic (the same text always yields the same list) and literal
     (every result is a real substring of `text`, first-seen order, capped
     at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
-    # Ordered by confidence, most to least, since MAX_KEYWORDS caps the
-    # total: a named technology/acronym and a structural hyphen/slash
-    # compound are rarely wrong and spread evenly across a dense posting,
-    # so they're prioritized ahead of the window-scanned list extractions,
-    # which occasionally still let a borderline phrase through.
+    # Named technologies/acronyms are rarely wrong and there are usually
+    # few of them, so they all make the cut first. Everything else is
+    # round-robined one-per-heuristic instead of concatenated -- a strict
+    # cap on a concatenated list means whichever heuristic happens to run
+    # last (here, short lines) never contributes at all, even though its
+    # own items are just as real as the first heuristic's 30th item.
+    other_buckets = [
+        _compound_phrases(text),
+        _phrases_from_lead_in_lists(text),
+        _phrases_from_parentheticals(text),
+        _phrases_from_short_lines(text),
+    ]
     candidates = [
         *_proper_noun_phrases(text),
-        *_compound_phrases(text),
-        *_phrases_from_lead_in_lists(text),
-        *_phrases_from_parentheticals(text),
-        *_phrases_from_short_lines(text),
+        *(
+            phrase
+            for round_ in zip_longest(*other_buckets)
+            for phrase in round_
+            if phrase is not None
+        ),
     ]
     seen: set[str] = set()
     deduped: list[str] = []
