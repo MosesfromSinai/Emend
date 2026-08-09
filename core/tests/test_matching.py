@@ -4,7 +4,7 @@ from core.matching import (
     extract_keywords,
     keyword_match,
 )
-from core.schemas import Experience, Fact, JDExtract, MasterResume
+from core.schemas import CustomEntry, CustomSection, Experience, Fact, JDExtract, MasterResume
 
 
 def test_keyword_match_scores_overlap_deterministically(sample_master):
@@ -109,6 +109,45 @@ def test_keyword_match_does_not_match_words_scattered_across_facts():
     score, matched, missing = keyword_match(jd, master)
     assert (score, matched) == (0.0, [])
     assert missing == ["Team Leadership Experience"]
+
+
+def test_keyword_match_counts_custom_section_facts():
+    # a custom section's facts count toward matching automatically, via
+    # fact_lookup() -- no matching.py changes needed to support them
+    master = MasterResume(
+        name="Jamie Doe",
+        email="jamie@example.com",
+        phone="555-010-1010",
+        links=[],
+        education=[],
+        experiences=[],
+        projects=[],
+        skills={},
+        custom_sections=[
+            CustomSection(
+                key="RESEARCH",
+                heading="Research Experience",
+                entries=[
+                    CustomEntry(
+                        id="RES",
+                        title="Research Assistant",
+                        subtitle="UCSD Bio Lab",
+                        facts=[Fact(id="RES-01", text="Ran gel electrophoresis assays weekly")],
+                    )
+                ],
+            )
+        ],
+    )
+    jd = JDExtract(
+        company="",
+        title="",
+        hard_skills=[],
+        soft_requirements=[],
+        responsibilities=[],
+        keywords=["gel electrophoresis"],
+    )
+
+    assert keyword_match(jd, master) == (1.0, ["gel electrophoresis"], [])
 
 
 def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):

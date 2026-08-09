@@ -1,6 +1,6 @@
 import pytest
 
-from core.schemas import TailoredBullet, TailoredSection
+from core.schemas import CustomEntry, CustomSection, Fact, TailoredBullet, TailoredSection
 from latex.render import render_tex
 
 
@@ -190,6 +190,59 @@ def test_section_order_with_unknown_key_never_drops_a_section(master):
     assert r"\section{Experience}" in tex
     assert r"\section{Projects}" in tex
     assert r"\section{Technical Skills}" in tex
+
+
+def test_custom_section_renders_bullets_and_bare_entry(master):
+    custom = master.model_copy(
+        update={
+            "custom_sections": [
+                CustomSection(
+                    key="RESEARCH",
+                    heading="Research Experience",
+                    entries=[
+                        CustomEntry(
+                            id="RES",
+                            title="Research Assistant",
+                            subtitle="UCSD Bio Lab",
+                            facts=[Fact(id="RES-01", text="Ran assays weekly.")],
+                        )
+                    ],
+                ),
+                CustomSection(
+                    key="CERTIF",
+                    heading="Certifications",
+                    entries=[
+                        CustomEntry(id="CERT", title="AWS Certified Solutions Architect", end="2023")
+                    ],
+                ),
+            ]
+        }
+    )
+    tex = render_tex(custom, None)
+    assert r"\section{Research Experience}" in tex
+    assert "Ran assays weekly." in tex
+    assert r"\section{Certifications}" in tex
+    assert "AWS Certified Solutions Architect" in tex
+    # a bulletless entry never emits an empty itemize
+    certifications_start = tex.index(r"\section{Certifications}")
+    certifications_body = tex[certifications_start : tex.index(r"\end{document}")]
+    assert r"\resumeItemListStart" not in certifications_body
+
+
+def test_section_order_reorders_a_custom_section(master):
+    custom = master.model_copy(
+        update={
+            "custom_sections": [
+                CustomSection(
+                    key="RESEARCH",
+                    heading="Research Experience",
+                    entries=[CustomEntry(id="RES", title="Research Assistant")],
+                )
+            ]
+        }
+    )
+    tex = render_tex(custom, None, section_order=["RESEARCH", "EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"])
+    assert tex.index("Research Experience") < tex.index("Education")
 
 
 def test_excluded_facts_drops_a_bullet(master, tailored):
