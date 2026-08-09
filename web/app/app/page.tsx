@@ -208,7 +208,8 @@ export default function OnboardingPage() {
             <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
             <p className="mt-1 text-sm text-ink/70">
               These facts are the only material Emend will ever write from. Fix
-              anything that&apos;s off before confirming.
+              anything that&apos;s off before confirming. You can also add a new
+              entry or delete one you don&apos;t want, in any section.
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
