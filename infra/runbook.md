@@ -32,8 +32,13 @@ Copy `infra/.env.example` → `infra/.env`. `MOCK=1` (default) needs no API key.
      --set "CORS_ORIGINS=https://<vercel-domain>" \
      --set "SESSION_COOKIE_SAMESITE=none" \
      --set "SESSION_COOKIE_SECURE=1" \
+     --set "ENVIRONMENT=production" \
      --set "MOCK=1"
    ```
+   `ENVIRONMENT=production` turns off `/docs`/`/redoc`/`/openapi.json` and
+   makes a missing `DATABASE_URL` fail startup loudly instead of silently
+   falling back to the local-dev Postgres credentials.
+
    `Emend` is this project's actual Railway service name (Settings tab on the
    service card confirms it) — if you ever rename it or spin up a fresh
    project, update every `--service` flag here and in

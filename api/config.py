@@ -11,13 +11,28 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _resolve_database_url() -> str:
+    raw = os.environ.get("DATABASE_URL")
+    if raw:
+        return raw
+    # The local-dev default (matching infra/docker-compose.yml's throwaway
+    # `emend:emend` Postgres) is only ever used when ENVIRONMENT is left at
+    # its "development" default -- outside that, a missing DATABASE_URL
+    # fails loudly at startup instead of silently resolving to a
+    # plausible-looking connection string with weak, publicly-known creds.
+    if os.environ.get("ENVIRONMENT", "development") != "development":
+        raise RuntimeError(
+            "DATABASE_URL is required when ENVIRONMENT is not 'development'"
+        )
+    return "postgresql+psycopg://emend:emend@localhost:5432/emend"
+
+
 @dataclass
 class Settings:
-    database_url: str = field(
-        default_factory=lambda: os.environ.get(
-            "DATABASE_URL", "postgresql+psycopg://emend:emend@localhost:5432/emend"
-        )
+    environment: str = field(
+        default_factory=lambda: os.environ.get("ENVIRONMENT", "development")
     )
+    database_url: str = field(default_factory=_resolve_database_url)
     artifacts_dir: str = field(
         default_factory=lambda: os.environ.get("ARTIFACTS_DIR", "./artifacts")
     )
