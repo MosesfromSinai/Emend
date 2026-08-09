@@ -331,7 +331,7 @@ export default function OnboardingPage() {
           facts and typeset it in LaTeX. Nothing is saved until you confirm.
         </p>
         <p className="mt-1 text-xs text-em-muted">
-          Don&apos;t have a job posting yet? That&apos;s fine — you can typeset
+          Don&apos;t have a job posting yet? That&apos;s fine, you can format
           and edit your resume without tailoring to anything.
         </p>
       </div>
