@@ -58,6 +58,18 @@ Rules:
   words, never inferred -- "studying computer science" with no stated
   degree level becomes a bare field like "Computer Science," never
   "Bachelor of Science in Computer Science."
+- A section whose header is clearly its own named category but isn't
+  Education/Experience/Projects/Skills -- "Research Experience,"
+  "Volunteer Work," "Certifications," "Clinical Rotations," "Publications,"
+  "Leadership" -- becomes one entry in `custom_sections`, not folded into
+  Experience and not dropped. Copy the header text verbatim as `heading`.
+  Parse its entries the same way Experience entries are parsed (title,
+  organization/issuer as `subtitle`, location, dates), using the same
+  entry-boundary rule from Pass 1. An entry with nothing to say beyond its
+  own header line (a bare certification: "AWS Certified Solutions
+  Architect -- Amazon, 2023") gets an empty `facts` list -- do not invent
+  bullet content for it, and never fold a one-line credential into Skills
+  just because it has no bullets of its own.
 - Contact info (name, email, phone, links) never belongs in a company,
   title, or fact field.
 - If a field is genuinely absent from the resume, use an empty string or an
