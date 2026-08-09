@@ -590,7 +590,8 @@ function CustomSectionPanel({
   onHoverRow,
   filter,
   sectionKey,
-}: SectionProps & { sectionKey: string }) {
+  onBeforeRemove,
+}: SectionProps & { sectionKey: string; onBeforeRemove: () => void }) {
   const sectionIndex = master.custom_sections.findIndex((cs) => cs.key === sectionKey);
   const section = master.custom_sections[sectionIndex];
   if (!section) return null;
@@ -601,6 +602,10 @@ function CustomSectionPanel({
     onChange({ ...master, custom_sections: next });
   };
   const removeSection = () => {
+    // navigate off this tab BEFORE it disappears from `master` -- otherwise
+    // activeSection keeps pointing at a section that no longer exists and
+    // every progress/active lookup keyed on it blows up mid-render
+    onBeforeRemove();
     onConfirmMany(
       section.entries.flatMap((e) => e.facts.map((f) => f.id)),
       false
@@ -844,7 +849,10 @@ export function SectionPanel({
   const tabs = sectionTabs(master);
   const progress = sectionProgress(master, confirmed);
   const sectionIndex = tabs.indexOf(activeSection);
-  const active = progress[sectionIndex];
+  // a defensive fallback, not just the happy path: activeSection can
+  // briefly point at a tab that no longer exists (e.g. the instant a
+  // custom section is removed, before onBeforeRemove's redirect commits)
+  const active = progress[sectionIndex] ?? { heading: activeSection, keys: [], done: 0, total: 0 };
   const customSection = master.custom_sections.find((cs) => cs.key === activeSection);
 
   // Auto-advance the moment a section GOES complete (via "Confirm all" or
@@ -942,7 +950,16 @@ export function SectionPanel({
         {activeSection === "EXPERIENCE" && <ExperiencePanel {...sectionProps} />}
         {activeSection === "PROJECTS" && <ProjectPanel {...sectionProps} />}
         {activeSection === "TECHNICAL SKILLS" && <SkillsPanel {...sectionProps} />}
-        {customSection && <CustomSectionPanel {...sectionProps} sectionKey={customSection.key} />}
+        {customSection && (
+          <CustomSectionPanel
+            {...sectionProps}
+            sectionKey={customSection.key}
+            onBeforeRemove={() => {
+              const idx = tabs.indexOf(customSection.key);
+              onChangeSection(tabs[idx - 1] ?? tabs.find((t) => t !== customSection.key) ?? "EDUCATION");
+            }}
+          />
+        )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-em-line px-4 py-3">
