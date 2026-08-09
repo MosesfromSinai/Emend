@@ -19,7 +19,11 @@ export function CtaBand() {
         </Link>
         <p className="mx-auto mt-5 max-w-md text-[13px] text-[#a89f8c]">
           No account needed. Your resume stays tied to a private session in
-          this browser, and you can permanently delete it anytime.
+          this browser, and you can permanently delete it anytime. Read the{" "}
+          <Link href="/privacy" className="underline hover:text-paper">
+            privacy page
+          </Link>
+          .
         </p>
       </Reveal>
     </div>
