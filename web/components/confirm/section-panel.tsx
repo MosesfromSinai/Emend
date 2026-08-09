@@ -618,6 +618,10 @@ function CustomSectionPanel({
 
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-xs text-em-muted">
+        Custom sections are never rewritten by the AI tailor — they always print
+        exactly as you write them here, in both Tailor and just-format mode.
+      </p>
       <div className="flex items-center gap-2">
         <Input
           value={section.heading}
