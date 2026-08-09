@@ -29,7 +29,6 @@ export function RewriteBar({
   onMove?: (direction: "up" | "down") => void;
   onDelete?: () => void;
 }) {
-  const [viewingOriginal, setViewingOriginal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -37,27 +36,29 @@ export function RewriteBar({
   const isCustom = Boolean(selection?.customText);
   const currentText = selection?.customText ?? bullet.variants[variantIdx];
   const showDiscard = isCustom || (editing && draft !== currentText);
+  // A revert (below) goes through the same customText mechanism as a
+  // manual edit -- this is what tells the two apart for the label so
+  // "revert to my original" doesn't get mislabeled as "your edit."
+  const isRevertedToOriginal = isCustom && selection?.customText === originalText;
   // Refactor mode (no job posting) wraps each fact as 3 identical variants
   // just so this same edit UI works there too -- cycling through three
   // copies of the same sentence would be confusing, so hide that control
   // and say so plainly instead of "rewrite 1 of 3."
   const hasRealVariants = bullet.variants.some((v) => v !== bullet.variants[0]);
   // In refactor mode with no edit yet, "your confirmed wording" already IS
-  // the original -- there's nothing different to reveal, so the toggle is
-  // just noise. Once there's a real rewrite to pick between, or the person
-  // has made their own edit, the two genuinely diverge and the toggle earns
-  // its place again.
+  // the original -- there's nothing different to revert to, so the button
+  // is just noise. Once there's a real rewrite to pick between, or the
+  // person has made their own edit, the two genuinely diverge and
+  // reverting earns its place again.
   const hasOriginalToShow = hasRealVariants || isCustom;
 
   function cycle(delta: number) {
     const next = (variantIdx + delta + bullet.variants.length) % bullet.variants.length;
     onChangeSelection({ variantIdx: next });
-    setViewingOriginal(false);
     setEditing(false);
   }
 
   function startEditing() {
-    if (viewingOriginal) return;
     setDraft(currentText);
     setEditing(true);
   }
@@ -71,15 +72,15 @@ export function RewriteBar({
 
   function discardEdit() {
     setEditing(false);
-    // Discarding a custom edit can make hasOriginalToShow go false (refactor
-    // mode with no real variants) -- reset this too, or the toggle's button
-    // disappears while its "showing original" state (and the edit-blocking
-    // guard in startEditing) silently stays stuck on.
-    setViewingOriginal(false);
     onChangeSelection({ variantIdx });
   }
 
-  const label = viewingOriginal
+  function revertToOriginal() {
+    setEditing(false);
+    onChangeSelection({ customText: originalText });
+  }
+
+  const label = isRevertedToOriginal
     ? "your original wording"
     : isCustom
       ? `your edit, based on ${bullet.source_fact_ids[0]}`
@@ -128,9 +129,7 @@ export function RewriteBar({
                   key={i}
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    !isCustom && !viewingOriginal && i === variantIdx
-                      ? "bg-em-accent"
-                      : "bg-[#d9c9c0]"
+                    !isCustom && i === variantIdx ? "bg-em-accent" : "bg-[#d9c9c0]"
                   )}
                 />
               ))}
@@ -147,12 +146,7 @@ export function RewriteBar({
         )}
 
         {!editing && (
-          <button
-            type="button"
-            onClick={startEditing}
-            disabled={viewingOriginal}
-            className="text-xs disabled:cursor-default"
-          >
+          <button type="button" onClick={startEditing} className="text-xs">
             <span className="font-semibold text-em-deep">{label}</span>{" "}
             <span className="text-ink/50">· click the text to edit</span>
           </button>
@@ -172,14 +166,11 @@ export function RewriteBar({
           {hasOriginalToShow && (
             <button
               type="button"
-              onClick={() => setViewingOriginal((v) => !v)}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={revertToOriginal}
               className="text-xs text-em-deep underline hover:text-ink"
             >
-              {viewingOriginal
-                ? isCustom
-                  ? "↩ back to my edit"
-                  : "↩ back to Emend's rewrite"
-                : "view my original"}
+              ↺ revert to my original
             </button>
           )}
           {onDelete && <DeleteButton onClick={onDelete} label="Delete this line" />}
@@ -195,9 +186,6 @@ export function RewriteBar({
           autoFocus
           className="mt-2 w-full resize-none rounded-md border border-em-softb bg-white p-2 text-sm text-ink focus:border-em-accent focus:outline-none"
         />
-      )}
-      {viewingOriginal && (
-        <p className="mt-2 text-sm text-ink/70 italic">{originalText}</p>
       )}
     </div>
   );
