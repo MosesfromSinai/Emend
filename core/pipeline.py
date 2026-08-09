@@ -533,6 +533,22 @@ def _parse_education_entry(lines: list[str]) -> Education:
     )
 
 
+def _fix_name_casing(name: str) -> str:
+    """Some resume templates render a header name in small caps by styling
+    ordinary lowercase text at the font level ("Vila" stored as "vila",
+    drawn as capitals) rather than actually capitalizing it -- a PDF's text
+    layer faithfully extracts that underlying lowercase text, not the
+    visual effect, so it comes through as "moses a. vila" or "Moses A.
+    vila" even though the resume visibly reads "Moses A. Vila". A person's
+    name is never actually meant to read all-lowercase, so any word with NO
+    uppercase letter at all gets its first letter capitalized. A word that
+    already has an uppercase letter somewhere ("McDonald", "O'Brien") is
+    left completely untouched -- this can't tell that apart from a real,
+    intentional casing, so it only ever corrects the unambiguous case.
+    """
+    return " ".join(w[:1].upper() + w[1:] if w.islower() else w for w in name.split())
+
+
 def _extract_name(first_line: str) -> str:
     """The name portion of a header line, cut off before any contact info."""
     matches = [
@@ -546,7 +562,7 @@ def _extract_name(first_line: str) -> str:
     ]
     candidate = first_line[: min(m.start() for m in matches)] if matches else first_line
     candidate = re.split(r"\s*[|•·]\s*", candidate)[0].strip()
-    return candidate or "Unknown"
+    return _fix_name_casing(candidate) if candidate else "Unknown"
 
 
 def _text_master_resume(text: str) -> MasterResume:
@@ -845,7 +861,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
             )
         )
     return MasterResume(
-        name=raw.name,
+        name=_fix_name_casing(raw.name),
         email=raw.email,
         phone=raw.phone,
         links=raw.links,

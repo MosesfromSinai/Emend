@@ -4,6 +4,7 @@ from core.llm import LLMUnavailableError
 from core.pipeline import (
     _entity_prefix,
     _fact_violations,
+    _fix_name_casing,
     _parse_education_entry,
     _split_entries,
     _split_location,
@@ -37,6 +38,19 @@ def test_entity_prefix_keeps_a_name_whose_camel_tail_is_too_short():
     # "TermIt" -> Term + It; a two-letter tail isn't a word worth an initial
     assert _entity_prefix("TermIt", set()) == "TERMIT"
     assert _entity_prefix("Emend", set()) == "EMEND"
+
+
+def test_fix_name_casing_capitalizes_an_all_lowercase_word():
+    # a small-caps-styled PDF header extracts as lowercase text ("vila")
+    # even though the resume visibly reads "Vila"
+    assert _fix_name_casing("Moses A. vila") == "Moses A. Vila"
+    assert _fix_name_casing("moses a. vila") == "Moses A. Vila"
+
+
+def test_fix_name_casing_leaves_an_already_mixed_case_word_alone():
+    # a word with any uppercase letter already looks intentional
+    # ("McDonald") -- not distinguishable from a real casing, so untouched
+    assert _fix_name_casing("Sam McDonald") == "Sam McDonald"
 
 
 def test_entity_prefix_adds_numeric_suffix_on_collision():
