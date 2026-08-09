@@ -219,7 +219,15 @@ _PRECEDED_BY_COMMA = re.compile(r",\s*$")
 
 
 def _clean_phrase(phrase: str) -> str:
-    return phrase.strip(" \t.,;:-•").strip()
+    cleaned = phrase.strip(" \t.,;:-•").strip()
+    # a trailing ")" with no matching "(" is a stray artifact of splitting
+    # a comma list that lives inside a larger parenthetical aside (e.g.
+    # "...(SQL injection, XSS, CSRF, SSRF)" split on its own commas) --
+    # never a real part of the term. A balanced "(LLMs)" style suffix is
+    # untouched since it does have a matching "(".
+    if cleaned.endswith(")") and "(" not in cleaned:
+        cleaned = cleaned[:-1].strip()
+    return cleaned
 
 
 def _trim_filler(phrase: str) -> str:
@@ -391,9 +399,22 @@ def _proper_noun_phrases(text: str) -> list[str]:
         # a Capitalized run that opens with a pronoun/article/quantifier
         # ("You Have", "Every", "The") is a sentence fragment that only
         # looks like a proper noun because it happens to sit mid-sentence
-        # in flattened text -- no real skill or product name starts this way
-        if words[0].lower() in _SECTION_HEADING_STARTS or words[0].lower() in _STOPWORDS:
+        # in flattened text -- no real skill or product name starts this
+        # way. Trimmed from the front rather than dropping the whole run.
+        # so a real name right after it ("Our Data Science team") isn't
+        # lost along with the leading fragment word.
+        while words and (
+            words[0].lower() in _SECTION_HEADING_STARTS or words[0].lower() in _STOPWORDS
+        ):
+            words.pop(0)
+        if not words:
             continue
+        phrase = " ".join(words)
+        # words were only ever removed from the front, so the kept phrase
+        # is still a suffix of the original match -- this recovers its
+        # real start position for the sentence-boundary check below
+        # without re-searching the text.
+        start = match.end() - len(phrase)
         if any(w.lower() in _CALENDAR_WORDS for w in words):
             continue
         if _FOLLOWED_BY_STATE_CODE.match(text[match.end() : match.end() + 6]):
@@ -402,13 +423,13 @@ def _proper_noun_phrases(text: str) -> list[str]:
             len(words) == 1
             and len(phrase) == 2
             and phrase.isupper()
-            and _PRECEDED_BY_COMMA.search(text[: match.start()])
+            and _PRECEDED_BY_COMMA.search(text[:start])
         ):
             continue  # the state-code half of the same address
         # a single capitalized word is ambiguous (a real term, or just a
         # sentence-starter); only trust it away from a sentence boundary --
         # a 2-3 word Capitalized run is a strong enough signal on its own
-        if len(words) == 1 and _SENTENCE_BOUNDARY.search(text[: match.start()] or "."):
+        if len(words) == 1 and _SENTENCE_BOUNDARY.search(text[:start] or "."):
             continue
         found.append(phrase)
     return found
@@ -555,12 +576,30 @@ def _is_word_run(shorter: list[str], longer: list[str]) -> bool:
     return n > 0 and n <= m and any(longer[i : i + n] == shorter for i in range(m - n + 1))
 
 
+def _extra_words_are_noise(shorter: list[str], longer: list[str]) -> bool:
+    """True only if every word `longer` has beyond `shorter`'s own
+    contiguous run is noise -- "experience with cross-functional
+    collaboration" wrapping "cross-functional collaboration" (extra:
+    "experience", "with") qualifies, but "AWS EKS" wrapping "AWS" (extra:
+    "EKS", a real, independently-recognized name) does not."""
+    n, m = len(shorter), len(longer)
+    for i in range(m - n + 1):
+        if longer[i : i + n] == shorter:
+            extra = longer[:i] + longer[i + n :]
+            return all(w in _NOISE_WORDS for w in extra)
+    return False
+
+
 def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
     """Different heuristics above can surface both "cross-functional
     collaboration" and the noisier "experience with cross-functional
     collaboration" for the same posting -- keep the shorter, cleaner phrase
     (also the one more likely to appear verbatim on a resume) and drop any
-    phrase that's just a wrapper around one already kept.
+    phrase that's just a wrapper around one already kept, PROVIDED the
+    extra content is itself just filler -- "AWS EKS" is not a redundant
+    wrapper of "AWS" the way the collaboration example is a wrapper of its
+    shorter form, since "EKS" is a real, separately-meaningful name, not
+    noise riding along on a real keyword's coattails.
 
     Containment is checked word-by-word, not as a raw character substring --
     "Java" is not a redundant wrapper of "JavaScript", nor is "C" of "C++",
@@ -570,7 +609,10 @@ def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
         phrase
         for i, phrase in enumerate(phrases)
         if not any(
-            i != j and word_lists[j] != word_lists[i] and _is_word_run(word_lists[j], word_lists[i])
+            i != j
+            and word_lists[j] != word_lists[i]
+            and _is_word_run(word_lists[j], word_lists[i])
+            and _extra_words_are_noise(word_lists[j], word_lists[i])
             for j in range(len(phrases))
         )
     ]
@@ -661,6 +703,13 @@ _ACRONYM_MAX_LETTERS = 8
 
 
 def _looks_like_acronym(phrase: str) -> bool:
+    # single tokens only -- a multi-word phrase ("FUN FACTS", "in c++
+    # code") is never "one acronym" just because it's short and mostly
+    # uppercase or happens to contain a symbol; letting a whole phrase
+    # through on that basis bypassed both the tech-name gate AND the
+    # trimming logic below for phrases that were neither.
+    if " " in phrase:
+        return False
     letters = [c for c in phrase if c.isalpha()]
     if not letters or len(letters) > _ACRONYM_MAX_LETTERS:
         return False
@@ -680,24 +729,59 @@ def _known_technical_span(phrase: str) -> str | None:
     development methodologies" becomes "Agile", not the whole noisy
     phrase -- a bare common word rescuing a longer phrase wholesale would
     defeat the entire point of gating on this list, but trimming down to
-    just the part that's actually recognized has no such downside."""
+    just the part that's actually recognized has no such downside.
+
+    Every matched position is marked first, rather than picking a single
+    "best" match early -- "AWS EKS" would otherwise have to pick just one
+    of "AWS" (pos 0) and "EKS" (pos 1) and silently drop the other; marking
+    both and returning the longest contiguous *run* of matched positions
+    keeps them together as one richer keyword instead. Reference names are
+    tried longest-first, sorted for a fixed order -- iterating a set
+    directly ties equal-length matches to Python's per-process hash seed,
+    silently breaking the "same text, same output every time" guarantee
+    this whole module exists to provide.
+    """
     if phrase.lower() in ALL_TECH_NAMES or _looks_like_acronym(phrase):
         return phrase
     words = phrase.split()
     lower_words = [w.lower() for w in words]
-    best: str | None = None
-    for name in ALL_TECH_NAMES:
+    matched = [False] * len(words)
+    for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n.split()), n)):
         name_words = name.split()
-        n = len(name_words)
-        if n > len(lower_words):
+        span_len = len(name_words)
+        if span_len > len(lower_words):
             continue
-        for i in range(len(lower_words) - n + 1):
-            if lower_words[i : i + n] == name_words:
-                span = " ".join(words[i : i + n])
-                if best is None or len(span) > len(best):
-                    best = span
-                break
-    return best
+        for i in range(len(lower_words) - span_len + 1):
+            if lower_words[i : i + span_len] == name_words:
+                for k in range(i, i + span_len):
+                    matched[k] = True
+    # a lone acronym-shaped word ("HITL" inside "Perform HITL") is just as
+    # reliable a signal in isolation as it is standalone -- the whole-phrase
+    # bypass above only fires for a single bare token, so a real acronym
+    # fused into a longer, otherwise-unrecognized capitalized run would
+    # otherwise vanish entirely instead of being trimmed down to just
+    # itself. Only trusted when at least one OTHER word in the run is
+    # normal mixed-case, though -- when EVERY word is acronym-shaped
+    # ("FUN FACTS"), that reads as an all-caps heading/emphasis style, not
+    # a real acronym sitting in ordinary prose, and neither "FUN" nor
+    # "FACTS" is one.
+    if any(not _looks_like_acronym(w) for w in words):
+        for i, word in enumerate(words):
+            if not matched[i] and _looks_like_acronym(word):
+                matched[i] = True
+    if not any(matched):
+        return None
+    best_start = best_len = run_start = run_len = 0
+    for i, is_match in enumerate(matched):
+        if is_match:
+            if run_len == 0:
+                run_start = i
+            run_len += 1
+            if run_len > best_len:
+                best_start, best_len = run_start, run_len
+        else:
+            run_len = 0
+    return " ".join(words[best_start : best_start + best_len])
 
 
 def extract_keywords(text: str) -> list[str]:

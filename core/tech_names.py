@@ -53,7 +53,7 @@ FRAMEWORKS_LIBRARIES = {
     "typeorm", "entity framework", "graphql", "apollo", "grpc", "protobuf",
     "polars", "langgraph", "langchain", "shadcn/ui", "shadcn",
     ".net", "rest api", "rest apis", "restful api", "restful apis",
-    "material ui", "material-ui", "chakra ui", "eslint", "prettier",
+    "material ui", "chakra ui", "eslint", "prettier",
     "sass", "scss", "sass/scss", "webassembly", "wasm", "three.js",
     "threejs", "android sdk", "openai api", "anthropic api",
     "pinecone", "weaviate", "faiss", "vector database", "vector databases",
@@ -103,7 +103,14 @@ SYSTEMS_PLATFORMS = {
     "itil", "saltstack", "elk stack", "logstash", "kibana", "nagios",
     # security tooling
     "nessus", "wireshark", "metasploit", "burp suite", "kali linux",
-    "nmap",
+    "nmap", "okta", "semgrep", "checkmarx", "qualys", "guardduty",
+    "sentinelone", "azure sentinel", "trivy", "aqua security", "kms",
+    "aws kms", "vault", "hashicorp vault",
+    # more DevOps/SRE and sysadmin tools
+    "containerd", "flux", "veeam", "veritas", "crowdstrike", "intune",
+    "solarwinds",
+    # QA/SDET test-case management
+    "testrail", "zephyr",
 }
 
 # Protocols and network-layer terms -- as concretely nameable as a
@@ -143,8 +150,7 @@ ARCHITECTURE_CONCEPTS = {
     "cap theorem", "infrastructure as code", "iac",
     "configuration management", "blue-green deployment",
     "canary deployment", "immutable infrastructure", "incident response",
-    "on-call", "runbooks", "routing & switching", "high availability",
-    "disaster recovery",
+    "on-call", "runbooks", "routing & switching", "chaos engineering",
 }
 
 # Industry certifications -- a specific, named, verifiable credential is
