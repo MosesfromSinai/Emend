@@ -655,8 +655,15 @@ def _is_known_technical(phrase: str) -> bool:
     # contains one ("machine learning") as a contiguous run -- the same
     # containment check _drop_redundant_superstrings uses below, just
     # against the reference list instead of against other candidates.
+    # Restricted to multi-word names: a single common word like "agile" or
+    # "docker" would otherwise rescue ANY longer phrase that merely
+    # mentions it in passing ("agile development methodologies"), which
+    # defeats the entire point of gating on this list in the first place.
     words = key.split()
-    return any(_is_word_run(name.split(), words) for name in ALL_TECH_NAMES)
+    return any(
+        len(name_words := name.split()) > 1 and _is_word_run(name_words, words)
+        for name in ALL_TECH_NAMES
+    )
 
 
 def extract_keywords(text: str) -> list[str]:
