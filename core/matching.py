@@ -444,7 +444,9 @@ def _proper_noun_phrases(text: str) -> list[str]:
 # place matching.py resolves which literal form to use when a JD gives
 # both -- not by preferring one shape over the other, but by requiring
 # the posting's own acronym to actually match the phrase's own initials.
-_ACRONYM_DEFINITION = re.compile(r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6})\)")
+_ACRONYM_DEFINITION = re.compile(
+    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6})\)"
+)
 
 
 def _acronym_initials(words: list[str]) -> str:

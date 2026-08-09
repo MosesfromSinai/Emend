@@ -212,7 +212,9 @@ def test_custom_section_renders_bullets_and_bare_entry(master):
                     key="CERTIF",
                     heading="Certifications",
                     entries=[
-                        CustomEntry(id="CERT", title="AWS Certified Solutions Architect", end="2023")
+                        CustomEntry(
+                            id="CERT", title="AWS Certified Solutions Architect", end="2023"
+                        )
                     ],
                 ),
             ]
@@ -241,7 +243,9 @@ def test_section_order_reorders_a_custom_section(master):
             ]
         }
     )
-    tex = render_tex(custom, None, section_order=["RESEARCH", "EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"])
+    tex = render_tex(
+        custom, None, section_order=["RESEARCH", "EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"]
+    )
     assert tex.index("Research Experience") < tex.index("Education")
 
 
