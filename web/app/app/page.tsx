@@ -8,7 +8,6 @@ import {
   SectionPanel,
   SECTION_HEADINGS,
   allRowKeys,
-  type SectionHeading,
 } from "@/components/confirm/section-panel";
 import { ParseError } from "@/components/parse-error";
 import { ResumePaper, masterToSections } from "@/components/resume-paper";
@@ -41,7 +40,7 @@ export default function OnboardingPage() {
   // only real save is the PUT /resumes/master on confirm
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<SectionHeading>("EDUCATION");
+  const [activeSection, setActiveSection] = useState<string>("EDUCATION");
   const resumePaperRef = useRef<HTMLDivElement>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
@@ -175,11 +174,16 @@ export default function OnboardingPage() {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeSection]);
 
-  function sectionForKey(key: string): SectionHeading | null {
+  function sectionForKey(key: string): string | null {
     if (!master) return null;
     for (const section of masterToSections(master)) {
       if (section.blocks.some((b) => b.rows.some((r) => r.key === key))) {
-        return section.heading as SectionHeading;
+        // matches SectionPanel's own tab identity: the fixed four are
+        // identified by heading text, a custom section by its stable key
+        // (which survives a rename, unlike its heading)
+        return (SECTION_HEADINGS as readonly string[]).includes(section.heading)
+          ? section.heading
+          : section.key;
       }
     }
     return null;
