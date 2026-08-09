@@ -31,6 +31,7 @@ LANGUAGES = {
     "elixir", "scala", "delphi", "lisp", "micropython", "zig", "erlang",
     "fortran", "ada", "f#", "ocaml", "gleam", "prolog", "cobol", "mojo",
     "haskell", "julia", "clojure", "objective-c", "nix", "solidity", "sas",
+    "vhdl", "verilog",
 }
 
 FRAMEWORKS_LIBRARIES = {
@@ -57,6 +58,8 @@ FRAMEWORKS_LIBRARIES = {
     "threejs", "android sdk", "openai api", "anthropic api",
     "pinecone", "weaviate", "faiss", "vector database", "vector databases",
     "openai", "anthropic",
+    # ML deployment/serving/training extras
+    "tensorflow serving", "torchserve", "kubeflow", "cuda",
 }
 
 SYSTEMS_PLATFORMS = {
@@ -81,6 +84,26 @@ SYSTEMS_PLATFORMS = {
     "swiftui", "jetpack compose", "core data", "room", "dagger", "hilt",
     "serverless", "aws lambda", "azure functions", "hadoop",
     "apache hadoop",
+    # specific cloud-provider services -- named as concretely as any
+    # other platform above, just under a specific provider's umbrella
+    "ec2", "s3", "rds", "vpc", "cloudformation", "cloudwatch", "ecs",
+    "eks", "api gateway", "route 53",
+    "azure devops", "azure active directory", "azure ad",
+    "azure kubernetes service", "aks", "azure blob storage",
+    "cloud functions", "cloud run", "compute engine", "pub/sub",
+    "docker compose", "perforce", "svn",
+    # enterprise platforms -- as real and nameable as any dev tool, just
+    # from the business-software side of a stack
+    "salesforce", "sap", "servicenow",
+    "embedded systems", "rtos", "iot",
+    # systems administration / infra
+    "active directory", "virtualization", "hyper-v", "vsphere",
+    "storage area network", "san", "network attached storage", "nas",
+    "raid", "high availability", "disaster recovery", "vpn", "dhcp",
+    "itil", "saltstack", "elk stack", "logstash", "kibana", "nagios",
+    # security tooling
+    "nessus", "wireshark", "metasploit", "burp suite", "kali linux",
+    "nmap",
 }
 
 # Protocols and network-layer terms -- as concretely nameable as a
@@ -95,6 +118,14 @@ NETWORKING = {
 SECURITY = {
     "oauth", "oauth 2.0", "jwt", "sso", "tls", "ssl", "tls/ssl", "owasp",
     "penetration testing", "encryption", "zero trust", "iam",
+    "soc 2", "gdpr", "hipaa", "pci dss", "siem", "soc",
+    "threat intelligence", "vulnerability assessment", "digital forensics",
+    "malware analysis", "endpoint detection and response", "edr",
+    "intrusion detection system", "ids", "intrusion prevention system",
+    "ips", "cryptography", "public key infrastructure", "pki",
+    "network security", "application security", "devsecops", "sast",
+    "dast", "threat modeling", "red team", "blue team", "purple team",
+    "cissp", "ceh", "firewalls", "firewall",
 }
 
 # Named software-design concepts and patterns -- unlike a vague paradigm
@@ -108,6 +139,19 @@ ARCHITECTURE_CONCEPTS = {
     "data structures & algorithms", "data structures and algorithms",
     "distributed systems", "concurrency", "multithreading",
     "multi-threading", "blockchain", "smart contracts", "web3",
+    "solid principles", "clean code", "domain-driven design", "ddd",
+    "cap theorem", "infrastructure as code", "iac",
+    "configuration management", "blue-green deployment",
+    "canary deployment", "immutable infrastructure", "incident response",
+    "on-call", "runbooks", "routing & switching", "high availability",
+    "disaster recovery",
+}
+
+# Industry certifications -- a specific, named, verifiable credential is
+# exactly as concrete a resume keyword as a tool or a language.
+CERTIFICATIONS = {
+    "aws certified solutions architect", "pmp",
+    "certified kubernetes administrator", "cka", "comptia security+",
 }
 
 TOOLS_TESTING = {
@@ -124,7 +168,7 @@ TOOLS_TESTING = {
     "linkerd", "pulumi",
     # data/ML pipeline and orchestration tools
     "airflow", "spark", "mlflow", "dask", "ray", "tableau", "looker",
-    "sagemaker", "vertex ai",
+    "sagemaker", "vertex ai", "power bi", "teamcity",
     "pytest", "unittest", "googletest", "gtest", "junit", "mocha", "jest",
     "cypress", "selenium", "behave", "cucumber", "playwright",
     "xctest", "espresso", "fastlane", "bitrise",
@@ -139,6 +183,21 @@ TOOLS_TESTING = {
     "continuous deployment", "continuous delivery", "logging",
     "application performance monitoring", "apm",
     "test-driven development", "tdd", "agile", "scrum", "kanban",
+    # QA/SDET
+    "quality assurance", "qa", "manual testing", "automated testing",
+    "appium", "testng", "robot framework",
+    "behavior-driven development", "bdd", "gherkin", "test case design",
+    "test plans", "regression testing", "smoke testing",
+    "black box testing", "white box testing", "exploratory testing",
+    "defect tracking", "test coverage", "boundary value analysis",
+    # performance/load testing
+    "jmeter", "loadrunner", "gatling", "k6", "stress testing",
+    "performance benchmarking",
+    # integration/contract/API testing
+    "contract testing", "pact", "service virtualization", "mock servers",
+    "end-to-end testing", "e2e testing", "api testing", "restassured",
+    "test environment management", "sandbox testing", "soapui",
+    "graphql testing",
 }
 
 # Named fields/technology areas, not a specific product -- "machine
@@ -155,6 +214,18 @@ FIELDS = {
     "mlops", "model fine-tuning", "fine-tuning", "embeddings",
     "dbt", "etl", "elt", "etl/elt", "data warehousing", "data pipelines",
     "a/b testing", "feature flags",
+    # data engineering extras
+    "apache beam", "presto", "trino", "apache nifi", "apache flink",
+    "delta lake", "apache iceberg", "parquet", "avro", "data lake",
+    "data mesh", "data modeling", "star schema", "luigi",
+    "great expectations", "data quality", "data governance",
+    "data catalog", "apache hive", "hdfs", "sqoop",
+    "change data capture", "cdc", "batch processing", "stream processing",
+    "real-time processing",
+    # ML engineering extras
+    "feature engineering", "model deployment", "model serving",
+    "model monitoring", "hyperparameter tuning", "gpu computing",
+    "distributed training", "data labeling", "feature store",
 }
 
 ALL_TECH_NAMES = (
@@ -166,4 +237,5 @@ ALL_TECH_NAMES = (
     | NETWORKING
     | SECURITY
     | ARCHITECTURE_CONCEPTS
+    | CERTIFICATIONS
 )

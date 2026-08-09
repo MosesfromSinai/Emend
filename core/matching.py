@@ -244,6 +244,14 @@ def _is_plausible_keyword(phrase: str) -> bool:
     words = phrase.split()
     if not words or len(words) > MAX_PHRASE_WORDS:
         return False
+    # an exact, curated tech-list entry ("Real-Time Processing", "Batch
+    # Processing") is trusted outright, even when every one of its words
+    # is individually generic enough to fail the noise check below --
+    # otherwise a genuinely named term never reaches _known_technical_span
+    # in extract_keywords at all, since it never survives this far to be
+    # checked against it in the first place.
+    if phrase.lower() in ALL_TECH_NAMES:
+        return True
     return not all(w.lower().strip(".,") in _NOISE_WORDS for w in words)
 
 
