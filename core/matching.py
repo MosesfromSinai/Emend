@@ -702,6 +702,14 @@ _NARRATIVE_FILLER_PHRASES = {
     # real umbrella term, but not one worth surfacing as its own separate
     # line item alongside the more concrete form of the same requirement.
     "rdbms",
+    # "Definition of Done (DoD)" is a team process, not a technology --
+    # this also happens to be the standard abbreviation for "Department of
+    # Defense" (a real, important keyword on defense-industry postings),
+    # written with the exact same lowercase-o casing, so there is no
+    # structural way to tell the two apart. Denylisted anyway on explicit
+    # instruction: a defense-industry false negative here is judged less
+    # costly than this false positive on every other posting.
+    "dod",
     # a company's own internal product/team name, not a technology, even
     # though the JD happens to acronym-define it exactly like a real term
     # would (see "test-driven development (TDD)") -- there's no structural
