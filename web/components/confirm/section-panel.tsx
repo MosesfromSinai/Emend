@@ -766,8 +766,17 @@ function SkillsPanel({
   const setCategory = (category: string, skills: string[]) =>
     onChange({ ...master, skills: { ...master.skills, [category]: skills } });
   const renameCategory = (oldName: string, newName: string) => {
-    const { [oldName]: skills, ...rest } = master.skills;
-    onChange({ ...master, skills: { ...rest, [newName]: skills ?? [] } });
+    if (newName === oldName) return;
+    const { [oldName]: movedSkills, ...rest } = master.skills;
+    // a skills category is keyed by its own display name (unlike a custom
+    // section's stable key + editable heading), so typing a name that
+    // already belongs to a different category is a real collision here --
+    // merging the two lists (deduped) keeps both instead of the previous
+    // behavior, which silently overwrote and permanently lost whichever
+    // category's skills weren't kept.
+    const existing = rest[newName] ?? [];
+    const merged = [...existing, ...(movedSkills ?? []).filter((s) => !existing.includes(s))];
+    onChange({ ...master, skills: { ...rest, [newName]: merged } });
   };
   const removeCategory = (category: string) => {
     const { [category]: _removed, ...rest } = master.skills;
