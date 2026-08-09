@@ -593,15 +593,19 @@ export default function ApplicationPage({
     sessionStorage.removeItem(savedEditsKey(id));
   }
 
-  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf" -- falls back to a plain
-  // "Resume.ext" if the name is missing or has nothing filename-safe in it.
+  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf"; a middle name/initial is dropped
+  // ("Moses A. Vila" -> "Moses_Vila_Resume.pdf") rather than included, so
+  // the filename stays first-and-last regardless of how many words are in
+  // between. Falls back to a plain "Resume.ext" if the name is missing or
+  // has nothing filename-safe in it.
   function resumeFileName(name: string, extension: "pdf" | "tex"): string {
     const parts = name
       .trim()
       .split(/\s+/)
       .map((part) => part.replace(/[^a-zA-Z0-9'-]/g, ""))
       .filter(Boolean);
-    const base = parts.length > 0 ? `${parts.join("_")}_Resume` : "Resume";
+    const firstLast = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : parts;
+    const base = firstLast.length > 0 ? `${firstLast.join("_")}_Resume` : "Resume";
     return `${base}.${extension}`;
   }
 
