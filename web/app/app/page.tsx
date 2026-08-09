@@ -330,6 +330,10 @@ export default function OnboardingPage() {
           Paste it as plain text, or upload a PDF, and we&apos;ll pull out the
           facts and typeset it in LaTeX. Nothing is saved until you confirm.
         </p>
+        <p className="mt-1 text-xs text-em-muted">
+          Don&apos;t have a job posting yet? That&apos;s fine — you can typeset
+          and edit your resume without tailoring to anything.
+        </p>
       </div>
       <ParseError error={error} />
       {fileError && <p className="text-sm text-red-700">{fileError}</p>}
