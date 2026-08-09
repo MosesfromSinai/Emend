@@ -39,6 +39,7 @@ FRAMEWORKS_LIBRARIES = {
     "express.js", "asp.net core", "angular", "angularjs", "vue.js", "vue",
     "fastapi", "spring boot", "spring", "flask", "asp.net", "wordpress",
     "django", "laravel", "svelte", "blazor", "nestjs", "ruby on rails",
+    "marko",
     "rails", "astro", "deno", "symfony", "nuxt.js", "nuxt", "fastify",
     "axum", "phoenix", "drupal", "htmx", "solidjs", "flutter", "quarkus",
     "hugo", "leptos", "react native", "xamarin", "unity", "unreal engine",
@@ -171,7 +172,7 @@ TOOLS_TESTING = {
     # observability/SRE/deployment -- Prometheus's universal pairing
     # partner and the rest of that same toolbox
     "grafana", "opentelemetry", "pagerduty", "argocd", "helm", "istio",
-    "linkerd", "pulumi",
+    "linkerd", "pulumi", "promql",
     # data/ML pipeline and orchestration tools
     "airflow", "spark", "mlflow", "dask", "ray", "tableau", "looker",
     "sagemaker", "vertex ai", "power bi", "teamcity",
@@ -188,14 +189,15 @@ TOOLS_TESTING = {
     "unit/integration testing", "continuous integration", "load testing",
     "continuous deployment", "continuous delivery", "logging",
     "application performance monitoring", "apm",
-    "test-driven development", "tdd", "agile", "scrum", "kanban",
+    "test-driven development", "test driven development", "tdd", "agile",
+    "scrum", "kanban",
     # QA/SDET
     "quality assurance", "qa", "manual testing", "automated testing",
     "appium", "testng", "robot framework",
     "behavior-driven development", "bdd", "gherkin", "test case design",
     "test plans", "regression testing", "smoke testing",
     "black box testing", "white box testing", "exploratory testing",
-    "defect tracking", "test coverage", "boundary value analysis",
+    "defect tracking", "boundary value analysis",
     # performance/load testing
     "jmeter", "loadrunner", "gatling", "k6", "stress testing",
     "performance benchmarking",
@@ -232,6 +234,13 @@ FIELDS = {
     "feature engineering", "model deployment", "model serving",
     "model monitoring", "hyperparameter tuning", "gpu computing",
     "distributed training", "data labeling", "feature store",
+    # broad, standard resume/JD categories -- generic-sounding on their
+    # own, but every one of them names a real, distinct engineering
+    # discipline a candidate either has experience in or doesn't, same as
+    # "cloud computing" or "data engineering" above.
+    "backend", "backend development", "frontend", "frontend development",
+    "full stack", "full stack development", "database", "databases",
+    "debugging",
 }
 
 ALL_TECH_NAMES = (
