@@ -3,19 +3,29 @@
 Keywords are pulled straight out of the posting's own text via a few
 literal, non-ML heuristics below -- never asked of an LLM (unpinned, it
 answers differently call to call for the same text, which made the score
-visibly change across identical re-submissions) and never gated behind a
-fixed dictionary (which caps coverage at whatever someone thought to add
-ahead of time, and misses ordinary phrases like "cross-functional
-collaboration" that never make anyone's tech-skills list).
+visibly change across identical re-submissions).
 
-The tradeoff every keyword tool built this way runs into: a phrase only
-counts if the posting states it as its own short, literal unit -- a bullet
-line, an item in a comma-separated list after a lead-in like "experience
-with", or a Capitalized proper-noun-looking phrase. We do not paraphrase,
-normalize, or infer a requirement the posting doesn't literally state,
-because that's exactly the class of bug where a keyword "clearly in the
-resume" still gets flagged as missing -- the extraction and the matching
-stop agreeing on what the phrase actually looked like.
+Two passes: the heuristics below first find *candidate* phrases using
+purely structural signals (a bullet line, an item in a comma-separated
+list after a lead-in like "experience with", a Capitalized proper-noun-
+looking run, a hyphen/slash compound). Then every candidate is gated
+against core/tech_names.py's curated list of real languages/frameworks/
+libraries/platforms/tools/named-concepts before it's allowed to survive.
+That gate exists because no structural rule can tell "Docker" (a tool)
+from "Monte Carlo" (a named mathematical technique) apart -- both are an
+ordinary capitalized proper noun, and no rule can tell "real-time
+systems" from "machine learning frameworks" apart on shape alone either.
+A bare acronym-shaped token (GNC, HITL, C++) or a phrase the posting
+itself acronym-defines ("High-performance computing (HPC)") bypasses the
+gate, since both are reliable enough signals on their own.
+
+We do not paraphrase, normalize, or infer a requirement the posting
+doesn't literally state, because that's exactly the class of bug where a
+keyword "clearly in the resume" still gets flagged as missing -- the
+extraction and the matching stop agreeing on what the phrase actually
+looked like. A phrase that's only partly recognized is trimmed down to
+the recognized span, not kept whole and not discarded outright -- see
+_known_technical_span.
 """
 
 import re
