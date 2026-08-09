@@ -1,7 +1,8 @@
 import uuid
 from pathlib import Path
 
-from api.tests.test_applications import FAKE_TEX, confirm_master, pipeline  # noqa: F401
+from api.tests.conftest import FAKE_TEX
+from api.tests.test_applications import confirm_master
 
 
 def _make_version(client, master):
