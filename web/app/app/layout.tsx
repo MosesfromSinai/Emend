@@ -18,18 +18,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // changes what's actually visible, so a static 100vh can be taller than
     // the real viewport and clip content -- dvh tracks the true visible area.
     <div className="flex h-dvh flex-col">
-      <header className="z-40 shrink-0 border-b border-em-line bg-paper/94 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-390 items-center gap-6 px-7 py-3">
-          <Link href="/" className="text-[12.5px] font-medium text-ink/60 hover:text-ink">
-            ← Back to home
+      <header className="z-40 shrink-0 overflow-x-auto border-b border-em-line bg-paper/94 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-390 items-center gap-6 px-4 py-3 sm:px-7">
+          <Link
+            href="/"
+            className="shrink-0 text-[12.5px] font-medium text-ink/60 hover:text-ink"
+          >
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">← Back to home</span>
           </Link>
-          <Link href="/app" className="font-serif text-[17px] font-semibold text-ink">
+          <Link
+            href="/app"
+            className="shrink-0 font-serif text-[17px] font-semibold text-ink"
+          >
             Emend
           </Link>
           <Suspense fallback={null}>
             <AppStepper />
           </Suspense>
-          <div className="ml-auto flex items-center gap-5">
+          <div className="ml-auto flex shrink-0 items-center gap-5">
             <Link href="/app/history" className="text-[12.5px] font-medium text-ink/70 hover:text-ink">
               History
             </Link>
