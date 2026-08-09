@@ -396,6 +396,35 @@ def _proper_noun_phrases(text: str) -> list[str]:
     return found
 
 
+# "High-performance computing (HPC) background:" -- when a posting spells
+# a term out AND gives its own acronym for it, that's the posting itself
+# defining a real, discrete named thing (an author doesn't bother
+# acronym-defining a vague narrative phrase), so the spelled-out form is
+# trusted here even where the general noise-word rules above would
+# otherwise treat "computing" as too generic to keep. This is the one
+# place matching.py resolves which literal form to use when a JD gives
+# both -- not by preferring one shape over the other, but by requiring
+# the posting's own acronym to actually match the phrase's own initials.
+_ACRONYM_DEFINITION = re.compile(r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6})\)")
+
+
+def _acronym_initials(words: list[str]) -> str:
+    return "".join(segment[0] for word in words for segment in word.split("-") if segment).upper()
+
+
+def _phrases_from_acronym_definitions(text: str) -> list[str]:
+    found = []
+    for match in _ACRONYM_DEFINITION.finditer(text):
+        words = match.group(1).split()
+        acronym = match.group(2)
+        for start in range(len(words)):
+            phrase_words = words[start:]
+            if _acronym_initials(phrase_words) == acronym:
+                found.append(" ".join(phrase_words))
+                break
+    return found
+
+
 _PAREN_CONTENT = re.compile(r"\(([^()]{1,150})\)")
 _PAREN_ASIDE_PREFIX = re.compile(
     r"^(?:e\.g\.,?|i\.e\.,?|such\s+as|including|think)\s*", re.IGNORECASE
@@ -560,6 +589,9 @@ _NARRATIVE_FILLER_PHRASES = {
     # passes _looks_like_acronym on that basis alone, but it names a
     # degree field ("Bachelor's in a STEM discipline"), not a technology.
     "stem",
+    # domain-specific team/discipline acronyms too narrow to generalize as
+    # a resume-worthy skill outside this one posting's own org chart
+    "gnc", "stl",
 }
 
 # Almost every US job posting ends with the same non-technical tail:
@@ -633,6 +665,11 @@ def extract_keywords(text: str) -> list[str]:
     (every result is a real substring of `text`, first-seen order, capped
     at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
     text = _strip_boilerplate_tail(text)
+    # A phrase the posting itself acronym-defines is trusted outright,
+    # bypassing the tech-names gate below -- see _phrases_from_acronym_
+    # definitions for why that structural signal is reliable on its own.
+    acronym_defined = _phrases_from_acronym_definitions(text)
+    acronym_defined_keys = {p.lower() for p in acronym_defined}
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
     # round-robined one-per-heuristic instead of concatenated -- a strict
@@ -647,6 +684,7 @@ def extract_keywords(text: str) -> list[str]:
     ]
     candidates = [
         *_proper_noun_phrases(text),
+        *acronym_defined,
         *(
             phrase
             for round_ in zip_longest(*other_buckets)
@@ -661,7 +699,7 @@ def extract_keywords(text: str) -> list[str]:
         if (
             key not in seen
             and key not in _NARRATIVE_FILLER_PHRASES
-            and _is_known_technical(phrase)
+            and (key in acronym_defined_keys or _is_known_technical(phrase))
         ):
             seen.add(key)
             deduped.append(phrase)
