@@ -100,6 +100,42 @@ class Education(BaseModel):
     coursework: list[str]
 
 
+# A user-named section for content that doesn't fit Education/Experience/
+# Projects/Skills -- "Research Experience", "Certifications", "Volunteer
+# Work". Deliberately never AI-tailored: an entry's facts always render as
+# literal confirmed text, the same way Education already does today, so it
+# carries none of the grounding/judging machinery Experience/Project do.
+# `facts` is still a `list[Fact]` (not plain strings) so the existing
+# fact-editing UI and JD keyword matching (`fact_lookup`) work unchanged.
+class CustomEntry(BaseModel):
+    id: str
+    title: str
+    subtitle: str = ""
+    location: str = ""
+    start: str = ""
+    end: str = ""
+    facts: list[Fact] = []
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value: str) -> str:
+        return _validate_section_id(value)
+
+    @model_validator(mode="after")
+    def validate_fact_prefixes(self) -> "CustomEntry":
+        _validate_fact_prefix(self.id, self.facts)
+        return self
+
+
+_RESERVED_SECTION_KEYS = {"EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"}
+
+
+class CustomSection(BaseModel):
+    key: str  # internal id for section_order/text_overrides -- never shown to the user
+    heading: str  # the user's own label, e.g. "Research Experience"
+    entries: list[CustomEntry] = []
+
+
 class MasterResume(BaseModel):
     name: str
     email: str
@@ -109,20 +145,33 @@ class MasterResume(BaseModel):
     experiences: list[Experience]
     projects: list[Project]
     skills: dict[str, list[str]]
+    custom_sections: list[CustomSection] = []
+
+    def _custom_entries(self) -> list[CustomEntry]:
+        return [entry for section in self.custom_sections for entry in section.entries]
 
     @model_validator(mode="after")
     def validate_unique_section_ids(self) -> "MasterResume":
         seen: set[str] = set()
-        for section in [*self.experiences, *self.projects]:
+        for section in [*self.experiences, *self.projects, *self._custom_entries()]:
             if section.id in seen:
                 raise ValueError(f"duplicate section id: {section.id}")
             seen.add(section.id)
         return self
 
+    @model_validator(mode="after")
+    def validate_unique_custom_section_keys(self) -> "MasterResume":
+        seen: set[str] = set(_RESERVED_SECTION_KEYS)
+        for section in self.custom_sections:
+            if section.key in seen:
+                raise ValueError(f"duplicate or reserved section key: {section.key}")
+            seen.add(section.key)
+        return self
+
     def fact_lookup(self) -> dict[str, Fact]:
         """Return every confirmed fact keyed by its id."""
         facts: dict[str, Fact] = {}
-        for section in [*self.experiences, *self.projects]:
+        for section in [*self.experiences, *self.projects, *self._custom_entries()]:
             for fact in section.facts:
                 if fact.id in facts:
                     raise ValueError(f"duplicate fact id: {fact.id}")
