@@ -602,7 +602,18 @@ export default function ApplicationPage({
     const parts = name
       .trim()
       .split(/\s+/)
-      .map((part) => part.replace(/[^a-zA-Z0-9'-]/g, ""))
+      // NFKD splits an accented letter into its base letter + a separate
+      // combining mark ("é" -> "e" + ́), so stripping the marks first
+      // turns "José" into a readable "Jose" instead of a mangled "Jos" --
+      // a name in a script with no Latin decomposition at all (Chinese,
+      // Arabic...) still strips to nothing and correctly falls through to
+      // the plain "Resume.ext" fallback below, same as an empty name.
+      .map((part) =>
+        part
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9'-]/g, "")
+      )
       .filter(Boolean);
     const firstLast = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : parts;
     const base = firstLast.length > 0 ? `${firstLast.join("_")}_Resume` : "Resume";
