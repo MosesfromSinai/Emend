@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AppStepper } from "@/components/app-stepper";
+import { DeleteDataButton } from "@/components/delete-data-button";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -28,9 +29,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Suspense fallback={null}>
             <AppStepper />
           </Suspense>
-          <Link href="/app/history" className="ml-auto text-[12.5px] font-medium text-ink/70 hover:text-ink">
-            History
-          </Link>
+          <div className="ml-auto flex items-center gap-5">
+            <Link href="/app/history" className="text-[12.5px] font-medium text-ink/70 hover:text-ink">
+              History
+            </Link>
+            <DeleteDataButton />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-390 flex-1 overflow-y-auto px-7 py-8">{children}</main>
