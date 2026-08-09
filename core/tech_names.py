@@ -23,14 +23,14 @@ matching.py compare against a candidate phrase's own lowercased text.
 """
 
 LANGUAGES = {
-    "javascript", "html", "css", "html/css", "sql", "python", "bash",
-    "shell", "bash/shell", "typescript", "java", "c#", "c++", "powershell",
-    "c", "php", "go", "golang", "rust", "kotlin", "lua", "assembly",
-    "ruby", "dart", "swift", "r", "groovy", "visual basic", "vba",
-    "matlab", "perl", "gdscript", "elixir", "scala", "delphi", "lisp",
-    "micropython", "zig", "erlang", "fortran", "ada", "f#", "ocaml",
-    "gleam", "prolog", "cobol", "mojo", "haskell", "julia", "clojure",
-    "objective-c", "nix", "solidity", "sas",
+    "javascript", "html", "css", "html/css", "html5", "css3", "sql",
+    "python", "bash", "shell", "bash/shell", "shell scripting",
+    "typescript", "java", "c#", "c++", "powershell", "c", "php", "go",
+    "golang", "rust", "kotlin", "lua", "assembly", "ruby", "dart", "swift",
+    "r", "groovy", "visual basic", "vba", "matlab", "perl", "gdscript",
+    "elixir", "scala", "delphi", "lisp", "micropython", "zig", "erlang",
+    "fortran", "ada", "f#", "ocaml", "gleam", "prolog", "cobol", "mojo",
+    "haskell", "julia", "clojure", "objective-c", "nix", "solidity", "sas",
 }
 
 FRAMEWORKS_LIBRARIES = {
@@ -51,6 +51,12 @@ FRAMEWORKS_LIBRARIES = {
     "sqlalchemy", "hibernate", "prisma", "sequelize", "pydantic",
     "typeorm", "entity framework", "graphql", "apollo", "grpc", "protobuf",
     "polars", "langgraph", "langchain", "shadcn/ui", "shadcn",
+    ".net", "rest api", "rest apis", "restful api", "restful apis",
+    "material ui", "material-ui", "chakra ui", "eslint", "prettier",
+    "sass", "scss", "sass/scss", "webassembly", "wasm", "three.js",
+    "threejs", "android sdk", "openai api", "anthropic api",
+    "pinecone", "weaviate", "faiss", "vector database", "vector databases",
+    "openai", "anthropic",
 }
 
 SYSTEMS_PLATFORMS = {
@@ -73,6 +79,35 @@ SYSTEMS_PLATFORMS = {
     "kafka", "rabbitmq", "celery", "memcached",
     # mobile-specific frameworks/runtimes
     "swiftui", "jetpack compose", "core data", "room", "dagger", "hilt",
+    "serverless", "aws lambda", "azure functions", "hadoop",
+    "apache hadoop",
+}
+
+# Protocols and network-layer terms -- as concretely nameable as a
+# database or a language, just from a different layer of the stack.
+NETWORKING = {
+    "websockets", "tcp/ip", "http", "https", "http/https", "dns",
+    "load balancing", "nginx", "apache http server",
+}
+
+# Security-specific standards/practices -- named things a candidate
+# either knows or doesn't, same as a testing framework.
+SECURITY = {
+    "oauth", "oauth 2.0", "jwt", "sso", "tls", "ssl", "tls/ssl", "owasp",
+    "penetration testing", "encryption", "zero trust", "iam",
+}
+
+# Named software-design concepts and patterns -- unlike a vague paradigm
+# adjective ("scalable", "real-time") paired with a generic noun, each of
+# these is a specific, well-defined term with its own established name
+# that a CS curriculum and a resume's own "Concepts" section both use.
+ARCHITECTURE_CONCEPTS = {
+    "microservices", "monolith", "event-driven architecture", "oop",
+    "object-oriented programming", "system design", "api design", "mvc",
+    "design patterns", "data structures", "algorithms",
+    "data structures & algorithms", "data structures and algorithms",
+    "distributed systems", "concurrency", "multithreading",
+    "multi-threading", "blockchain", "smart contracts", "web3",
 }
 
 TOOLS_TESTING = {
@@ -100,8 +135,9 @@ TOOLS_TESTING = {
     "jupyter notebook", "sublime text", "xcode", "webstorm", "eclipse",
     "phpstorm", "emacs", "clion", "goland", "rubymine", "rstudio",
     "unit testing", "integration testing", "unit & integration testing",
-    "unit/integration testing", "continuous integration",
-    "continuous deployment", "continuous delivery",
+    "unit/integration testing", "continuous integration", "load testing",
+    "continuous deployment", "continuous delivery", "logging",
+    "application performance monitoring", "apm",
     "test-driven development", "tdd", "agile", "scrum", "kanban",
 }
 
@@ -115,9 +151,19 @@ FIELDS = {
     "generative ai", "neural network", "neural networks",
     "reinforcement learning", "data science", "data engineering",
     "cloud computing", "devops", "site reliability engineering", "sre",
-    "retrieval-augmented generation", "rag",
+    "retrieval-augmented generation", "rag", "prompt engineering",
+    "mlops", "model fine-tuning", "fine-tuning", "embeddings",
+    "dbt", "etl", "elt", "etl/elt", "data warehousing", "data pipelines",
+    "a/b testing", "feature flags",
 }
 
 ALL_TECH_NAMES = (
-    LANGUAGES | FRAMEWORKS_LIBRARIES | SYSTEMS_PLATFORMS | TOOLS_TESTING | FIELDS
+    LANGUAGES
+    | FRAMEWORKS_LIBRARIES
+    | SYSTEMS_PLATFORMS
+    | TOOLS_TESTING
+    | FIELDS
+    | NETWORKING
+    | SECURITY
+    | ARCHITECTURE_CONCEPTS
 )
