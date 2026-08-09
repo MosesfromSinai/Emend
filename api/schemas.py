@@ -84,8 +84,9 @@ class RenderRequest(BaseModel):
     # up/down moves on an entry's header -- None means no override
     experience_order: list[str] | None = None
     project_order: list[str] | None = None
-    # the full ordered list of the four top-level section keys ("EDUCATION",
-    # "EXPERIENCE", "PROJECTS", "SKILLS") after the user reorders them on
+    # the full ordered list of top-level section keys -- the four fixed
+    # ones ("EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS") plus one per
+    # custom section (by its own `key`) -- after the user reorders them on
     # Export -- None or a partial/unrecognized list falls back to the
     # default relative order for whatever's missing
     section_order: list[str] | None = None

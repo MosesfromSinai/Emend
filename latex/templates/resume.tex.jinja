@@ -169,6 +169,24 @@
      \BLOCK{endfor}
     }}
  \end{itemize}
+\BLOCK{elif section_key in custom_by_key and custom_by_key[section_key].entries}
+%-----------CUSTOM SECTION-----------
+\section{\VAR{custom_by_key[section_key].heading}}
+  \resumeSubHeadingListStart
+    \BLOCK{for entry in custom_by_key[section_key].entries}
+    \resumeSubheading
+      {\VAR{entry.title}}{\VAR{entry.dates}}
+      {\VAR{entry.subtitle}}{\VAR{entry.location}}
+    \BLOCK{if entry.bullets}
+      \resumeItemListStart
+        \BLOCK{for bullet in entry.bullets}
+        % grounded: \VAR{bullet.grounded}
+        \resumeItem{\VAR{bullet.text}}
+        \BLOCK{endfor}
+      \resumeItemListEnd
+    \BLOCK{endif}
+    \BLOCK{endfor}
+  \resumeSubHeadingListEnd
 \BLOCK{endif}
 \BLOCK{endfor}
 
