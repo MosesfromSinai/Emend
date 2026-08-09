@@ -37,7 +37,13 @@ from core.tech_names import ALL_TECH_NAMES
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
-MAX_KEYWORDS = 20
+# A rich modern SWE posting routinely names 20-30 distinct real
+# technologies on its own (languages, frameworks, datastores, testing
+# tools...) -- capping well below that silently drops legitimate,
+# already-curated keywords (a real "microservices" mention, say) in favor
+# of whichever ones happened to be produced by an earlier-priority
+# heuristic, purely because the document had a lot of named proper nouns.
+MAX_KEYWORDS = 30
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
@@ -360,7 +366,7 @@ def _phrases_from_lead_in_lists(text: str) -> list[str]:
     return found
 
 
-_MAX_LINE_CHARS = 100
+_MAX_LINE_CHARS = 300
 
 
 def _phrases_from_short_lines(text: str) -> list[str]:
@@ -373,7 +379,13 @@ def _phrases_from_short_lines(text: str) -> list[str]:
     all is exactly ONE "line" per splitlines(), so without it, a whole
     multi-thousand-character flattened page that simply doesn't happen to
     end in a period would get treated as one giant bullet and shredded on
-    every comma/and/or in the entire document.
+    every comma/and/or in the entire document. 300 rather than something
+    tighter because a real single numbered requirement routinely runs
+    150-250 characters on its own ("Experience developing large-scale
+    backend applications using Java, C#, ... (1 year)") -- a cap that
+    excludes those throws out real bulleted requirements to guard against
+    a failure mode (a multi-thousand-character unbroken page) it doesn't
+    even need to be this tight to catch.
     """
     found = []
     for raw_line in text.splitlines():
@@ -453,7 +465,13 @@ def _acronym_initials(words: list[str]) -> str:
     return "".join(segment[0] for word in words for segment in word.split("-") if segment).upper()
 
 
-def _phrases_from_acronym_definitions(text: str) -> list[str]:
+def _phrases_from_acronym_definitions(text: str) -> list[tuple[str, str]]:
+    """Every (spelled-out phrase, ACRONYM) pair the posting itself defines,
+    e.g. ("test-driven development", "TDD") from "test-driven development
+    (TDD)". Kept as pairs, not just the phrase, so extract_keywords can
+    rebuild "phrase (ACRONYM)" as the one canonical keyword instead of the
+    spelled-out form and the bare acronym surfacing as two separate,
+    redundant entries for what's the same requirement."""
     found = []
     for match in _ACRONYM_DEFINITION.finditer(text):
         words = match.group(1).split()
@@ -461,7 +479,7 @@ def _phrases_from_acronym_definitions(text: str) -> list[str]:
         for start in range(len(words)):
             phrase_words = words[start:]
             if _acronym_initials(phrase_words) == acronym:
-                found.append(" ".join(phrase_words))
+                found.append((" ".join(phrase_words), acronym))
                 break
     return found
 
@@ -658,7 +676,62 @@ _NARRATIVE_FILLER_PHRASES = {
     # real tech acronym, but a degree ("BS/MS/PhD in Computer Science") or
     # a bare, too-generic-to-name-alone abbreviation, not a technology
     "phd", "ms", "bs", "ba", "mba", "ui", "ip",
+    # "EOE, including disability/vets." is standalone legal shorthand for
+    # "Equal Opportunity Employer" that shows up ahead of the fuller EEO/
+    # affirmative-action paragraph _strip_boilerplate_tail cuts at -- same
+    # acronym shape as a real tech term, same non-technical intent as the
+    # tail it precedes.
+    "eoe", "eeo",
+    # "such as PTO and parental leave" -- a benefits-section acronym, not a
+    # technology, with the same short-and-uppercase shape as a real one.
+    "pto",
+    # "M-F, 9:00 a.m. to 5:00 p.m." -- a work-schedule abbreviation
+    # (Monday-Friday), shaped exactly like a real hyphenated compound term.
+    "m-f",
+    # one half of a slash-joined pair ("CI/CD", "OOA/D") that a generic
+    # comma/slash list-splitter shreds apart before the curated whole
+    # ("ci/cd") or the fuller spelled-out form ever gets a look -- each
+    # half read alone is either meaningless (a bare "OOA") or genuinely
+    # ambiguous outside its pair (bare "CD" reads as "compact disc" as
+    # readily as "continuous deployment"). The joined form and the fully
+    # spelled-out phrases are curated in tech_names.py already and aren't
+    # affected by denylisting the bare halves here.
+    "ci", "cd", "ooa",
+    # "RDBMS" alone reads as noise/clutter next to the more specific "SQL
+    # databases"/"database" a posting almost always also yields -- it's a
+    # real umbrella term, but not one worth surfacing as its own separate
+    # line item alongside the more concrete form of the same requirement.
+    "rdbms",
+    # "Definition of Done (DoD)" is a team process, not a technology --
+    # this also happens to be the standard abbreviation for "Department of
+    # Defense" (a real, important keyword on defense-industry postings),
+    # written with the exact same lowercase-o casing, so there is no
+    # structural way to tell the two apart. Denylisted anyway on explicit
+    # instruction: a defense-industry false negative here is judged less
+    # costly than this false positive on every other posting.
+    "dod",
+    # a company's own internal product/team name, not a technology, even
+    # though the JD happens to acronym-define it exactly like a real term
+    # would (see "test-driven development (TDD)") -- there's no structural
+    # way to tell the two apart, so this is a one-off, not a pattern.
+    "value-added services",
 }
+
+# A bare US state postal code ("CA" from "San Jose, CA") is the same shape
+# as a real acronym and sits right next to genuine short-line candidates in
+# a posting's own location line, but it is never itself a claimable skill.
+# Kept separate from _NARRATIVE_FILLER_PHRASES (a different kind of
+# judgment call -- this one is a closed, complete list, not a per-posting
+# exclusion) but checked the same way, everywhere that set is.
+_US_STATE_CODES = {
+    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+    "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
+    "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
+    "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
+    "wi", "wy", "dc",
+}
+
+_KEYWORD_DENYLIST = _NARRATIVE_FILLER_PHRASES | _US_STATE_CODES
 
 # Almost every US job posting ends with the same non-technical tail:
 # compensation/benefits, then legal/export-control/EEO boilerplate. None of
@@ -693,6 +766,46 @@ def _strip_boilerplate_tail(text: str) -> str:
     return text[: match.start()] if match else text
 
 
+# A numbered requirement line routinely ends "...(1 year)" / "(2+ years)" --
+# an experience-level annotation, never part of the requirement itself. Left
+# in, it silently defeats _clean_phrase's unbalanced-trailing-")" check: a
+# requirement line that itself ends with a real parenthetical example list,
+# e.g. "...(agile methodologies, Test Driven Development, CI/CD) (1 year)",
+# has that annotation's own balanced "(...)" make the *earlier*, genuinely
+# stray ")" a comma-split shredded off (from "CI/CD)") look "balanced" by
+# something -- just the wrong something. Stripped before any candidate
+# generation runs, so every heuristic below sees a cleanly-closed aside.
+_EXPERIENCE_YEARS_ANNOTATION = re.compile(r"\(\s*\d+(?:\.\d+)?\+?\s*years?\s*\)", re.IGNORECASE)
+
+
+# Every heuristic above only looks for a specific structural shape (a short
+# line, a comma list, a parenthetical, a Capitalized run) -- none of them
+# ever look at plain lowercase prose sitting mid-paragraph, so a real,
+# already-curated multi-word term written that way ("Leverage JUnit for
+# unit testing and TestNG for crafting integration tests...") is invisible
+# to all of them at once. Being on the curated list is already the bar
+# every other heuristic's output has to clear before it survives -- an
+# exact match found by scanning the raw text directly clears that same bar
+# by construction, so it can be trusted the same way. Restricted to
+# multi-word names: a single curated word turning up anywhere in running
+# prose is far likelier to just be that ordinary word, and single-word
+# terms are already well covered by the proper-noun/acronym heuristics.
+_MULTIWORD_TECH_PATTERNS = [
+    re.compile(r"(?<!\w)" + re.escape(name) + r"(?!\w)", re.IGNORECASE)
+    for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n), n))
+    if " " in name
+]
+
+
+def _phrases_from_direct_scan(text: str) -> list[str]:
+    found = []
+    for pattern in _MULTIWORD_TECH_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            found.append(match.group(0))
+    return found
+
+
 # No structural rule can tell "Docker" (a tool) from "Monte Carlo" (a
 # named mathematical technique) apart -- both are a plain capitalized
 # proper noun, or "multi-body dynamics" (a physics concept) from a real
@@ -713,7 +826,12 @@ def _looks_like_acronym(phrase: str) -> bool:
     if " " in phrase:
         return False
     letters = [c for c in phrase if c.isalpha()]
-    if not letters or len(letters) > _ACRONYM_MAX_LETTERS:
+    # a bare single letter ("D" out of a shredded "OOA/D") is never a
+    # trustworthy standalone acronym signal on its own -- the rare real
+    # single-letter language names ("C", "R") are already curated in
+    # tech_names.py and matched by the exact-name check that runs before
+    # this bypass, so they never depend on it in the first place.
+    if len(letters) < 2 or len(letters) > _ACRONYM_MAX_LETTERS:
         return False
     if any(c in "+#" for c in phrase):
         return True
@@ -792,11 +910,20 @@ def extract_keywords(text: str) -> list[str]:
     (every result is a real substring of `text`, first-seen order, capped
     at MAX_KEYWORDS so a long posting doesn't flood the score card)."""
     text = _strip_boilerplate_tail(text)
+    text = _EXPERIENCE_YEARS_ANNOTATION.sub("", text)
     # A phrase the posting itself acronym-defines is trusted outright,
     # bypassing the tech-names gate below -- see _phrases_from_acronym_
     # definitions for why that structural signal is reliable on its own.
-    acronym_defined = _phrases_from_acronym_definitions(text)
-    acronym_defined_keys = {p.lower() for p in acronym_defined}
+    # "phrase (ACRONYM)" is kept as the one canonical form for it: the bare
+    # acronym ("TDD") and the bare spelled-out phrase ("test-driven
+    # development") both collapse into this form below rather than
+    # surfacing as separate, redundant keywords for the same requirement.
+    acronym_defined_pairs = _phrases_from_acronym_definitions(text)
+    acronym_defined_keys = {phrase.lower() for phrase, _ in acronym_defined_pairs}
+    canonical_acronym_form = {
+        phrase.lower(): f"{phrase} ({acronym})" for phrase, acronym in acronym_defined_pairs
+    }
+    defined_acronyms = {acronym for _, acronym in acronym_defined_pairs}
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
     # round-robined one-per-heuristic instead of concatenated -- a strict
@@ -808,10 +935,11 @@ def extract_keywords(text: str) -> list[str]:
         _phrases_from_lead_in_lists(text),
         _phrases_from_parentheticals(text),
         _phrases_from_short_lines(text),
+        _phrases_from_direct_scan(text),
     ]
     candidates = [
         *_proper_noun_phrases(text),
-        *acronym_defined,
+        *(phrase for phrase, _ in acronym_defined_pairs),
         *(
             phrase
             for round_ in zip_longest(*other_buckets)
@@ -824,10 +952,14 @@ def extract_keywords(text: str) -> list[str]:
     for phrase in candidates:
         key = phrase.lower()
         if key in acronym_defined_keys:
-            kept = phrase if key not in _NARRATIVE_FILLER_PHRASES else None
+            kept = canonical_acronym_form[key] if key not in _KEYWORD_DENYLIST else None
+        elif phrase.upper() in defined_acronyms:
+            # the posting's own acronym for a phrase already captured above
+            # as "phrase (ACRONYM)" -- same requirement, not a second one
+            kept = None
         else:
             span = _known_technical_span(phrase)
-            kept = span if span and span.lower() not in _NARRATIVE_FILLER_PHRASES else None
+            kept = span if span and span.lower() not in _KEYWORD_DENYLIST else None
         if kept is None:
             continue
         kept_key = kept.lower()

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FactTag } from "@/components/ui/fact-tag";
 import { Input } from "@/components/ui/input";
+import { MonthInput } from "@/components/ui/month-input";
 import { StringList } from "@/components/string-list";
 import { masterToSections, type PaperSection } from "@/components/resume-paper";
 import { hasMetric } from "@/lib/fact-metrics";
@@ -363,25 +364,24 @@ function ExperiencePanel({
               placeholder="Title"
               className="w-auto flex-1"
             />
-            <Input
+            <MonthInput
               value={exp.start}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = [...master.experiences];
-                next[index] = { ...exp, start: e.target.value };
+                next[index] = { ...exp, start: v };
                 update(next);
               }}
               placeholder="Start"
-              className="w-24"
             />
-            <Input
+            <MonthInput
               value={exp.end}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = [...master.experiences];
-                next[index] = { ...exp, end: e.target.value };
+                next[index] = { ...exp, end: v };
                 update(next);
               }}
               placeholder="End"
-              className="w-24"
+              allowPresent
             />
             <button
               type="button"
@@ -656,25 +656,24 @@ function CustomSectionPanel({
               placeholder="Organization"
               className="w-auto flex-1"
             />
-            <Input
+            <MonthInput
               value={entry.start}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = [...section.entries];
-                next[index] = { ...entry, start: e.target.value };
+                next[index] = { ...entry, start: v };
                 update(next);
               }}
               placeholder="Start"
-              className="w-24"
             />
-            <Input
+            <MonthInput
               value={entry.end}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = [...section.entries];
-                next[index] = { ...entry, end: e.target.value };
+                next[index] = { ...entry, end: v };
                 update(next);
               }}
               placeholder="End"
-              className="w-24"
+              allowPresent
             />
             <button
               type="button"

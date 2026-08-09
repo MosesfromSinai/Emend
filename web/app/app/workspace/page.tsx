@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
+import { AsymptoticProgress } from "@/components/tailoring-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -252,7 +253,10 @@ export default function WorkspacePage() {
             ) : previewError ? (
               <p className="text-sm text-red-700">{previewError}</p>
             ) : previewBusy ? (
-              <p className="text-sm text-ink/60">Scoring against your resume…</p>
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-ink/60">Scoring against your resume…</p>
+                <AsymptoticProgress timeConstantMs={1_500} />
+              </div>
             ) : (
               <div>
                 <h3 className="font-serif text-lg font-semibold">
