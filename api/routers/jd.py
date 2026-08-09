@@ -26,6 +26,8 @@ def preview_jd(body: JdPreviewRequest, session: CurrentSession, db: DB) -> JdPre
             jd_text = core_bridge.fetch_jd_text(body.jd_url)
         except httpx.HTTPError as e:
             raise ApiError(422, "jd_fetch_failed", f"Could not fetch job posting URL: {e}") from e
+        except core_bridge.JdUrlBlockedError as e:
+            raise ApiError(422, "jd_url_blocked", str(e)) from e
     else:
         jd_text = body.jd_text
 

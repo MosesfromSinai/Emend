@@ -318,6 +318,7 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
 
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
     class FakeResponse:
+        is_redirect = False
         text = (
             "<html><body><nav>skip me</nav>"
             "<main>We need a backend engineer with Python.</main></body></html>"

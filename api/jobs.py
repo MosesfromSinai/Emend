@@ -83,6 +83,11 @@ def _run(session, app_row: Application) -> None:
             app_row.error = f"Could not fetch job posting URL: {e}"
             session.commit()
             return
+        except core_bridge.JdUrlBlockedError as e:
+            app_row.status = "failed"
+            app_row.error = str(e)
+            session.commit()
+            return
     elif app_row.jd_text is not None:
         jd_text = app_row.jd_text
 
