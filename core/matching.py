@@ -838,6 +838,14 @@ def _looks_like_acronym(phrase: str) -> bool:
     return sum(c.isupper() for c in letters) / len(letters) >= 0.6
 
 
+def _strip_wrapping_parens(phrase: str) -> str:
+    """"(GNC)" -> "GNC" when the parens wrap the entire phrase and nothing
+    else -- still a literal substring of the source text either way."""
+    if phrase.startswith("(") and phrase.endswith(")") and phrase.count("(") == 1:
+        return phrase[1:-1].strip()
+    return phrase
+
+
 def _known_technical_span(phrase: str) -> str | None:
     """None if nothing in `phrase` is a known technology; otherwise the
     longest recognized contiguous span, in the phrase's own original
@@ -861,6 +869,14 @@ def _known_technical_span(phrase: str) -> str | None:
     silently breaking the "same text, same output every time" guarantee
     this whole module exists to provide.
     """
+    # a candidate that's nothing but "(X)" -- some upstream heuristic
+    # grabbed just the parenthetical off "...Guidance Navigation Control
+    # (GNC) required", not the phrase it was defining -- is unwrapped down
+    # to "X" before every check below, the same denylisted/curated-name
+    # checks a bare "GNC" already goes through elsewhere. Still a literal
+    # substring of the source text either way, since "GNC" sits right
+    # there inside "(GNC)".
+    phrase = _strip_wrapping_parens(phrase)
     if phrase.lower() in ALL_TECH_NAMES or _looks_like_acronym(phrase):
         return phrase
     words = phrase.split()
@@ -901,7 +917,12 @@ def _known_technical_span(phrase: str) -> str | None:
                 best_start, best_len = run_start, run_len
         else:
             run_len = 0
-    return " ".join(words[best_start : best_start + best_len])
+    # the matched run can be a single word that still carries its own
+    # enclosing parens ("(GNC)" matched via the lone-acronym fallback
+    # above) -- stripped the same way the whole-phrase case at the top of
+    # this function is, so a denylist/curated-name check downstream keyed
+    # on the bare acronym isn't defeated by leftover punctuation.
+    return _strip_wrapping_parens(" ".join(words[best_start : best_start + best_len]))
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -923,6 +944,11 @@ def extract_keywords(text: str) -> list[str]:
     canonical_acronym_form = {
         phrase.lower(): f"{phrase} ({acronym})" for phrase, acronym in acronym_defined_pairs
     }
+    # the acronym half of each pair, keyed the same way -- checked against
+    # the denylist alongside the spelled-out phrase below, so a posting that
+    # spells out an excluded acronym ("Guidance Navigation Control (GNC)")
+    # can't smuggle it back in just by writing it out in full
+    acronym_by_key = {phrase.lower(): acronym for phrase, acronym in acronym_defined_pairs}
     defined_acronyms = {acronym for _, acronym in acronym_defined_pairs}
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
@@ -952,7 +978,8 @@ def extract_keywords(text: str) -> list[str]:
     for phrase in candidates:
         key = phrase.lower()
         if key in acronym_defined_keys:
-            kept = canonical_acronym_form[key] if key not in _KEYWORD_DENYLIST else None
+            denied = key in _KEYWORD_DENYLIST or acronym_by_key[key].lower() in _KEYWORD_DENYLIST
+            kept = None if denied else canonical_acronym_form[key]
         elif phrase.upper() in defined_acronyms:
             # the posting's own acronym for a phrase already captured above
             # as "phrase (ACRONYM)" -- same requirement, not a second one
