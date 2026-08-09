@@ -43,8 +43,8 @@ def test_entity_prefix_keeps_a_name_whose_camel_tail_is_too_short():
 def test_fix_name_casing_capitalizes_an_all_lowercase_word():
     # a small-caps-styled PDF header extracts as lowercase text ("vila")
     # even though the resume visibly reads "Vila"
-    assert _fix_name_casing("Moses A. vila") == "Moses A. Vila"
-    assert _fix_name_casing("moses a. vila") == "Moses A. Vila"
+    assert _fix_name_casing("Sam A. vila") == "Sam A. Vila"
+    assert _fix_name_casing("sam a. vila") == "Sam A. Vila"
 
 
 def test_fix_name_casing_leaves_an_already_mixed_case_word_alone():

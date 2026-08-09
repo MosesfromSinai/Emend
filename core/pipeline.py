@@ -569,8 +569,8 @@ def _fix_name_casing(name: str) -> str:
     ordinary lowercase text at the font level ("Vila" stored as "vila",
     drawn as capitals) rather than actually capitalizing it -- a PDF's text
     layer faithfully extracts that underlying lowercase text, not the
-    visual effect, so it comes through as "moses a. vila" or "Moses A.
-    vila" even though the resume visibly reads "Moses A. Vila". A person's
+    visual effect, so it comes through as "sam a. vila" or "Sam A.
+    vila" even though the resume visibly reads "Sam A. Vila". A person's
     name is never actually meant to read all-lowercase, so any word with NO
     uppercase letter at all gets its first letter capitalized. A word that
     already has an uppercase letter somewhere ("McDonald", "O'Brien") is
