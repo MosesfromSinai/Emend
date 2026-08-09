@@ -10,6 +10,7 @@ from api.core_bridge import CoreUnavailableError
 from api.db import get_db
 from api.errors import ApiError
 from api.models import MasterResumeRow
+from api.rate_limit import rate_limit
 from api.schemas import ImportRequest
 from api.sessions import CurrentSession
 from core.schemas import MasterResume
@@ -41,7 +42,11 @@ async def _resume_text_from_request(request: Request) -> str:
     return body.text
 
 
-@router.post("/import", response_model=MasterResume)
+@router.post(
+    "/import",
+    response_model=MasterResume,
+    dependencies=[Depends(rate_limit("resumes_import", max_calls=20, window_seconds=3600))],
+)
 async def import_resume(request: Request, session: CurrentSession) -> MasterResume:
     """Propose a fact schema from pasted text or an uploaded PDF. Nothing is
     saved — the user confirms (and edits) before PUT /resumes/master persists it."""

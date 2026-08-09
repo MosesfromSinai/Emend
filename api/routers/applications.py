@@ -12,6 +12,7 @@ from api.config import settings
 from api.db import get_db
 from api.errors import ApiError
 from api.models import Application, MasterResumeRow, ResumeVersion
+from api.rate_limit import rate_limit
 from api.schemas import (
     ApplicationListItem,
     ApplicationOut,
@@ -58,7 +59,12 @@ def _load_master(session: CurrentSession, db: DB) -> MasterResume:
     return MasterResume.model_validate(row.data)
 
 
-@router.post("", response_model=CreateApplicationResponse, status_code=202)
+@router.post(
+    "",
+    response_model=CreateApplicationResponse,
+    status_code=202,
+    dependencies=[Depends(rate_limit("applications", max_calls=15, window_seconds=3600))],
+)
 def create_application(
     body: CreateApplicationRequest,
     session: CurrentSession,
