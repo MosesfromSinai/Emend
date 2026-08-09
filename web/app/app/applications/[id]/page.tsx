@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { OverrideEditor } from "@/components/export/override-editor";
@@ -679,12 +680,28 @@ export default function ApplicationPage({
         <pre className="overflow-auto whitespace-pre-wrap rounded-md bg-code-pane p-4 text-xs text-white/85">
           {application.error ?? "No error detail was recorded."}
         </pre>
+        <Link
+          href="/app/workspace"
+          className="w-fit text-sm font-medium text-em-accent hover:text-em-deep"
+        >
+          ← Back to Tailor, try again
+        </Link>
       </div>
     );
   }
 
   if (!version) {
-    return <p className="text-sm text-ink/60">Done, but no artifact was recorded.</p>;
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-ink/60">Done, but no artifact was recorded.</p>
+        <Link
+          href="/app/workspace"
+          className="w-fit text-sm font-medium text-em-accent hover:text-em-deep"
+        >
+          ← Back to Tailor, try again
+        </Link>
+      </div>
+    );
   }
 
   const report = version.report;
