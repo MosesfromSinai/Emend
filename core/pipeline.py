@@ -27,6 +27,8 @@ from core.normalize import (
 )
 from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
+    CustomEntry,
+    CustomSection,
     Education,
     Experience,
     Fact,
@@ -278,20 +280,51 @@ def _split_tech(text: str) -> tuple[str, list[str]]:
     return name.strip(), [t.strip() for t in tech_text.split(",") if t.strip()]
 
 
-def _section_kind(header_line: str) -> str | None:
-    """Which MasterResume list a recognized bare section header routes to."""
+# A curated list of common non-standard section names, not a shape-based
+# guess -- a generic "short, comma-free, Title Case line" heuristic was
+# tried and reverted: it misclassified ordinary company names with no
+# separate title line ("Acme Corp" as an entry's only header line) as a
+# brand new section. Real, arbitrary/novel headers this list doesn't cover
+# are handled by the LLM structuring path (STRUCTURE_SYSTEM), which has
+# actual semantic understanding to tell "Acme Corp" from "Research
+# Experience" apart -- this deterministic fallback only needs to cover the
+# common cases well, same lesson learned from core/matching.py's curated
+# tech-name list over shape-based guessing earlier this project.
+_CUSTOM_HEADER_PATTERN = re.compile(
+    r"certifications?|licenses?|awards?|honors?|publications?|"
+    r"volunteer(?:ing)?(?:\s+(?:work|experience))?|"
+    r"leadership(?:\s+experience)?|"
+    r"activities|extracurriculars?|"
+    r"research(?:\s+experience)?|"
+    r"clinical(?:\s+(?:experience|rotations?))?|"
+    r"teaching(?:\s+experience)?|"
+    r"community\s+service",
+    re.IGNORECASE,
+)
+
+
+def _section_kind(header_line: str) -> tuple[str | None, str | None]:
+    """Which MasterResume list a recognized bare section header routes to,
+    as `(kind, custom_heading)` -- `custom_heading` is only ever set when
+    `kind == "custom"`, carrying the section's own label through verbatim.
+    """
     stripped = header_line.strip().rstrip(":")
     if re.fullmatch(r"educations?", stripped, re.IGNORECASE):
-        return "education"
+        return "education", None
     if re.fullmatch(r"projects?", stripped, re.IGNORECASE):
-        return "project"
+        return "project", None
     if re.fullmatch(r"(?:work |professional |relevant )?experiences?", stripped, re.IGNORECASE):
-        return "experience"
+        return "experience", None
     if re.fullmatch(r"(?:technical |core )?skills?", stripped, re.IGNORECASE):
-        return "skills"
-    if SECTION_HEADER_PATTERN.match(stripped):
-        return "skip"
-    return None
+        return "skills", None
+    if re.fullmatch(r"summary|objective", stripped, re.IGNORECASE):
+        return "skip", None
+    # a header the app recognizes by name starts a new custom section
+    # instead of silently dropping or bleeding into whatever section came
+    # before -- the concrete bug this fixes.
+    if re.fullmatch(_CUSTOM_HEADER_PATTERN, stripped):
+        return "custom", stripped
+    return None, None
 
 
 def _looks_like_education_block(lines: list[str]) -> bool:
@@ -535,16 +568,23 @@ def _text_master_resume(text: str) -> MasterResume:
     education: list[Education] = []
     skills: dict[str, list[str]] = {}
     coursework: list[str] = []
+    # first-seen order preserved (plain dict) -- a resume's own section
+    # order is worth keeping rather than sorting some other way
+    custom_entries_by_heading: dict[str, list[CustomEntry]] = {}
     used_ids: set[str] = set()
+    used_section_keys: set[str] = {"EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"}
     current_kind = "experience"
+    current_custom_heading = ""
 
     for block in re.split(r"\n\s*\n", text.strip()):
         block_lines = [line.strip() for line in block.splitlines() if line.strip()]
         if not block_lines:
             continue
-        kind = _section_kind(block_lines[0])
+        kind, custom_heading = _section_kind(block_lines[0])
         if kind is not None:
             current_kind = kind
+            if kind == "custom" and custom_heading:
+                current_custom_heading = custom_heading
             block_lines = block_lines[1:]
         if not block_lines or current_kind == "skip":
             continue
@@ -579,7 +619,11 @@ def _text_master_resume(text: str) -> MasterResume:
             for line in unwrapped_facts.splitlines():
                 facts_text.extend(_split_sentences(BULLET_PATTERN.sub("", line)))
             facts_text = facts_text[:MAX_FACTS_PER_SECTION]
-            if not facts_text:
+            # a custom entry (e.g. a bare certification line) is still
+            # meaningful with zero bullets, unlike experience/project --
+            # those stay skipped here since a headerless-looking match with
+            # no facts is more likely a parsing artifact than a real entry
+            if not facts_text and current_kind != "custom":
                 continue
 
             if current_kind == "project":
@@ -590,6 +634,22 @@ def _text_master_resume(text: str) -> MasterResume:
                         id=section_id,
                         name=proj_name,
                         tech=tech,
+                        facts=[
+                            Fact(id=f"{section_id}-{i:02d}", text=t)
+                            for i, t in enumerate(facts_text, 1)
+                        ],
+                    )
+                )
+            elif current_kind == "custom":
+                section_id = _entity_prefix(meta["company"] or meta["title"], used_ids)
+                custom_entries_by_heading.setdefault(current_custom_heading, []).append(
+                    CustomEntry(
+                        id=section_id,
+                        title=meta["title"],
+                        subtitle=meta["company"],
+                        location=meta["location"],
+                        start=meta["start"],
+                        end=meta["end"],
                         facts=[
                             Fact(id=f"{section_id}-{i:02d}", text=t)
                             for i, t in enumerate(facts_text, 1)
@@ -619,6 +679,15 @@ def _text_master_resume(text: str) -> MasterResume:
         ]
         education[0] = education[0].model_copy(update={"coursework": merged})
 
+    custom_sections = [
+        CustomSection(
+            key=_entity_prefix(heading, used_section_keys),
+            heading=heading,
+            entries=entries,
+        )
+        for heading, entries in custom_entries_by_heading.items()
+    ]
+
     return MasterResume(
         name=name,
         email=email,
@@ -628,6 +697,7 @@ def _text_master_resume(text: str) -> MasterResume:
         experiences=experiences,
         projects=projects,
         skills=skills,
+        custom_sections=custom_sections,
     )
 
 
@@ -656,7 +726,7 @@ def _fact_violations(fact_text: str, company: str, title: str) -> list[str]:
 def _validate_structure(master: MasterResume) -> list[str]:
     """Every violation across every fact, as `"<fact id>: <reasons>"` strings."""
     violations: list[str] = []
-    for entry in [*master.experiences, *master.projects]:
+    for entry in [*master.experiences, *master.projects, *master._custom_entries()]:
         company = getattr(entry, "company", "") or getattr(entry, "name", "")
         title = getattr(entry, "title", "")
         for fact in entry.facts:
@@ -685,6 +755,20 @@ class _RawProject(BaseModel):
     facts: list[_RawFact]
 
 
+class _RawCustomEntry(BaseModel):
+    title: str
+    subtitle: str = ""
+    location: str = ""
+    start: str = ""
+    end: str = ""
+    facts: list[_RawFact] = []
+
+
+class _RawCustomSection(BaseModel):
+    heading: str
+    entries: list[_RawCustomEntry] = []
+
+
 class _RawMasterResume(BaseModel):
     """What the LLM returns: no ids anywhere -- Python assigns those after."""
 
@@ -696,6 +780,7 @@ class _RawMasterResume(BaseModel):
     experiences: list[_RawExperience]
     projects: list[_RawProject]
     skills: dict[str, list[str]]
+    custom_sections: list[_RawCustomSection] = []
 
 
 def _assign_ids(raw: _RawMasterResume) -> MasterResume:
@@ -732,6 +817,33 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
                 ],
             )
         )
+    used_section_keys = {"EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"}
+    custom_sections = []
+    for section in raw.custom_sections:
+        entries = []
+        for entry in section.entries:
+            section_id = _entity_prefix(entry.title or entry.subtitle, used_ids)
+            entries.append(
+                CustomEntry(
+                    id=section_id,
+                    title=entry.title,
+                    subtitle=entry.subtitle,
+                    location=entry.location,
+                    start=entry.start,
+                    end=entry.end,
+                    facts=[
+                        Fact(id=f"{section_id}-{i:02d}", text=f.text)
+                        for i, f in enumerate(entry.facts, 1)
+                    ],
+                )
+            )
+        custom_sections.append(
+            CustomSection(
+                key=_entity_prefix(section.heading, used_section_keys),
+                heading=section.heading,
+                entries=entries,
+            )
+        )
     return MasterResume(
         name=raw.name,
         email=raw.email,
@@ -741,6 +853,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
         experiences=experiences,
         projects=projects,
         skills=raw.skills,
+        custom_sections=custom_sections,
     )
 
 

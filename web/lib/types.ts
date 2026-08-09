@@ -31,6 +31,25 @@ export interface Education {
   coursework: string[];
 }
 
+// A user-named section for content outside Education/Experience/Projects/
+// Skills ("Research Experience", "Certifications"). Never AI-tailored --
+// an entry's facts always render as literal confirmed text, in every mode.
+export interface CustomEntry {
+  id: string;
+  title: string;
+  subtitle: string;
+  location: string;
+  start: string;
+  end: string;
+  facts: Fact[];
+}
+
+export interface CustomSection {
+  key: string; // internal id for section_order/text_overrides, never shown to the user
+  heading: string; // the user's own label, e.g. "Research Experience"
+  entries: CustomEntry[];
+}
+
 export interface MasterResume {
   name: string;
   email: string;
@@ -40,6 +59,7 @@ export interface MasterResume {
   experiences: Experience[];
   projects: Project[];
   skills: Record<string, string[]>;
+  custom_sections: CustomSection[];
 }
 
 export interface TailoredBullet {

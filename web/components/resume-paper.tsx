@@ -147,7 +147,33 @@ export function masterToSections(
       : [],
   };
 
-  const visible = [education, experience, projects, skills].filter((s) => s.blocks.length);
+  // custom sections are per-resume, not a fixed set like the four above --
+  // never AI-tailored, so every field here is always free-text editable,
+  // same as Education
+  const customSections: PaperSection[] = master.custom_sections.map((cs) => ({
+    key: cs.key,
+    heading: sectionHeadings[cs.key] ?? cs.heading,
+    headingOverrideKey: `section:${cs.key}:heading`,
+    blocks: cs.entries.map((entry) => ({
+      key: entry.id,
+      title: entry.title,
+      sub: [entry.subtitle, entry.location].filter(Boolean).join(" — "),
+      dates: [entry.start, entry.end].filter(Boolean).join(" – "),
+      titleOverrideKeys: [`custom:${entry.id}:title`],
+      subOverrideKeys: [`custom:${entry.id}:subtitle`, `custom:${entry.id}:location`],
+      datesOverrideKeys: [`custom:${entry.id}:start`, `custom:${entry.id}:end`],
+      rows: entry.facts.map((f) => ({
+        key: f.id,
+        text: f.text,
+        factId: f.id,
+        overrideKey: `custom:${entry.id}:fact:${f.id}`,
+      })),
+    })),
+  }));
+
+  const visible = [education, experience, projects, skills, ...customSections].filter(
+    (s) => s.blocks.length
+  );
   return reorderByKey(visible, sectionOrder, (s) => s.key);
 }
 

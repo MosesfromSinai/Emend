@@ -127,14 +127,20 @@ export default function WorkspacePage() {
         </p>
       )}
 
-      <SegmentedControl
-        value={mode}
-        onChange={setMode}
-        options={[
-          { value: "tailor", label: "Tailor to a posting" },
-          { value: "refactor", label: "Just typeset it" },
-        ]}
-      />
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-em-muted">
+          Have a job posting to tailor to, or just want your resume formatted
+          and ready to edit?
+        </p>
+        <SegmentedControl
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "tailor", label: "Tailor to a posting" },
+            { value: "refactor", label: "Just format it, no posting needed" },
+          ]}
+        />
+      </div>
 
       {mode === "refactor" ? (
         <section className="rounded-xl border border-em-line bg-white p-5">

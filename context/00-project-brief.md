@@ -145,9 +145,10 @@ on `import-tailor` but not yet pushed/PR'd.
 **Tailor pipeline hardening — same branch, 2026-08-04.** Keyword extraction
 was reworked from a curated skills dictionary to literal, deterministic
 phrase extraction straight from the posting's own text
-(`core/matching.py::extract_keywords`) — never an LLM, never a fixed list,
-so coverage isn't capped by whatever someone thought to add ahead of time.
-JD-URL fetch reliability was hardened (browser User-Agent, JSON-LD
+(`core/matching.py::extract_keywords`) — never an LLM. (Superseded
+2026-08-08 below: extraction is now a two-stage design, heuristics plus a
+curated reference-list gate, not the dictionary-free approach described
+here — kept for history.) JD-URL fetch reliability was hardened (browser User-Agent, JSON-LD
 extraction for JS-only postings, page-chrome stripping — see reconciliation
 #1 above) and a link pasted into the text field, or a posting text with no
 extractable keywords, now fails with a clear 422 instead of silently
@@ -259,6 +260,37 @@ are the user's own words, never validated as claims):
   engineers", "Pursuing"); a narrower ", like X and Y" lead-in was added,
   catching phrases like "machine learning frameworks" and "large language
   models (LLMs)" that the old heuristics missed entirely.
+
+**Keyword extraction overhaul — same branch, 2026-08-08.** The 08-04
+design (pure structural heuristics, no reference list at all) recalled
+plenty but couldn't tell a real technology from a named technique/concept
+that merely *looks* the same shape — "Docker" and "Monte Carlo" are both
+an ordinary capitalized proper noun; "real-time systems" and "machine
+learning frameworks" are both a lowercase adjective-noun phrase. Fixed via
+a new curated reference list, `core/tech_names.py` (`ALL_TECH_NAMES`) —
+languages/frameworks/libraries/platforms/tools/security/networking/named
+CS concepts, sourced against the 2025 Stack Overflow Developer Survey
+rather than assembled from memory. `extract_keywords` is now two-stage:
+the existing heuristics generate *candidates*, then every candidate is
+gated on the reference list before it survives — a bare acronym-shaped
+token (`GNC`, `HITL`, `C++`) or a phrase the posting itself acronym-defines
+("High-performance computing (HPC)") bypasses the gate on its own
+strength. A candidate only partly recognized is trimmed to the recognized
+span (`_known_technical_span`) rather than kept whole or dropped outright
+— "Machine Learning Engineer" → "Machine Learning", "Firebase
+Crashlytics" → "Firebase". Also new: a compensation/benefits/EEO-legal
+boilerplate tail (near-universal on US postings) is cut from the text
+before extraction ever runs, rather than word-listed term by term;
+`drop_known_names` now splits a title on parentheses too, so a
+parenthesized team name ("...C++ Simulations (Starlink)") is excluded the
+same as a comma-separated title segment; `MAX_KEYWORDS` dropped 45→20 with
+round-robin interleaving across heuristics (a flat concatenation let one
+heuristic's tail crowd out another's real hits under a hard cap). Net
+effect: recall went up for genuine multi-word compounds ("real-time
+systems", "hardware-in-the-loop") the 08-04 heuristics structurally
+couldn't reach, while precision also went up, since a name/concept has to
+actually be a known one now — the two moved together, not in tension, once
+the reference list existed to arbitrate.
 
 **Still open, needs a product decision (not auto-fixed):**
 - Footer's "Privacy policy"/"Terms of service" links are dead (`href="#"`) —

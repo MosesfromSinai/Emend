@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { FactTag } from "@/components/ui/fact-tag";
 import { Input } from "@/components/ui/input";
 import { StringList } from "@/components/string-list";
-import { masterToSections } from "@/components/resume-paper";
+import { masterToSections, type PaperSection } from "@/components/resume-paper";
 import { hasMetric } from "@/lib/fact-metrics";
 import { nextFactId, slugSectionId } from "@/lib/master-resume";
 import { cn } from "@/lib/utils";
-import type { Education, Experience, Fact, MasterResume, Project } from "@/lib/types";
+import type { CustomEntry, Education, Experience, Fact, MasterResume, Project } from "@/lib/types";
+
+const RESERVED_SECTION_KEYS = new Set(["EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"]);
 
 export const SECTION_HEADINGS = ["EDUCATION", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS"] as const;
 export type SectionHeading = (typeof SECTION_HEADINGS)[number];
@@ -36,12 +38,25 @@ function passesFilter(filter: Filter, text: string, confirmed: boolean): boolean
   return true;
 }
 
+// A fixed section is identified by its heading text ("TECHNICAL SKILLS",
+// not the "SKILLS" key -- a pre-existing mismatch this doesn't touch); a
+// custom section is identified by its own stable `key` instead of its
+// heading, since the heading can be renamed right here on Confirm and a
+// tab's identity must survive that rename.
+function findSectionForTab(sections: PaperSection[], tab: string): PaperSection | undefined {
+  return sections.find((s) => s.heading === tab || s.key === tab);
+}
+
+export function sectionTabs(master: MasterResume): string[] {
+  return [...SECTION_HEADINGS, ...master.custom_sections.map((cs) => cs.key)];
+}
+
 export function sectionProgress(master: MasterResume, confirmed: Set<string>) {
   const sections = masterToSections(master);
-  return SECTION_HEADINGS.map((heading) => {
-    const section = sections.find((s) => s.heading === heading);
+  return sectionTabs(master).map((tab) => {
+    const section = findSectionForTab(sections, tab);
     const keys = section ? section.blocks.flatMap((b) => b.rows.map((r) => r.key)) : [];
-    return { heading, keys, done: keys.filter((k) => confirmed.has(k)).length, total: keys.length };
+    return { heading: tab, keys, done: keys.filter((k) => confirmed.has(k)).length, total: keys.length };
   });
 }
 
@@ -50,7 +65,15 @@ export function allRowKeys(master: MasterResume): string[] {
 }
 
 function usedSectionIds(master: MasterResume): Set<string> {
-  return new Set([...master.experiences, ...master.projects].map((s) => s.id));
+  return new Set(
+    [...master.experiences, ...master.projects, ...master.custom_sections.flatMap((cs) => cs.entries)].map(
+      (s) => s.id
+    )
+  );
+}
+
+function usedSectionKeys(master: MasterResume): Set<string> {
+  return new Set([...RESERVED_SECTION_KEYS, ...master.custom_sections.map((cs) => cs.key)]);
 }
 
 export function ConfirmPill({
@@ -553,6 +576,178 @@ function ProjectPanel({
   );
 }
 
+// A user-named section for content outside Education/Experience/Projects/
+// Skills -- cloned from ExperiencePanel's shape (title/organization/dates +
+// facts), since a custom entry is structurally the same "title, org, dates,
+// bullets" thing under a different label the user picked themselves.
+function CustomSectionPanel({
+  master,
+  onChange,
+  confirmed,
+  onToggleConfirm,
+  onConfirmMany,
+  hoveredKey,
+  onHoverRow,
+  filter,
+  sectionKey,
+}: SectionProps & { sectionKey: string }) {
+  const sectionIndex = master.custom_sections.findIndex((cs) => cs.key === sectionKey);
+  const section = master.custom_sections[sectionIndex];
+  if (!section) return null;
+
+  const update = (entries: CustomEntry[]) => {
+    const next = [...master.custom_sections];
+    next[sectionIndex] = { ...section, entries };
+    onChange({ ...master, custom_sections: next });
+  };
+  const removeSection = () => {
+    onConfirmMany(
+      section.entries.flatMap((e) => e.facts.map((f) => f.id)),
+      false
+    );
+    onChange({
+      ...master,
+      custom_sections: master.custom_sections.filter((cs) => cs.key !== sectionKey),
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Input
+          value={section.heading}
+          onChange={(e) => {
+            const next = [...master.custom_sections];
+            next[sectionIndex] = { ...section, heading: e.target.value };
+            onChange({ ...master, custom_sections: next });
+          }}
+          placeholder="Section name"
+          className="w-auto flex-1"
+        />
+        <button type="button" onClick={removeSection} className="text-sm text-ink/40 hover:text-ink">
+          Remove section
+        </button>
+      </div>
+      {section.entries.map((entry, index) => (
+        <div key={entry.id} className="rounded-lg border border-em-softb p-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Input
+              value={entry.title}
+              onChange={(e) => {
+                const next = [...section.entries];
+                next[index] = { ...entry, title: e.target.value };
+                update(next);
+              }}
+              placeholder="Title"
+              className="w-auto flex-1"
+            />
+            <Input
+              value={entry.subtitle}
+              onChange={(e) => {
+                const next = [...section.entries];
+                next[index] = { ...entry, subtitle: e.target.value };
+                update(next);
+              }}
+              placeholder="Organization"
+              className="w-auto flex-1"
+            />
+            <Input
+              value={entry.start}
+              onChange={(e) => {
+                const next = [...section.entries];
+                next[index] = { ...entry, start: e.target.value };
+                update(next);
+              }}
+              placeholder="Start"
+              className="w-24"
+            />
+            <Input
+              value={entry.end}
+              onChange={(e) => {
+                const next = [...section.entries];
+                next[index] = { ...entry, end: e.target.value };
+                update(next);
+              }}
+              placeholder="End"
+              className="w-24"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                onConfirmMany(entry.facts.map((f) => f.id), false);
+                update(section.entries.filter((_, i) => i !== index));
+              }}
+              className="text-sm text-ink/40 hover:text-ink"
+            >
+              Remove
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {entry.facts
+              .filter((f) => passesFilter(filter, f.text, confirmed.has(f.id)))
+              .map((fact) => (
+                <FactRow
+                  key={fact.id}
+                  fact={fact}
+                  hovered={hoveredKey === fact.id}
+                  onHover={onHoverRow}
+                  confirmed={confirmed.has(fact.id)}
+                  onToggleConfirm={() => onToggleConfirm(fact.id)}
+                  onChangeText={(text) => {
+                    const next = [...section.entries];
+                    next[index] = {
+                      ...entry,
+                      facts: entry.facts.map((f) => (f.id === fact.id ? { ...f, text } : f)),
+                    };
+                    update(next);
+                  }}
+                  onRemove={() => {
+                    const next = [...section.entries];
+                    next[index] = { ...entry, facts: entry.facts.filter((f) => f.id !== fact.id) };
+                    update(next);
+                    onConfirmMany([fact.id], false);
+                  }}
+                />
+              ))}
+            <Button
+              type="button"
+              variant="ghost"
+              className="self-start px-1 py-1"
+              onClick={() => {
+                const next = [...section.entries];
+                next[index] = {
+                  ...entry,
+                  facts: [
+                    ...entry.facts,
+                    { id: nextFactId(entry.id, entry.facts.map((f) => f.id)), text: "" },
+                  ],
+                };
+                update(next);
+              }}
+            >
+              + Add fact
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="secondary"
+        className="self-start"
+        onClick={() => {
+          const id = slugSectionId(section.heading || "ENTRY", usedSectionIds(master));
+          update([
+            ...section.entries,
+            { id, title: "", subtitle: "", location: "", start: "", end: "", facts: [] },
+          ]);
+        }}
+      >
+        + Add entry
+      </Button>
+    </div>
+  );
+}
+
 function SkillsPanel({
   master,
   onChange,
@@ -640,21 +835,23 @@ export function SectionPanel({
   confirmed: Set<string>;
   onToggleConfirm: (key: string) => void;
   onConfirmMany: (keys: string[], value: boolean) => void;
-  activeSection: SectionHeading;
-  onChangeSection: (section: SectionHeading) => void;
+  activeSection: string;
+  onChangeSection: (section: string) => void;
   hoveredKey: string | null;
   onHoverRow: (key: string | null) => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
+  const tabs = sectionTabs(master);
   const progress = sectionProgress(master, confirmed);
-  const sectionIndex = SECTION_HEADINGS.indexOf(activeSection);
+  const sectionIndex = tabs.indexOf(activeSection);
   const active = progress[sectionIndex];
+  const customSection = master.custom_sections.find((cs) => cs.key === activeSection);
 
   // Auto-advance the moment a section GOES complete (via "Confirm all" or
   // the last individual checkbox) -- but never on arrival at a section
   // that's already complete (e.g. navigating back with "previous"), which
   // is why this tracks a transition, not just the current state.
-  const prevCompleteRef = useRef<{ section: SectionHeading; complete: boolean }>({
+  const prevCompleteRef = useRef<{ section: string; complete: boolean }>({
     section: activeSection,
     complete: active.total > 0 && active.done === active.total,
   });
@@ -663,10 +860,10 @@ export function SectionPanel({
     const prev = prevCompleteRef.current;
     const justCompletedHere = prev.section === activeSection && isComplete && !prev.complete;
     prevCompleteRef.current = { section: activeSection, complete: isComplete };
-    if (justCompletedHere && sectionIndex < SECTION_HEADINGS.length - 1) {
-      onChangeSection(SECTION_HEADINGS[sectionIndex + 1]);
+    if (justCompletedHere && sectionIndex < tabs.length - 1) {
+      onChangeSection(tabs[sectionIndex + 1]);
     }
-  }, [active.done, active.total, activeSection, sectionIndex, onChangeSection]);
+  }, [active.done, active.total, activeSection, sectionIndex, onChangeSection, tabs]);
   const entryCount =
     activeSection === "EDUCATION"
       ? master.education.length
@@ -674,7 +871,9 @@ export function SectionPanel({
         ? master.experiences.length
         : activeSection === "PROJECTS"
           ? master.projects.length
-          : Object.keys(master.skills).length;
+          : activeSection === "TECHNICAL SKILLS"
+            ? Object.keys(master.skills).length
+            : (customSection?.entries.length ?? 0);
 
   const sectionProps: SectionProps = {
     master,
@@ -689,27 +888,43 @@ export function SectionPanel({
 
   return (
     <div className="flex min-h-0 flex-col rounded-xl border border-em-line bg-white lg:h-full lg:flex-1">
-      <div className="flex gap-1 overflow-x-auto border-b border-em-line px-3 py-2">
-        {SECTION_HEADINGS.map((heading, i) => {
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-em-line px-3 py-2">
+        {tabs.map((tab, i) => {
           const p = progress[i];
           const complete = p.total > 0 && p.done === p.total;
+          const label =
+            (SECTION_LABELS as Record<string, string>)[tab] ??
+            master.custom_sections.find((cs) => cs.key === tab)?.heading ??
+            tab;
           return (
             <button
-              key={heading}
+              key={tab}
               type="button"
-              onClick={() => onChangeSection(heading)}
+              onClick={() => onChangeSection(tab)}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
-                heading === activeSection
-                  ? "bg-em-accent text-paper"
-                  : "text-ink/60 hover:bg-em-soft"
+                tab === activeSection ? "bg-em-accent text-paper" : "text-ink/60 hover:bg-em-soft"
               )}
             >
               {complete && "✓ "}
-              {SECTION_LABELS[heading]} {p.done}/{p.total}
+              {label} {p.done}/{p.total}
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => {
+            const key = slugSectionId("SECTION", usedSectionKeys(master));
+            onChange({
+              ...master,
+              custom_sections: [...master.custom_sections, { key, heading: "New section", entries: [] }],
+            });
+            onChangeSection(key);
+          }}
+          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-ink/40 hover:bg-em-soft hover:text-ink"
+        >
+          + Add section
+        </button>
       </div>
 
       <div className="flex items-baseline justify-between px-4 pt-3">
@@ -718,7 +933,7 @@ export function SectionPanel({
           {active.total === 1 ? "" : "s"}
         </p>
         <p className="font-mono text-[11px] text-em-faint">
-          section {sectionIndex + 1} of {SECTION_HEADINGS.length}
+          section {sectionIndex + 1} of {tabs.length}
         </p>
       </div>
 
@@ -727,6 +942,7 @@ export function SectionPanel({
         {activeSection === "EXPERIENCE" && <ExperiencePanel {...sectionProps} />}
         {activeSection === "PROJECTS" && <ProjectPanel {...sectionProps} />}
         {activeSection === "TECHNICAL SKILLS" && <SkillsPanel {...sectionProps} />}
+        {customSection && <CustomSectionPanel {...sectionProps} sectionKey={customSection.key} />}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-em-line px-4 py-3">
@@ -760,14 +976,14 @@ export function SectionPanel({
             <Button
               variant="ghost"
               disabled={sectionIndex === 0}
-              onClick={() => onChangeSection(SECTION_HEADINGS[sectionIndex - 1])}
+              onClick={() => onChangeSection(tabs[sectionIndex - 1])}
             >
               ‹ previous
             </Button>
             <Button
               variant="ghost"
-              disabled={sectionIndex === SECTION_HEADINGS.length - 1}
-              onClick={() => onChangeSection(SECTION_HEADINGS[sectionIndex + 1])}
+              disabled={sectionIndex === tabs.length - 1}
+              onClick={() => onChangeSection(tabs[sectionIndex + 1])}
             >
               next ›
             </Button>

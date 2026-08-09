@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from core.schemas import (
+    CustomEntry,
     Education,
     Experience,
     MasterResume,
@@ -80,6 +81,33 @@ def _project_row(
     return {
         "name": _ov(overrides, f"project:{proj.id}:name", proj.name),
         "tech": _ov(overrides, f"project:{proj.id}:tech", ", ".join(proj.tech)),
+        "bullets": bullets,
+    }
+
+
+def _date_range(start: str, end: str) -> str:
+    if start and end:
+        return f"{start} -- {end}"
+    return start or end
+
+
+def _custom_entry_row(entry: CustomEntry, overrides: dict[str, str] | None = None) -> dict:
+    """Custom-section entries are never AI-tailored -- unlike
+    `_experience_row`/`_project_row`, this is the only place their facts
+    get rendered from, in every mode. `entry.facts` renders as literal
+    bullet text directly, each still free-text editable via its own
+    `custom:<id>:fact:<fact id>` override, same as any other field here."""
+    start = _ov(overrides, f"custom:{entry.id}:start", entry.start)
+    end = _ov(overrides, f"custom:{entry.id}:end", entry.end)
+    bullets = [
+        _bullet_row(_ov(overrides, f"custom:{entry.id}:fact:{f.id}", f.text), [f.id])
+        for f in entry.facts
+    ]
+    return {
+        "title": _ov(overrides, f"custom:{entry.id}:title", entry.title),
+        "dates": _date_range(start, end),
+        "subtitle": _ov(overrides, f"custom:{entry.id}:subtitle", entry.subtitle),
+        "location": _ov(overrides, f"custom:{entry.id}:location", entry.location),
         "bullets": bullets,
     }
 
@@ -212,26 +240,31 @@ def render_tex(
     `{"custom_text": "..."}` for a user's own edit. No entry for a bullet:
     its first variant renders. Ignored in refactor mode (nothing to pick between).
 
-    `fact_order` (keyed by an experience/project's own id) reorders that
-    entry's bullets before rendering -- see `_reorder_by_key`. No entry for
-    an id: bullets render in their existing order. `experience_order` /
-    `project_order` reorder the entries themselves (by their own id in
-    refactor mode, by `ref_id` in tailor mode) the same way. `section_order`
-    reorders the four top-level sections (values from DEFAULT_SECTION_ORDER);
-    an omitted or unrecognized entry keeps its default relative position.
-    `excluded_facts`/`excluded_experiences`/`excluded_projects` drop bullets
-    or whole entries from rendering entirely -- the delete side of Export's
-    per-line/per-entry editing. Deleting is export-time only: it never
-    touches the confirmed master resume or the stored tailored version.
+    `fact_order` (keyed by an experience/project/custom entry's own id)
+    reorders that entry's bullets before rendering -- see `_reorder_by_key`.
+    No entry for an id: bullets render in their existing order.
+    `experience_order` / `project_order` reorder the entries themselves (by
+    their own id in refactor mode, by `ref_id` in tailor mode) the same
+    way. `section_order` reorders every top-level section -- the four
+    values from DEFAULT_SECTION_ORDER plus one per `master.custom_sections`
+    entry (by its own `key`); an omitted or unrecognized entry keeps its
+    default relative position. `excluded_facts`/`excluded_experiences`/
+    `excluded_projects` drop bullets or whole entries from rendering
+    entirely -- the delete side of Export's per-line/per-entry editing.
+    Deleting is export-time only: it never touches the confirmed master
+    resume or the stored tailored version.
 
     `text_overrides` (keyed by a stable path string -- "name", "email",
     "phone", "link:<i>", "education:<i>:<field>", "experience:<id>:<field>",
     "project:<id>:<field>", "skills:<category>", "section:<KEY>:heading" for
-    KEY in DEFAULT_SECTION_ORDER) lets a user free-text edit any
-    non-fact-backed field on the resume -- structural fields, header info,
-    education, skills, even a section's own printed heading -- separate
-    from and on top of the fact-grounded `selections` mechanism above,
-    which stays scoped to confirmed facts.
+    any section key including a custom one, "custom:<id>:<field>" and
+    "custom:<id>:fact:<fact id>" for a custom entry's own fields/bullets)
+    lets a user free-text edit any non-fact-backed field on the resume --
+    structural fields, header info, education, skills, even a section's own
+    printed heading -- separate from and on top of the fact-grounded
+    `selections` mechanism above, which stays scoped to confirmed facts.
+    Custom-section entries are never selected via `selections` at all --
+    see CustomEntry's own docstring for why they're edit-only.
 
     Every fact-backed bullet is preceded by a "% grounded: <fact ids>" receipt
     comment — the bullet's source_fact_ids in tailor mode, the fact's own id in
@@ -355,6 +388,18 @@ def render_tex(
         for key, default in default_headings.items()
     }
 
+    # Custom sections are per-resume (not a fixed module constant like
+    # DEFAULT_SECTION_ORDER), and always render straight from confirmed
+    # master data -- never from `tailored`, in either mode, per the
+    # edit/format-only design (see CustomEntry's own docstring).
+    custom_by_key = {
+        cs.key: {
+            "heading": _ov(text_overrides, f"section:{cs.key}:heading", cs.heading),
+            "entries": [_custom_entry_row(entry, text_overrides) for entry in cs.entries],
+        }
+        for cs in master.custom_sections
+    }
+
     context = {
         "name": _ov(text_overrides, "name", master.name),
         "header_pieces": header_pieces,
@@ -363,8 +408,9 @@ def render_tex(
         "projects": projects,
         "skills": skills_rows,
         "section_headings": section_headings,
+        "custom_by_key": custom_by_key,
         "section_order": _reorder_by_key(
-            DEFAULT_SECTION_ORDER, section_order, lambda s: s
+            DEFAULT_SECTION_ORDER + list(custom_by_key), section_order, lambda s: s
         ),
     }
     return _env.get_template("resume.tex.jinja").render(**context)

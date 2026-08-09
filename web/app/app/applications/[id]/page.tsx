@@ -453,7 +453,7 @@ export default function ApplicationPage({
   // a row's display text (e.g. "Coursework: A, B.") isn't the raw value.
   function currentOverrideValue(key: string): string {
     if (!renderResume) return "";
-    const [kind, a, b] = key.split(":");
+    const [kind, a, b, c] = key.split(":");
     if (kind === "name") return renderResume.name;
     if (kind === "email") return renderResume.email;
     if (kind === "phone") return renderResume.phone;
@@ -486,10 +486,30 @@ export default function ApplicationPage({
       const category = key.slice("skills:".length);
       return (renderResume.skills[category] ?? []).join(", ");
     }
+    if (kind === "custom") {
+      const entry = renderResume.custom_sections
+        .flatMap((cs) => cs.entries)
+        .find((e) => e.id === a);
+      if (!entry) return "";
+      if (b === "title") return entry.title;
+      if (b === "subtitle") return entry.subtitle;
+      if (b === "location") return entry.location;
+      if (b === "start") return entry.start;
+      if (b === "end") return entry.end;
+      if (b === "fact") return entry.facts.find((f) => f.id === c)?.text ?? "";
+    }
     if (kind === "section" && b === "heading") {
-      return textOverrides[key] ?? DEFAULT_SECTION_HEADINGS[a] ?? "";
+      return textOverrides[key] ?? defaultHeadingFor(a) ?? "";
     }
     return "";
+  }
+
+  // The fixed four sections have a hardcoded default; a custom section's
+  // "default" is just its own confirmed heading, since it has no built-in
+  // one -- the user named it themselves back on Confirm.
+  function defaultHeadingFor(key: string): string {
+    if (DEFAULT_SECTION_HEADINGS[key]) return DEFAULT_SECTION_HEADINGS[key];
+    return renderResume?.custom_sections.find((cs) => cs.key === key)?.heading ?? "";
   }
 
   // A short human label derived from a text_overrides path's own key
@@ -891,7 +911,7 @@ export default function ApplicationPage({
                     );
                   }}
                   sectionHeadings={Object.fromEntries(
-                    DEFAULT_SECTION_ORDER.map((key) => [key, currentOverrideValue(`section:${key}:heading`)])
+                    effectiveSectionOrder.map((key) => [key, currentOverrideValue(`section:${key}:heading`)])
                   )}
                   activeSectionHeadingKey={activeSectionHeadingKey}
                   onClickSectionHeading={(section) => {
@@ -912,7 +932,7 @@ export default function ApplicationPage({
                             // helps no one
                             updateTextOverride(
                               section.headingOverrideKey,
-                              DEFAULT_SECTION_HEADINGS[section.key]
+                              defaultHeadingFor(section.key)
                             );
                             clearActiveEditors();
                           },

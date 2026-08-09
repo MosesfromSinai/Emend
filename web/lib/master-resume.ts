@@ -36,5 +36,6 @@ export function emptyMasterResume(): MasterResume {
     experiences: [],
     projects: [],
     skills: {},
+    custom_sections: [],
   };
 }

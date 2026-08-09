@@ -266,6 +266,45 @@ def test_structure_resume_splits_sections_without_blank_lines():
     assert master.experiences[0].facts[0].text == "Built an internal tool for the support team."
 
 
+def test_structure_resume_captures_custom_sections():
+    # regression: a header outside Education/Experience/Projects/Skills
+    # used to either get silently dropped or bleed into the previous
+    # section -- it must start its own named CustomSection instead,
+    # including a bare, bulletless entry (a one-line certification)
+    text = (
+        "Sam Sample\n"
+        "sam@example.com\n"
+        "\n"
+        "Experience\n"
+        "Software Engineer Jun 2020 - Aug 2022\n"
+        "Acme Corp, San Diego, CA\n"
+        "Built an internal tool for the support team.\n"
+        "\n"
+        "Research Experience\n"
+        "Research Assistant Jun 2019 - Aug 2020\n"
+        "UCSD Bio Lab, La Jolla, CA\n"
+        "Ran gel electrophoresis assays weekly.\n"
+        "\n"
+        "Certifications\n"
+        "AWS Certified Solutions Architect\n"
+        "Amazon 2023\n"
+    )
+
+    master = structure_resume(text)
+
+    assert [e.company for e in master.experiences] == ["Acme Corp"]
+    headings = [cs.heading for cs in master.custom_sections]
+    assert headings == ["Research Experience", "Certifications"]
+
+    research = master.custom_sections[0]
+    assert research.entries[0].title == "Research Assistant"
+    assert research.entries[0].facts[0].text == "Ran gel electrophoresis assays weekly."
+
+    certifications = master.custom_sections[1]
+    assert certifications.entries[0].title == "AWS Certified Solutions Architect"
+    assert certifications.entries[0].facts == []
+
+
 def test_structure_resume_rejects_oversized_text(monkeypatch):
     monkeypatch.setenv("MAX_TEXT_CHARS", "10")
 
