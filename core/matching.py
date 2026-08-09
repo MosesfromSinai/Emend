@@ -592,6 +592,10 @@ _NARRATIVE_FILLER_PHRASES = {
     # domain-specific team/discipline acronyms too narrow to generalize as
     # a resume-worthy skill outside this one posting's own org chart
     "gnc", "stl",
+    # short, acronym-shaped, and structurally indistinguishable from a
+    # real tech acronym, but a degree ("BS/MS/PhD in Computer Science") or
+    # a bare, too-generic-to-name-alone abbreviation, not a technology
+    "phd", "ms", "bs", "ba", "mba", "ui", "ip",
 }
 
 # Almost every US job posting ends with the same non-technical tail:
@@ -647,23 +651,35 @@ def _looks_like_acronym(phrase: str) -> bool:
     return sum(c.isupper() for c in letters) / len(letters) >= 0.6
 
 
-def _is_known_technical(phrase: str) -> bool:
-    key = phrase.lower()
-    if key in ALL_TECH_NAMES or _looks_like_acronym(phrase):
-        return True
-    # "machine learning frameworks" isn't itself a listed name, but it
-    # contains one ("machine learning") as a contiguous run -- the same
-    # containment check _drop_redundant_superstrings uses below, just
-    # against the reference list instead of against other candidates.
-    # Restricted to multi-word names: a single common word like "agile" or
-    # "docker" would otherwise rescue ANY longer phrase that merely
-    # mentions it in passing ("agile development methodologies"), which
-    # defeats the entire point of gating on this list in the first place.
-    words = key.split()
-    return any(
-        len(name_words := name.split()) > 1 and _is_word_run(name_words, words)
-        for name in ALL_TECH_NAMES
-    )
+def _known_technical_span(phrase: str) -> str | None:
+    """None if nothing in `phrase` is a known technology; otherwise the
+    longest recognized contiguous span, in the phrase's own original
+    casing -- trimmed, not just approved whole.
+
+    "Machine Learning Engineer" (a proper-noun run swallowing a title
+    word) becomes "Machine Learning"; "Firebase Crashlytics" (a known
+    single word plus an uncurated one) becomes "Firebase"; "agile
+    development methodologies" becomes "Agile", not the whole noisy
+    phrase -- a bare common word rescuing a longer phrase wholesale would
+    defeat the entire point of gating on this list, but trimming down to
+    just the part that's actually recognized has no such downside."""
+    if phrase.lower() in ALL_TECH_NAMES or _looks_like_acronym(phrase):
+        return phrase
+    words = phrase.split()
+    lower_words = [w.lower() for w in words]
+    best: str | None = None
+    for name in ALL_TECH_NAMES:
+        name_words = name.split()
+        n = len(name_words)
+        if n > len(lower_words):
+            continue
+        for i in range(len(lower_words) - n + 1):
+            if lower_words[i : i + n] == name_words:
+                span = " ".join(words[i : i + n])
+                if best is None or len(span) > len(best):
+                    best = span
+                break
+    return best
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -703,13 +719,17 @@ def extract_keywords(text: str) -> list[str]:
     deduped: list[str] = []
     for phrase in candidates:
         key = phrase.lower()
-        if (
-            key not in seen
-            and key not in _NARRATIVE_FILLER_PHRASES
-            and (key in acronym_defined_keys or _is_known_technical(phrase))
-        ):
-            seen.add(key)
-            deduped.append(phrase)
+        if key in acronym_defined_keys:
+            kept = phrase if key not in _NARRATIVE_FILLER_PHRASES else None
+        else:
+            span = _known_technical_span(phrase)
+            kept = span if span and span.lower() not in _NARRATIVE_FILLER_PHRASES else None
+        if kept is None:
+            continue
+        kept_key = kept.lower()
+        if kept_key not in seen:
+            seen.add(kept_key)
+            deduped.append(kept)
     return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
 
 

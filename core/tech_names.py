@@ -41,7 +41,8 @@ FRAMEWORKS_LIBRARIES = {
     "rails", "astro", "deno", "symfony", "nuxt.js", "nuxt", "fastify",
     "axum", "phoenix", "drupal", "htmx", "solidjs", "flutter", "quarkus",
     "hugo", "leptos", "react native", "xamarin", "unity", "unreal engine",
-    "gin", "fiber", "actix", "rocket", "electron", "redux",
+    "gin", "fiber", "actix", "rocket", "electron", "redux", "zustand",
+    "styled-components",
     "tailwind css", "tailwindcss", "bootstrap", "material-ui", "mui",
     "numpy", "pandas", "pytorch", "tensorflow", "tensorflow lite", "keras",
     "scikit-learn", "sklearn", "opencv", "matplotlib", "scipy", "seaborn",
@@ -68,6 +69,10 @@ SYSTEMS_PLATFORMS = {
     "macos", "unix", "freebsd", "vmware",
     "arduino", "raspberry pi", "nvidia jetson", "fpga", "ros", "risc-v",
     "arm", "x86",
+    # messaging/caching -- as core to a backend stack as a database
+    "kafka", "rabbitmq", "celery", "memcached",
+    # mobile-specific frameworks/runtimes
+    "swiftui", "jetpack compose", "core data", "room", "dagger", "hilt",
 }
 
 TOOLS_TESTING = {
@@ -78,10 +83,18 @@ TOOLS_TESTING = {
     "github actions", "jenkins", "circleci", "travis ci", "gitlab ci",
     "ci/cd", "ansible", "puppet", "chef", "vagrant", "prometheus",
     "datadog", "splunk", "new relic",
+    # observability/SRE/deployment -- Prometheus's universal pairing
+    # partner and the rest of that same toolbox
+    "grafana", "opentelemetry", "pagerduty", "argocd", "helm", "istio",
+    "linkerd", "pulumi",
+    # data/ML pipeline and orchestration tools
+    "airflow", "spark", "mlflow", "dask", "ray", "tableau", "looker",
+    "sagemaker", "vertex ai",
     "pytest", "unittest", "googletest", "gtest", "junit", "mocha", "jest",
-    "cypress", "selenium", "behave", "cucumber",
+    "cypress", "selenium", "behave", "cucumber", "playwright",
+    "xctest", "espresso", "fastlane", "bitrise",
     "postman", "swagger", "openapi", "jira", "confluence", "figma",
-    "slack", "notion", "trello", "asana", "linear",
+    "slack", "notion", "trello", "asana", "linear", "storybook",
     "visual studio code", "vs code", "visual studio", "intellij idea",
     "intellij", "vim", "neovim", "pycharm", "android studio", "jupyter",
     "jupyter notebook", "sublime text", "xcode", "webstorm", "eclipse",

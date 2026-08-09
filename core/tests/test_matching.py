@@ -240,9 +240,11 @@ def test_extract_keywords_reads_comma_like_lists():
         "frameworks and large language models (LLMs), to solve problems. "
         "We'd like to hear from you about your career goals."
     )
+    # trimmed to the recognized technology, not kept as a whole with its
+    # generic tail ("frameworks") still attached -- see _known_technical_span
     keywords = extract_keywords(text)
-    assert "machine learning frameworks" in keywords
-    assert "large language models (LLMs)" in keywords
+    assert "machine learning" in keywords
+    assert "large language models" in keywords or "LLMs" in keywords
     assert not any("like to hear" in k.lower() for k in keywords)
 
 
