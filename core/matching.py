@@ -1169,11 +1169,29 @@ def extract_keywords(text: str) -> list[str]:
 _NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s|[()]")
 
 
+# A company's own colloquial employee demonym ("NVIDIAN" from "As an
+# NVIDIAN, you'll be immersed...", "Googler") is still just the company's
+# own name, not a second, unrelated technology that happens to start with
+# the same letters. Each suffix is stripped and the REMAINDER compared for
+# an exact match against the company name specifically -- never a blanket
+# prefix-length check -- so a company name that's also an ordinary word's
+# prefix ("Meta" -> "Metal") is never caught by accident: "l" isn't a
+# demonym suffix in this list, so the exact-remainder check never even
+# runs for it.
+_DEMONYM_SUFFIXES = ("ians", "ian", "ers", "er", "ns", "n", "rs", "r")
+
+
+def _is_companys_own_demonym(keyword: str, name: str) -> bool:
+    key = keyword.lower()
+    return any(key.endswith(suffix) and key[: -len(suffix)] == name for suffix in _DEMONYM_SUFFIXES)
+
+
 def drop_known_names(keywords: list[str], *names: str) -> list[str]:
     """Neither the posting's own employer name nor its own job title is a
     skill a candidate could ever claim -- filtered out wherever a keyword
     IS the posting's own employer name or job title, or one of its natural
-    comma/dash/parenthetical-separated segments, verbatim.
+    comma/dash/parenthetical-separated segments, verbatim (or a colloquial
+    employee demonym built from one, see _is_companys_own_demonym).
 
     "Software Engineer, User Frameworks" splits into "Software Engineer"
     and "User Frameworks" -- both are still just the title, not a claim.
@@ -1189,7 +1207,12 @@ def drop_known_names(keywords: list[str], *names: str) -> list[str]:
             continue
         blocked.add(name.lower())
         blocked.update(s.strip().lower() for s in _NAME_SEGMENT_SPLIT.split(name) if s.strip())
-    return [k for k in keywords if k.lower() not in blocked]
+    return [
+        k
+        for k in keywords
+        if k.lower() not in blocked
+        and not any(_is_companys_own_demonym(k, b) for b in blocked)
+    ]
 
 
 def _tokens(text: str) -> set[str]:
