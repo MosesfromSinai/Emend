@@ -677,7 +677,7 @@ export default function ApplicationPage({
         ? "Rewriting your resume to match the posting…"
         : application.mode === "polish"
           ? "Rewriting your resume to sound as strong as possible…"
-          : "Typesetting your resume…";
+          : "Formatting your resume…";
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <p className="text-sm text-ink/70">

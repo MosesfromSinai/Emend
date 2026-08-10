@@ -15,7 +15,7 @@ export function Hero() {
         </h1>
         <p className="mb-7 max-w-md text-[17px] leading-relaxed text-ink/70">
           Paste a job description. Emend rewrites your resume around it,
-          constrained to facts you confirm, typeset in LaTeX, with a receipt
+          constrained to facts you confirm, formatted in LaTeX, with a receipt
           for every line.
         </p>
         <div className="mb-5 flex flex-wrap items-center gap-3">

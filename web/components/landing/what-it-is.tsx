@@ -14,7 +14,7 @@ const STATS = [
     value: `${DEMO_SENTENCE_COUNT}/${DEMO_SENTENCE_COUNT}`,
     label: "demo lines grounded in confirmed facts, above",
   },
-  { value: "< 60s", label: "posting to typeset PDF" },
+  { value: "< 60s", label: "posting to formatted PDF" },
   { value: ".tex", label: "full LaTeX source, yours to keep" },
   { value: "0", label: "LLM calls in your match score, pure keyword math" },
 ];

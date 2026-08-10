@@ -333,7 +333,7 @@ export default function OnboardingPage() {
         <h1 className="font-serif text-2xl font-semibold">Let&apos;s get your resume in.</h1>
         <p className="mt-1 text-sm text-ink/70">
           Paste it as plain text, or upload a PDF, and we&apos;ll pull out the
-          facts and typeset it in LaTeX. Nothing is saved until you confirm.
+          facts and format it in LaTeX. Nothing is saved until you confirm.
         </p>
         <p className="mt-1 text-xs text-em-muted">
           Don&apos;t have a job posting yet? That&apos;s fine, you can format
@@ -415,7 +415,7 @@ export default function OnboardingPage() {
                 <span className="text-em-accent">2.</span>{" "}You confirm what&apos;s accurate
               </li>
               <li>
-                <span className="text-em-accent">3.</span> We tailor and typeset a PDF from those
+                <span className="text-em-accent">3.</span> We tailor and format a PDF from those
                 facts only
               </li>
             </ul>
