@@ -95,12 +95,14 @@ export function getMaster(): Promise<MasterResume> {
 export function createApplication(options?: {
   jdText?: string;
   jdUrl?: string;
+  polish?: boolean;
 }): Promise<{ id: string }> {
   return apiFetch("/applications", {
     method: "POST",
     body: JSON.stringify({
       jd_text: options?.jdText ?? null,
       jd_url: options?.jdUrl ?? null,
+      polish: options?.polish ?? false,
     }),
   });
 }

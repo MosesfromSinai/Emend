@@ -112,6 +112,18 @@ def _run(session, app_row: Application) -> None:
             session.commit()
             return
         report = core_bridge.validate(master, tailored, score, matched, missing)
+    elif app_row.mode == "polish":
+        try:
+            tailored = core_bridge.polish(master)
+        except GroundingError:
+            app_row.status = "failed"
+            app_row.error = (
+                "We couldn't produce a rewrite that passed our fact-check after "
+                "a few tries. Try again in a moment."
+            )
+            session.commit()
+            return
+        report = core_bridge.validate(master, tailored, 0.0, [], [])
     else:
         # No JD doesn't mean no editing -- wrap the confirmed facts the same
         # way a tailored resume is wrapped, so Export's per-line edit

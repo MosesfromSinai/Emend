@@ -44,14 +44,14 @@ export function AsymptoticProgress({
   );
 }
 
-export function TailoringProgress({ mode }: { mode: "tailor" | "refactor" }) {
+export function TailoringProgress({ mode }: { mode: "tailor" | "refactor" | "polish" }) {
   return (
     <AsymptoticProgress
       timeConstantMs={18_000}
       caption={
-        mode === "tailor"
-          ? "Every line gets checked against your confirmed facts before it ships, so this can take up to a minute."
-          : undefined
+        mode === "refactor"
+          ? undefined
+          : "Every line gets checked against your confirmed facts before it ships, so this can take up to a minute."
       }
     />
   );

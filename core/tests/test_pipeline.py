@@ -8,10 +8,13 @@ from core.pipeline import (
     _parse_education_entry,
     _split_entries,
     _split_location,
+    mock_polish_result,
+    mock_polish_resume,
     mock_refactor_result,
     mock_refactor_resume,
     mock_tailor_resume,
     parse_jd,
+    polish,
     refactor,
     structure_resume,
     tailor,
@@ -481,6 +484,34 @@ def test_mock_refactor_result_returns_grounded_report(sample_master):
     assert report.matched_keywords == []
     assert report.missing_keywords == []
     assert report.grounding_ok is True
+
+
+def test_mock_polish_preserves_all_fact_ids(sample_master):
+    master = sample_master
+    polished = mock_polish_resume(master)
+
+    bullet_ids = {
+        bullet.source_fact_ids[0]
+        for section in [*polished.experiences, *polished.projects]
+        for bullet in section.bullets
+    }
+    assert bullet_ids == master.all_fact_ids()
+
+
+def test_mock_polish_result_returns_grounded_report(sample_master):
+    master = sample_master
+
+    tailored, report = mock_polish_result(master)
+
+    validate_grounding(master, tailored)
+    assert report.match_score == 0.0
+    assert report.grounding_ok is True
+
+
+def test_polish_entrypoint_returns_grounded_resume(sample_master):
+    master = sample_master
+
+    validate_grounding(master, polish(master))
 
 
 def test_mock_tailor_returns_grounded_resume_and_keyword_data(sample_master):

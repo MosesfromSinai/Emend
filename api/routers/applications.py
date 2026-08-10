@@ -83,9 +83,15 @@ def create_application(
             "no_master_resume",
             "Confirm a master resume before creating an application",
         )
+    if body.jd_text is not None or body.jd_url is not None:
+        mode = "tailor"
+    elif body.polish:
+        mode = "polish"
+    else:
+        mode = "refactor"
     app_row = Application(
         session_id=session.id,
-        mode="refactor" if body.jd_text is None and body.jd_url is None else "tailor",
+        mode=mode,
         jd_text=body.jd_text,
         jd_url=body.jd_url,
         status="queued",
