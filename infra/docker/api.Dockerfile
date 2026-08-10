@@ -59,4 +59,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8000
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0"]
+# --proxy-headers + --forwarded-allow-ips='*': Railway's edge is the only
+# thing that can ever reach this container directly (its networking model
+# doesn't let public traffic bypass the edge), so trusting whatever peer
+# connects to parse X-Forwarded-For is safe here -- without this, uvicorn
+# reports Railway's own proxy as request.client.host for every request,
+# making per-IP rate limiting (api/rate_limit.py) completely blind: every
+# client looks identical.
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--proxy-headers", "--forwarded-allow-ips=*"]
