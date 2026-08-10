@@ -20,7 +20,7 @@ const jetBrainsMono = JetBrains_Mono({
 const description = "A tailored resume that can't lie about you.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://emend-two.vercel.app"),
+  metadataBase: new URL("https://www.useemend.com"),
   title: "Emend",
   description,
   icons: {
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Emend",
     description,
-    url: "https://emend-two.vercel.app",
+    url: "https://www.useemend.com",
     siteName: "Emend",
     type: "website",
   },
