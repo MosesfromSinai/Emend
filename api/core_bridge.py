@@ -171,6 +171,12 @@ def refactor(master: MasterResume) -> TailoredResume:
     return _core_fn("refactor")(master)
 
 
+def polish(master: MasterResume) -> TailoredResume:
+    """No-JD path, opted into: an LLM rewrite for stronger wording without a
+    posting to target, still grounded/judged like a real tailor."""
+    return _core_fn("polish")(master)
+
+
 def validate(
     master: MasterResume,
     tailored: TailoredResume,
