@@ -159,7 +159,10 @@ export default function WorkspacePage() {
             point, then click any line on the export screen to rewrite it
             however you want, in your own words.
           </p>
-          <label className="mb-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-em-line bg-em-soft p-3">
+          <Button onClick={start} disabled={busy}>
+            {busy ? "Starting…" : polish ? "Just format it, stronger →" : "Just format it →"}
+          </Button>
+          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-em-line bg-em-soft p-3">
             <input
               type="checkbox"
               checked={polish}
@@ -173,13 +176,6 @@ export default function WorkspacePage() {
               <span className="mt-1 block text-xs text-ink/60">{POLISH_NOTE}</span>
             </span>
           </label>
-          <Button onClick={start} disabled={busy}>
-            {busy
-              ? "Starting…"
-              : polish
-                ? "Typeset & strengthen my resume →"
-                : "Typeset my resume →"}
-          </Button>
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr_1fr]">
