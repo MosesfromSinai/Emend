@@ -793,18 +793,14 @@ export default function ApplicationPage({
 
       {!report && (
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-em-softb bg-em-soft/40 px-4 py-3">
-          <p className="text-xs text-ink/60">
-            Aren&apos;t satisfied with how it sounds?
-          </p>
+          <p className="text-xs text-ink/60">Not happy with how it reads?</p>
           <button
             type="button"
             onClick={startPolish}
             disabled={polishBusy}
             className="shrink-0 rounded-full border border-em-softb bg-white px-3.5 py-1.5 text-xs font-semibold text-em-accent hover:border-em-accent hover:text-em-deep disabled:opacity-60"
           >
-            {polishBusy
-              ? "Starting…"
-              : "Click here to refactor it to sound more professional →"}
+            {polishBusy ? "Starting…" : "Rewrite it to sound more professional →"}
           </button>
         </div>
       )}
