@@ -20,6 +20,7 @@ import {
   artifactUrl,
   finalizeApplication,
   getMaster,
+  polishApplication,
   previewApplication,
   type RenderOptions,
 } from "@/lib/api";
@@ -81,7 +82,9 @@ export default function ApplicationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { application, error } = usePollApplication(id);
+  const { application, error, restartPolling } = usePollApplication(id);
+  const [polishBusy, setPolishBusy] = useState(false);
+  const [polishError, setPolishError] = useState<string | null>(null);
   const [master, setMaster] = useState<MasterResume | null>(null);
   const [selections, setSelections] = useState<Record<string, BulletSelection>>(
     () => loadSavedEdits(id).selections ?? {}
@@ -653,6 +656,27 @@ export default function ApplicationPage({
     }
   }
 
+  async function startPolish() {
+    if (
+      !window.confirm(
+        "This uses AI to rewrite your bullets for stronger, more professional wording. " +
+          "Every line still gets checked against your confirmed facts, so nothing gets " +
+          "invented -- just phrased better. Continue?"
+      )
+    ) {
+      return;
+    }
+    setPolishBusy(true);
+    setPolishError(null);
+    try {
+      await polishApplication(id);
+      restartPolling();
+    } catch (e) {
+      setPolishError(e instanceof ApiError ? e.message : "Couldn't start that.");
+      setPolishBusy(false);
+    }
+  }
+
   if (error) return <p className="text-sm text-red-700">{error}</p>;
   if (!application) return <p className="text-sm text-ink/60">Loading…</p>;
 
@@ -738,10 +762,23 @@ export default function ApplicationPage({
             </button>
           </>
         ) : (
-          <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
-            0 rewrites
-          </span>
+          <>
+            <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
+              0 rewrites
+            </span>
+            <button
+              type="button"
+              onClick={startPolish}
+              disabled={polishBusy}
+              className="text-xs font-medium text-em-accent hover:text-em-deep disabled:opacity-60"
+            >
+              {polishBusy
+                ? "Starting…"
+                : "Want to make this as strong as possible, professionally? Click here."}
+            </button>
+          </>
         )}
+        {polishError && <p className="text-xs text-red-700">{polishError}</p>}
 
         <SegmentedControl
           value={view}

@@ -17,9 +17,6 @@ import { cn } from "@/lib/utils";
 
 type Mode = "tailor" | "refactor";
 
-const POLISH_NOTE =
-  "This uses AI to rewrite your bullets for stronger wording. Every line is still checked against your confirmed facts, so nothing gets invented -- just phrased better.";
-
 const SAMPLE_POSTING = `Backend Engineer — Nimbus Logistics
 
 We're looking for a Backend Engineer to join our platform team.
@@ -39,7 +36,6 @@ Requirements:
 export default function WorkspacePage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("tailor");
-  const [polish, setPolish] = useState(false);
   const [jdText, setJdText] = useState("");
   const [jdUrl, setJdUrl] = useState("");
   const [preview, setPreview] = useState<JdPreview | null>(null);
@@ -95,9 +91,7 @@ export default function WorkspacePage() {
     setNeedsMasterResume(false);
     try {
       const { id } = await createApplication(
-        mode === "tailor"
-          ? { jdText: jdText || undefined, jdUrl: jdUrl || undefined }
-          : { polish }
+        mode === "tailor" ? { jdText: jdText || undefined, jdUrl: jdUrl || undefined } : undefined
       );
       router.push(`/app/applications/${id}`);
     } catch (e) {
@@ -160,22 +154,8 @@ export default function WorkspacePage() {
             however you want, in your own words.
           </p>
           <Button onClick={start} disabled={busy}>
-            {busy ? "Starting…" : polish ? "Just format it, stronger →" : "Just format it →"}
+            {busy ? "Starting…" : "Just format it →"}
           </Button>
-          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-em-line bg-em-soft p-3">
-            <input
-              type="checkbox"
-              checked={polish}
-              onChange={(e) => setPolish(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span className="text-sm">
-              <span className="font-medium">
-                Want to make this as strong as possible, professionally? Click here.
-              </span>
-              <span className="mt-1 block text-xs text-ink/60">{POLISH_NOTE}</span>
-            </span>
-          </label>
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr_1fr]">
