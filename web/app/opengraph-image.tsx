@@ -13,6 +13,21 @@ const MARK_DATA_URI = `data:image/svg+xml;base64,${fs
   .readFileSync(path.join(process.cwd(), "public/emend-mark.svg"))
   .toString("base64")}`;
 
+// Satori ships one built-in default font with no real bold face, so
+// `fontWeight: 700` on unloaded text renders as a synthetically-thickened
+// (still thin-looking) weight -- the wordmark needs the site's actual brand
+// font loaded for real. Google serves a direct .ttf link (Satori can't use
+// .woff2) to any request without a modern-browser User-Agent, which a bare
+// server-side fetch already is.
+async function loadSourceSerifBold(): Promise<ArrayBuffer> {
+  const css = await fetch(
+    "https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@700"
+  ).then((r) => r.text());
+  const url = css.match(/src: url\(([^)]+)\)/)?.[1];
+  if (!url) throw new Error("could not resolve the Source Serif 4 font URL");
+  return fetch(url).then((r) => r.arrayBuffer());
+}
+
 export const alt = "Emend — a tailored resume that can't lie about you.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -88,7 +103,8 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-export default function Image() {
+export default async function Image() {
+  const sourceSerifBold = await loadSourceSerifBold();
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -115,8 +131,9 @@ export default function Image() {
             <div
               style={{
                 display: "flex",
+                fontFamily: "Source Serif 4",
                 fontSize: 64,
-                fontWeight: 800,
+                fontWeight: 700,
                 color: DEEP,
                 letterSpacing: -2,
               }}
@@ -127,6 +144,7 @@ export default function Image() {
           <div
             style={{
               display: "flex",
+              fontFamily: "Source Serif 4",
               marginTop: 30,
               fontSize: 38,
               fontWeight: 700,
@@ -203,7 +221,15 @@ export default function Image() {
               boxShadow: "0 18px 40px rgba(28,27,24,0.22)",
             }}
           >
-            <div style={{ display: "flex", fontSize: 24, fontWeight: 700, color: INK }}>
+            <div
+              style={{
+                display: "flex",
+                fontFamily: "Source Serif 4",
+                fontSize: 24,
+                fontWeight: 700,
+                color: INK,
+              }}
+            >
               {PERSONA_NAME}
             </div>
             <div
@@ -254,6 +280,9 @@ export default function Image() {
         </div>
       </div>
     ),
-    { ...size }
+    {
+      ...size,
+      fonts: [{ name: "Source Serif 4", data: sourceSerifBold, weight: 700, style: "normal" }],
+    }
   );
 }
