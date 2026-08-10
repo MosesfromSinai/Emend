@@ -177,7 +177,10 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     # "Experience with X and Y" is a structural signal, not a claim we
     # normalize or expand -- "k8s" stays "k8s", it never becomes "Kubernetes"
     keywords = extract_keywords("Experience with machine learning and k8s required.")
-    assert keywords == ["machine learning", "k8s"]
+    # order is priority (tier), not discovery -- "k8s" (a platform, tier 1)
+    # outranks "machine learning" (a field, tier 2), even though the
+    # phrase was discovered second; see _keyword_tier.
+    assert keywords == ["k8s", "machine learning"]
 
 
 def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
@@ -186,6 +189,21 @@ def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
     # same excluded term back in under its long form
     assert extract_keywords("Experience with Guidance Navigation Control (GNC) required.") == []
     assert extract_keywords("Familiarity with Standard Template Library (STL) is a plus.") == []
+
+
+def test_extract_keywords_merges_a_plural_acronym_pair():
+    # "Large Language Models (LLMs)" -- the acronym has a trailing
+    # lowercase "s" (a plural), which a strict all-uppercase acronym
+    # pattern misses entirely, the same failure mode as "DoD" earlier --
+    # unlike DoD this one is unambiguous (no competing bare-acronym
+    # meaning), so it merges into one canonical form instead of leaking
+    # both "Large Language Models" and bare "LLMs" as separate keywords.
+    keywords = extract_keywords(
+        "Experience with Large Language Models (LLMs) such as GPT and Claude."
+    )
+    assert "Large Language Models (LLMs)" in keywords
+    assert "LLMs" not in keywords
+    assert "Large Language Models" not in keywords
 
 
 def test_extract_keywords_collapses_an_accidentally_repeated_word():
@@ -339,7 +357,10 @@ def test_extract_keywords_reads_comma_like_lists():
     # generic tail ("frameworks") still attached -- see _known_technical_span
     keywords = extract_keywords(text)
     assert "machine learning" in keywords
-    assert "large language models" in keywords or "LLMs" in keywords
+    # the posting defines its own acronym for this phrase ("(LLMs)"), so
+    # the canonical merged form wins over either bare variant appearing
+    # separately -- see test_extract_keywords_merges_a_plural_acronym_pair
+    assert "large language models (LLMs)" in keywords
     assert not any("like to hear" in k.lower() for k in keywords)
 
 

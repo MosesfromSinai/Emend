@@ -32,20 +32,66 @@ import re
 from itertools import zip_longest
 
 from core.schemas import JDExtract, MasterResume
-from core.tech_names import ALL_TECH_NAMES
+from core.tech_names import (
+    ALL_TECH_NAMES,
+    ARCHITECTURE_CONCEPTS,
+    CERTIFICATIONS,
+    FIELDS,
+    FRAMEWORKS_LIBRARIES,
+    LANGUAGES,
+    NETWORKING,
+    SECURITY,
+    SYSTEMS_PLATFORMS,
+    TOOLS_TESTING,
+)
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
 # A ceiling, not a target -- every candidate still has to clear the
 # curated-name/denylist gates below on its own merit, so raising this
-# never makes the list less strict, only lets a posting that genuinely
-# names this many distinct real technologies (an unusually dense stack
-# listing -- Java, Kafka, Kubernetes, PyTorch, LangChain, iOS, Swift...
-# all in one real posting) keep them instead of an arbitrary cutoff
-# discarding real ones like "Kubernetes" in favor of whichever survived
-# from an earlier-priority heuristic.
-MAX_KEYWORDS = 40
+# never makes the list less strict, it only changes how many of the
+# already-strict survivors get shown. An unusually dense posting can
+# legitimately name 50+ distinct real technologies; past a point, though,
+# more isn't more useful on a score card meant to be read at a glance --
+# _keyword_tier below decides which ones matter most once there are more
+# survivors than this.
+MAX_KEYWORDS = 30
+
+# Lower is higher priority when trimming to MAX_KEYWORDS. Tier 0 (languages
+# and frameworks) is what a resume keyword match is most valuable for
+# surfacing first -- the concrete, nameable building blocks of a stack.
+# Tier 1 is still a specific, nameable thing (a platform, a tool, a
+# protocol, a certification) just not a language or framework itself.
+# Tier 2 (concepts, methodologies, fields -- "object-oriented programming",
+# "MLOps", "cloud computing") is real and legitimate, but more abstract
+# than a specific tool a candidate either has used or hasn't, so it's the
+# first to get crowded out once a posting names more real things than the
+# cap can show.
+_TIER_BY_NAME: dict[str, int] = {}
+for _names, _tier in (
+    (LANGUAGES | FRAMEWORKS_LIBRARIES, 0),
+    (SYSTEMS_PLATFORMS | TOOLS_TESTING | NETWORKING | SECURITY | CERTIFICATIONS, 1),
+    (ARCHITECTURE_CONCEPTS | FIELDS, 2),
+):
+    for _name in _names:
+        _TIER_BY_NAME[_name] = _tier
+
+_ACRONYM_SUFFIX = re.compile(r"\s*\([A-Za-z0-9]+\)$")
+
+
+def _keyword_tier(keyword: str) -> int:
+    """A merged span ("AWS EKS" from two separately-curated single words)
+    falls back to a word-by-word lookup, taking the best (numerically
+    lowest) tier found among its words. A keyword that only ever passed
+    through the generic acronym-shape bypass rather than actual curation
+    ("CAN", "LIN") defaults to tier 1 -- still a real, specific named
+    thing in practice, just never given its own curated entry."""
+    core = _ACRONYM_SUFFIX.sub("", keyword).strip().lower()
+    if core in _TIER_BY_NAME:
+        return _TIER_BY_NAME[core]
+    tiers = [_TIER_BY_NAME[w] for w in core.split() if w in _TIER_BY_NAME]
+    return min(tiers) if tiers else 1
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
@@ -465,7 +511,7 @@ def _proper_noun_phrases(text: str) -> list[str]:
 # both -- not by preferring one shape over the other, but by requiring
 # the posting's own acronym to actually match the phrase's own initials.
 _ACRONYM_DEFINITION = re.compile(
-    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6})\)"
+    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6}s?)\)"
 )
 
 
@@ -484,9 +530,14 @@ def _phrases_from_acronym_definitions(text: str) -> list[tuple[str, str]]:
     for match in _ACRONYM_DEFINITION.finditer(text):
         words = match.group(1).split()
         acronym = match.group(2)
+        # the regex's only possible lowercase character is this trailing
+        # "s" (a plural acronym -- "LLMs", "APIs", "IDs"): compare initials
+        # against the core acronym, but keep the full plural form as the
+        # canonical display text ("Large Language Models (LLMs)").
+        core_acronym = acronym[:-1] if acronym.endswith("s") else acronym
         for start in range(len(words)):
             phrase_words = words[start:]
-            if _acronym_initials(phrase_words) == acronym:
+            if _acronym_initials(phrase_words) == core_acronym:
                 found.append((" ".join(phrase_words), acronym))
                 break
     return found
@@ -1053,7 +1104,11 @@ def extract_keywords(text: str) -> list[str]:
     # spells out an excluded acronym ("Guidance Navigation Control (GNC)")
     # can't smuggle it back in just by writing it out in full
     acronym_by_key = {phrase.lower(): acronym for phrase, acronym in acronym_defined_pairs}
-    defined_acronyms = {acronym for _, acronym in acronym_defined_pairs}
+    # .upper(), not the raw acronym: a plural acronym ("LLMs") keeps its
+    # trailing lowercase "s" in canonical_acronym_form for display, but a
+    # bare candidate for the same acronym is compared case-insensitively
+    # here, and phrase.upper() below would never equal a mixed-case "LLMs".
+    defined_acronyms = {acronym.upper() for _, acronym in acronym_defined_pairs}
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
     # round-robined one-per-heuristic instead of concatenated -- a strict
@@ -1097,7 +1152,14 @@ def extract_keywords(text: str) -> list[str]:
         if kept_key not in seen:
             seen.add(kept_key)
             deduped.append(kept)
-    return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
+    final = _drop_redundant_superstrings(deduped)
+    # stable sort: within a tier, first-seen order (the original heuristic
+    # priority/round-robin) is unchanged -- only which TIER comes first
+    # shifts, so a language/framework surviving purely by having been
+    # found later never loses its spot to an earlier-found concept/field
+    # once the list is longer than MAX_KEYWORDS.
+    final.sort(key=_keyword_tier)
+    return final[:MAX_KEYWORDS]
 
 
 _NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s|[()]")
