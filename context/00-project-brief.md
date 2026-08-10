@@ -82,7 +82,7 @@ Application autofill / browser extension · accounts & auth · chat refinement �
 
 ## Deployment — as built
 
-Live: **https://emend-two.vercel.app**. Three attached backing services, each
+Live: **https://www.useemend.com**. Three attached backing services, each
 owned by whoever runs it, none bundled into another (twelve-factor: a backing
 service is an attached resource, swappable by changing one URL).
 
@@ -376,6 +376,6 @@ Warm compiles ~1–2s with a hard timeout · no network egress from the compile 
 
 ## Shared finish line
 
-A stranger lands on **https://emend-two.vercel.app**, pastes their resume, confirms the facts, and gets it refactored into LaTeX — viewable both ways, copyable, downloadable, printable — then pastes a JD and gets a tailored version with a match score and grounding report, receipts visible in the `.tex`. The README carries the architecture diagram, usage GIF, and real eval numbers.
+A stranger lands on **https://www.useemend.com**, pastes their resume, confirms the facts, and gets it refactored into LaTeX — viewable both ways, copyable, downloadable, printable — then pastes a JD and gets a tailored version with a match score and grounding report, receipts visible in the `.tex`. The README carries the architecture diagram, usage GIF, and real eval numbers.
 
 **Resume-honesty rule:** bullets go on our resumes when the thing they describe exists; bracketed numbers get filled in only once measured. Same rule the product enforces on itself.

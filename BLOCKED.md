@@ -19,7 +19,7 @@ run against the now-working key.
 
 ## RESOLVED: Phase 4 (deploy) — Neon + Railway + Vercel are live
 
-Deployed and serving: **https://emend-two.vercel.app** (web on Vercel) and
+Deployed and serving: **https://www.useemend.com** (web on Vercel) and
 **https://emend-production.up.railway.app** (api on Railway), Postgres on
 Neon. Details in `00-project-brief.md`'s "Deployment — as built" section
 and `infra/runbook.md`.

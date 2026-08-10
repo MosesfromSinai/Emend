@@ -2,7 +2,7 @@
 
 **A tailored resume that can't lie about you.**
 
-**[Try it live →](https://emend-two.vercel.app)** — no sign-up, nothing saved until you confirm it.
+**[Try it live →](https://www.useemend.com)** — no sign-up, nothing saved until you confirm it.
 
 Most resumes get filtered out by an ATS before a human ever reads them. Emend reverse-engineers that: it reads what a job posting actually prioritizes, then rewrites your resume to match — stronger verbs, quantified results, the right keywords — using only facts you confirmed about yourself.
 
