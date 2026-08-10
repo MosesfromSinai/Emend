@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { ApiError, deleteMyData } from "@/lib/api";
@@ -39,26 +40,34 @@ export function DeleteDataButton() {
       >
         Delete my data
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="font-serif text-lg font-semibold">Delete everything?</h2>
-            <p className="mt-2 text-sm text-ink/70">
-              This permanently deletes your confirmed resume, every application you&apos;ve
-              tailored, and their exported files. There&apos;s no undo.
-            </p>
-            {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-            <div className="mt-4 flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button onClick={confirmDelete} disabled={busy}>
-                {busy ? "Deleting…" : "Delete everything"}
-              </Button>
+      {open &&
+        createPortal(
+          // Rendered via portal straight onto <body> -- the header this
+          // button lives in has `backdrop-blur-sm`, and backdrop-filter on
+          // an ancestor makes it the containing block for any descendant
+          // `position: fixed` element. Left in the header's DOM subtree,
+          // this modal centered itself inside the header's own (much
+          // shorter) bounds instead of the viewport, cutting it off.
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+              <h2 className="font-serif text-lg font-semibold">Delete everything?</h2>
+              <p className="mt-2 text-sm text-ink/70">
+                This permanently deletes your confirmed resume, every application you&apos;ve
+                tailored, and their exported files. There&apos;s no undo.
+              </p>
+              {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+              <div className="mt-4 flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button onClick={confirmDelete} disabled={busy}>
+                  {busy ? "Deleting…" : "Delete everything"}
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
