@@ -83,15 +83,9 @@ def create_application(
             "no_master_resume",
             "Confirm a master resume before creating an application",
         )
-    if body.jd_text is not None or body.jd_url is not None:
-        mode = "tailor"
-    elif body.polish:
-        mode = "polish"
-    else:
-        mode = "refactor"
     app_row = Application(
         session_id=session.id,
-        mode=mode,
+        mode="refactor" if body.jd_text is None and body.jd_url is None else "tailor",
         jd_text=body.jd_text,
         jd_url=body.jd_url,
         status="queued",
@@ -115,11 +109,7 @@ def _version_out(version: ResumeVersion) -> VersionOut:
     )
 
 
-@router.get("/{application_id}", response_model=ApplicationOut)
-def get_application(
-    application_id: uuid.UUID, session: CurrentSession, db: DB
-) -> ApplicationOut:
-    app_row = _owned_application(application_id, session, db)
+def _application_out(app_row: Application) -> ApplicationOut:
     version = next(
         iter(sorted(app_row.versions, key=lambda v: v.created_at, reverse=True)), None
     )
@@ -135,6 +125,46 @@ def get_application(
         version=_version_out(version) if version is not None else None,
         jd_source_url=app_row.jd_url,
     )
+
+
+@router.get("/{application_id}", response_model=ApplicationOut)
+def get_application(
+    application_id: uuid.UUID, session: CurrentSession, db: DB
+) -> ApplicationOut:
+    return _application_out(_owned_application(application_id, session, db))
+
+
+@router.post(
+    "/{application_id}/polish",
+    response_model=ApplicationOut,
+    status_code=202,
+    dependencies=[Depends(rate_limit("applications", max_calls=15, window_seconds=3600))],
+)
+def polish_application(
+    application_id: uuid.UUID,
+    session: CurrentSession,
+    db: DB,
+    background: BackgroundTasks,
+) -> ApplicationOut:
+    """The "make this as strong as possible" upgrade, offered on Export once
+    a plain formatted (no-AI) resume already exists. Re-runs generation for
+    this same application in AI-polish mode -- a fresh ResumeVersion lands
+    alongside the original one, and the user's structural Export edits
+    (reorder, exclude, header/skills overrides) stay keyed by the same
+    fact/section ids, so they still apply once it's done."""
+    app_row = _owned_application(application_id, session, db)
+    if app_row.mode == "tailor":
+        raise ApiError(
+            409, "not_polishable", "A posting-tailored resume is already an AI rewrite"
+        )
+    if app_row.status in ("queued", "running"):
+        raise ApiError(409, "already_running", "This application is still generating")
+    app_row.mode = "polish"
+    app_row.status = "queued"
+    app_row.error = None
+    db.commit()
+    background.add_task(jobs.run_application, app_row.id)
+    return _application_out(app_row)
 
 
 def _tailored_from(version: ResumeVersion) -> TailoredResume | None:
