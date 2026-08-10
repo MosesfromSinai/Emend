@@ -25,7 +25,7 @@ from core.normalize import (
     split_inline_bullets,
     unwrap_text,
 )
-from core.prompts import PARSE_JD_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
+from core.prompts import PARSE_JD_SYSTEM, POLISH_SYSTEM, STRUCTURE_SYSTEM, TAILOR_SYSTEM
 from core.schemas import (
     CustomEntry,
     CustomSection,
@@ -1313,3 +1313,90 @@ def tailor(
         tailored, _report = mock_tailor_resume(master, jd)
         return tailored
     return real_tailor_resume(master, jd, client=client, enforce_judge=True)
+
+
+def mock_polish_resume(master: MasterResume) -> TailoredResume:
+    """Mock mode has no LLM to strengthen wording with, so it falls back to
+    the same fact-preserving pass-through as mock refactor/tailor."""
+    tailored = mock_refactor_resume(master)
+    tailored.summary_of_strategy = "Mock polish: preserve confirmed facts without rewriting."
+    return tailored
+
+
+def mock_polish_result(master: MasterResume) -> tuple[TailoredResume, Report]:
+    """Return grounded mock polish output plus its validation report."""
+    tailored = mock_polish_resume(master)
+    validate_grounding(master, tailored)
+    return tailored, build_grounding_report(tailored, 0.0, [], [])
+
+
+_POLISH_USER_PROMPT = (
+    "Rewrite the confirmed master resume in the system prompt to read as "
+    "strongly and professionally as possible. There is no job posting -- "
+    "keep every confirmed fact represented, just strengthen how each one "
+    "reads."
+)
+
+
+def _polish_repair_prompt(error: GroundingError) -> str:
+    return (
+        f"{_POLISH_USER_PROMPT}\n\nYour previous attempt was rejected by "
+        f"grounding validation: {error}. Fix that specific issue and "
+        "resubmit -- every word and number must be a direct paraphrase of a "
+        "cited fact, never inferred or computed."
+    )
+
+
+def real_polish_resume(
+    master: MasterResume,
+    *,
+    client: Any | None = None,
+    enforce_judge: bool = False,
+) -> TailoredResume:
+    """Strengthen wording with Sonnet, then reject anything the validator
+    will not accept. Mirrors `real_tailor_resume`, minus a JD to prioritize
+    against -- see that function's docstring for the retry/judge contract."""
+    system = cacheable_system(
+        POLISH_SYSTEM, f"Confirmed master resume:\n{master.model_dump_json()}"
+    )
+    user_prompt = _POLISH_USER_PROMPT
+    last_error: GroundingError | None = None
+    for _attempt in range(MAX_TAILOR_ATTEMPTS):
+        result = structured_call_with_usage(
+            TAILOR_MODEL, system, user_prompt, TailoredResume, client=client
+        )
+        record_call(
+            label="polish",
+            model=TAILOR_MODEL,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            cache_read_input_tokens=result.cache_read_input_tokens,
+            cache_creation_input_tokens=result.cache_creation_input_tokens,
+        )
+        tailored = result.value
+        try:
+            validate_grounding(master, tailored)
+        except GroundingError as exc:
+            last_error = exc
+            user_prompt = _polish_repair_prompt(exc)
+            continue
+        if enforce_judge:
+            verdicts = judge_bullets(master, tailored, client=client)
+            unsupported = next((v for v in verdicts if not v.supported), None)
+            if unsupported is not None:
+                last_error = GroundingError(
+                    f"judge rejected bullet {unsupported.bullet!r}: {unsupported.reason}"
+                )
+                user_prompt = _polish_repair_prompt(last_error)
+                continue
+        return tailored
+    raise last_error
+
+
+def polish(master: MasterResume, *, client: Any | None = None) -> TailoredResume:
+    """Public no-JD "make this as strong as possible" entrypoint; MOCK mode
+    preserves confirmed facts unchanged, same as `refactor`."""
+    if mock_enabled():
+        tailored, _report = mock_polish_result(master)
+        return tailored
+    return real_polish_resume(master, client=client, enforce_judge=True)
