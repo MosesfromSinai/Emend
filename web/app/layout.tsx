@@ -17,9 +17,24 @@ const jetBrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const description = "A tailored resume that can't lie about you.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://emend-two.vercel.app"),
   title: "Emend",
-  description: "A tailored resume that can't lie about you.",
+  description,
+  openGraph: {
+    title: "Emend",
+    description,
+    url: "https://emend-two.vercel.app",
+    siteName: "Emend",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Emend",
+    description,
+  },
 };
 
 export default function RootLayout({
