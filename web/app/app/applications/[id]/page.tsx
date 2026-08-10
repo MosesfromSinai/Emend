@@ -794,8 +794,7 @@ export default function ApplicationPage({
       {!report && (
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-em-softb bg-em-soft/40 px-4 py-3">
           <p className="text-xs text-ink/60">
-            Don&apos;t have a job posting yet? That&apos;s fine, you can format and edit
-            your resume without tailoring to anything.
+            Aren&apos;t satisfied with how it sounds?
           </p>
           <button
             type="button"
@@ -805,7 +804,7 @@ export default function ApplicationPage({
           >
             {polishBusy
               ? "Starting…"
-              : "✨ Extra: make this as strong as possible, professionally →"}
+              : "Click here to refactor it to sound more professional →"}
           </button>
         </div>
       )}
