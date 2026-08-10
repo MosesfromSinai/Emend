@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
@@ -34,23 +34,8 @@ Requirements:
 - Strong communication and code review habits`;
 
 export default function WorkspacePage() {
-  return (
-    // useSearchParams (below, for the ?mode=refactor deep link from the
-    // landing page's "Just format it" section) opts this page out of static
-    // rendering unless wrapped in Suspense -- there's no meaningful loading
-    // state to show since the form renders instantly either way.
-    <Suspense fallback={null}>
-      <WorkspaceForm />
-    </Suspense>
-  );
-}
-
-function WorkspaceForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [mode, setMode] = useState<Mode>(() =>
-    searchParams.get("mode") === "refactor" ? "refactor" : "tailor"
-  );
+  const [mode, setMode] = useState<Mode>("tailor");
   const [jdText, setJdText] = useState("");
   const [jdUrl, setJdUrl] = useState("");
   const [preview, setPreview] = useState<JdPreview | null>(null);
