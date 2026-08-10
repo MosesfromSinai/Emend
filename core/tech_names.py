@@ -96,7 +96,17 @@ SYSTEMS_PLATFORMS = {
     # enterprise platforms -- as real and nameable as any dev tool, just
     # from the business-software side of a stack
     "salesforce", "sap", "servicenow",
-    "embedded systems", "rtos", "iot",
+    "embedded systems", "embedded software", "embedded", "rtos", "iot",
+    "firmware", "real-time",
+    "microcontroller", "microcontrollers", "micro-controller", "micro-controllers",
+    "microprocessor", "microprocessors",
+    # automotive/embedded networking and its own tooling -- "can" and "lin"
+    # (bus protocol names) are left uncurated on purpose: both are ordinary
+    # English words in lowercase, and the acronym-shape check already
+    # extracts them correctly when a posting writes them CAN/LIN (as they
+    # always are for the protocol), without the false-positive risk of a
+    # curated bare "can" bypassing the noise-word filter for the modal verb.
+    "lin bus", "pcan", "canalyzer", "canape",
     # systems administration / infra
     "active directory", "virtualization", "hyper-v", "vsphere",
     "storage area network", "san", "network attached storage", "nas",
@@ -142,7 +152,8 @@ SECURITY = {
 # that a CS curriculum and a resume's own "Concepts" section both use.
 ARCHITECTURE_CONCEPTS = {
     "microservices", "monolith", "event-driven architecture", "oop",
-    "object-oriented programming", "system design", "api design", "mvc",
+    "object-oriented programming", "object oriented programming",
+    "system design", "api design", "mvc",
     "design patterns", "data structures", "algorithms",
     "data structures & algorithms", "data structures and algorithms",
     "distributed systems", "concurrency", "multithreading",

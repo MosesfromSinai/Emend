@@ -177,7 +177,10 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     # "Experience with X and Y" is a structural signal, not a claim we
     # normalize or expand -- "k8s" stays "k8s", it never becomes "Kubernetes"
     keywords = extract_keywords("Experience with machine learning and k8s required.")
-    assert keywords == ["machine learning", "k8s"]
+    # order is priority (tier), not discovery -- "k8s" (a platform, tier 1)
+    # outranks "machine learning" (a field, tier 2), even though the
+    # phrase was discovered second; see _keyword_tier.
+    assert keywords == ["k8s", "machine learning"]
 
 
 def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
@@ -186,6 +189,69 @@ def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
     # same excluded term back in under its long form
     assert extract_keywords("Experience with Guidance Navigation Control (GNC) required.") == []
     assert extract_keywords("Familiarity with Standard Template Library (STL) is a plus.") == []
+
+
+def test_extract_keywords_merges_a_plural_acronym_pair():
+    # "Large Language Models (LLMs)" -- the acronym has a trailing
+    # lowercase "s" (a plural), which a strict all-uppercase acronym
+    # pattern misses entirely, the same failure mode as "DoD" earlier --
+    # unlike DoD this one is unambiguous (no competing bare-acronym
+    # meaning), so it merges into one canonical form instead of leaking
+    # both "Large Language Models" and bare "LLMs" as separate keywords.
+    keywords = extract_keywords(
+        "Experience with Large Language Models (LLMs) such as GPT and Claude."
+    )
+    assert "Large Language Models (LLMs)" in keywords
+    assert "LLMs" not in keywords
+    assert "Large Language Models" not in keywords
+
+
+def test_extract_keywords_collapses_an_accidentally_repeated_word():
+    # a copy-pasted posting can genuinely repeat a word back to back (a
+    # hidden SEO/accessibility text node duplicating the visible text is a
+    # common real-world cause) -- "Salesforce Salesforce" is never itself a
+    # distinct keyword, so it collapses to one occurrence
+    keywords = extract_keywords(
+        "Join Salesforce Salesforce and define the future of cloud computing."
+    )
+    assert "Salesforce Salesforce" not in keywords
+    assert keywords == ["Salesforce", "cloud computing"]
+
+
+def test_extract_keywords_then_drop_known_names_removes_the_posting_own_company():
+    # "Salesforce" is a real, independently curated CRM platform -- a
+    # legitimate skill on someone else's posting -- but on a posting FROM
+    # Salesforce, every mention of it is the employer's own name, not a
+    # requirement. extract_keywords doesn't know who posted the JD, so
+    # dropping it is drop_known_names's job once parse_jd knows the
+    # company; this pins that the two compose correctly.
+    keywords = extract_keywords(
+        "Join Salesforce Salesforce and define the future of cloud computing."
+    )
+    assert drop_known_names(keywords, "Salesforce", "Software Engineer") == ["cloud computing"]
+
+
+def test_extract_keywords_splits_a_colon_label_from_its_list():
+    # "iOS: Swift, Xcode, MVC Architecture" -- a colon-labeled list item
+    # heading a comma list is common in a JD's own tech-stack breakdown,
+    # and without splitting on the colon too, the label glues onto the
+    # first item ("iOS: Swift") instead of surfacing as its own line
+    keywords = extract_keywords("Mobile Development: iOS: Swift, Xcode, MVC Architecture.")
+    assert "iOS: Swift" not in keywords
+    assert "Swift" in keywords
+    assert "Xcode" in keywords
+
+
+def test_extract_keywords_drops_a_phrase_whose_extra_word_is_already_its_own_entry():
+    # "microprocessors (ARM, PowerPC or equivalent)" split on its own
+    # commas trims down to "microprocessors ARM" -- real-word-shaped, but
+    # redundant once "microprocessors" and "ARM" already appear separately
+    keywords = extract_keywords(
+        "Experience with hardware or microprocessors (ARM, PowerPC or equivalent)."
+    )
+    assert "microprocessors ARM" not in keywords
+    assert "microprocessors" in keywords
+    assert "ARM" in keywords
 
 
 def test_extract_keywords_drops_soft_skill_phrases_in_a_list():
@@ -291,7 +357,10 @@ def test_extract_keywords_reads_comma_like_lists():
     # generic tail ("frameworks") still attached -- see _known_technical_span
     keywords = extract_keywords(text)
     assert "machine learning" in keywords
-    assert "large language models" in keywords or "LLMs" in keywords
+    # the posting defines its own acronym for this phrase ("(LLMs)"), so
+    # the canonical merged form wins over either bare variant appearing
+    # separately -- see test_extract_keywords_merges_a_plural_acronym_pair
+    assert "large language models (LLMs)" in keywords
     assert not any("like to hear" in k.lower() for k in keywords)
 
 

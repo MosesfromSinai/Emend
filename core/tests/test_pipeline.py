@@ -404,8 +404,10 @@ def test_parse_jd_derives_keywords_from_plain_text():
 
     assert parsed.responsibilities == ["Python backend role using Docker and Python."]
     # literal phrases pulled from the text itself, not a raw token dump --
-    # "backend" and "role" are lowercase prose, not Capitalized proper nouns
-    assert parsed.keywords == ["Docker", "Python"]
+    # "backend" and "role" are lowercase prose, not Capitalized proper nouns.
+    # Order is priority (tier): "Python" (a language, tier 0) outranks
+    # "Docker" (a platform, tier 1); see core/matching.py's _keyword_tier.
+    assert parsed.keywords == ["Python", "Docker"]
 
 
 def test_parse_jd_rejects_near_empty_text():

@@ -32,18 +32,66 @@ import re
 from itertools import zip_longest
 
 from core.schemas import JDExtract, MasterResume
-from core.tech_names import ALL_TECH_NAMES
+from core.tech_names import (
+    ALL_TECH_NAMES,
+    ARCHITECTURE_CONCEPTS,
+    CERTIFICATIONS,
+    FIELDS,
+    FRAMEWORKS_LIBRARIES,
+    LANGUAGES,
+    NETWORKING,
+    SECURITY,
+    SYSTEMS_PLATFORMS,
+    TOOLS_TESTING,
+)
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
-# A rich modern SWE posting routinely names 20-30 distinct real
-# technologies on its own (languages, frameworks, datastores, testing
-# tools...) -- capping well below that silently drops legitimate,
-# already-curated keywords (a real "microservices" mention, say) in favor
-# of whichever ones happened to be produced by an earlier-priority
-# heuristic, purely because the document had a lot of named proper nouns.
+# A ceiling, not a target -- every candidate still has to clear the
+# curated-name/denylist gates below on its own merit, so raising this
+# never makes the list less strict, it only changes how many of the
+# already-strict survivors get shown. An unusually dense posting can
+# legitimately name 50+ distinct real technologies; past a point, though,
+# more isn't more useful on a score card meant to be read at a glance --
+# _keyword_tier below decides which ones matter most once there are more
+# survivors than this.
 MAX_KEYWORDS = 30
+
+# Lower is higher priority when trimming to MAX_KEYWORDS. Tier 0 (languages
+# and frameworks) is what a resume keyword match is most valuable for
+# surfacing first -- the concrete, nameable building blocks of a stack.
+# Tier 1 is still a specific, nameable thing (a platform, a tool, a
+# protocol, a certification) just not a language or framework itself.
+# Tier 2 (concepts, methodologies, fields -- "object-oriented programming",
+# "MLOps", "cloud computing") is real and legitimate, but more abstract
+# than a specific tool a candidate either has used or hasn't, so it's the
+# first to get crowded out once a posting names more real things than the
+# cap can show.
+_TIER_BY_NAME: dict[str, int] = {}
+for _names, _tier in (
+    (LANGUAGES | FRAMEWORKS_LIBRARIES, 0),
+    (SYSTEMS_PLATFORMS | TOOLS_TESTING | NETWORKING | SECURITY | CERTIFICATIONS, 1),
+    (ARCHITECTURE_CONCEPTS | FIELDS, 2),
+):
+    for _name in _names:
+        _TIER_BY_NAME[_name] = _tier
+
+_ACRONYM_SUFFIX = re.compile(r"\s*\([A-Za-z0-9]+\)$")
+
+
+def _keyword_tier(keyword: str) -> int:
+    """A merged span ("AWS EKS" from two separately-curated single words)
+    falls back to a word-by-word lookup, taking the best (numerically
+    lowest) tier found among its words. A keyword that only ever passed
+    through the generic acronym-shape bypass rather than actual curation
+    ("CAN", "LIN") defaults to tier 1 -- still a real, specific named
+    thing in practice, just never given its own curated entry."""
+    core = _ACRONYM_SUFFIX.sub("", keyword).strip().lower()
+    if core in _TIER_BY_NAME:
+        return _TIER_BY_NAME[core]
+    tiers = [_TIER_BY_NAME[w] for w in core.split() if w in _TIER_BY_NAME]
+    return min(tiers) if tiers else 1
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
@@ -182,7 +230,7 @@ _NARRATIVE_COLON_HEAD = re.compile(
     re.IGNORECASE,
 )
 
-_LIST_SPLIT = re.compile(r",|/|\band\b|\bor\b", re.IGNORECASE)
+_LIST_SPLIT = re.compile(r",|/|:|\band\b|\bor\b", re.IGNORECASE)
 
 # Trailing/leading filler that commonly rides along a listed skill
 # ("Docker required", "strongly preferred: Python") but isn't part of it.
@@ -233,6 +281,12 @@ def _clean_phrase(phrase: str) -> str:
     # untouched since it does have a matching "(".
     if cleaned.endswith(")") and "(" not in cleaned:
         cleaned = cleaned[:-1].strip()
+    # the mirror case: a leading "(" with no matching ")" -- e.g.
+    # "microprocessors (ARM" from splitting "...microprocessors (ARM,
+    # PowerPC or equivalent)" on its own commas, where the closing ")"
+    # ends up in a different split fragment entirely.
+    if cleaned.startswith("(") and ")" not in cleaned:
+        cleaned = cleaned[1:].strip()
     return cleaned
 
 
@@ -457,7 +511,7 @@ def _proper_noun_phrases(text: str) -> list[str]:
 # both -- not by preferring one shape over the other, but by requiring
 # the posting's own acronym to actually match the phrase's own initials.
 _ACRONYM_DEFINITION = re.compile(
-    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6})\)"
+    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6}s?)\)"
 )
 
 
@@ -476,9 +530,14 @@ def _phrases_from_acronym_definitions(text: str) -> list[tuple[str, str]]:
     for match in _ACRONYM_DEFINITION.finditer(text):
         words = match.group(1).split()
         acronym = match.group(2)
+        # the regex's only possible lowercase character is this trailing
+        # "s" (a plural acronym -- "LLMs", "APIs", "IDs"): compare initials
+        # against the core acronym, but keep the full plural form as the
+        # canonical display text ("Large Language Models (LLMs)").
+        core_acronym = acronym[:-1] if acronym.endswith("s") else acronym
         for start in range(len(words)):
             phrase_words = words[start:]
-            if _acronym_initials(phrase_words) == acronym:
+            if _acronym_initials(phrase_words) == core_acronym:
                 found.append((" ".join(phrase_words), acronym))
                 break
     return found
@@ -610,6 +669,25 @@ def _extra_words_are_noise(shorter: list[str], longer: list[str]) -> bool:
     return False
 
 
+def _extra_words_have_own_entries(
+    shorter: list[str], longer: list[str], all_word_lists: list[list[str]]
+) -> bool:
+    """True if every word `longer` has beyond `shorter`'s own contiguous
+    run is ALSO, on its own, a separate entry already in the same keyword
+    list -- "microprocessors ARM" wrapping "microprocessors" (extra:
+    "ARM") when "ARM" also already appears as its own bare keyword adds
+    nothing a reader doesn't already get from the two separate entries
+    (unlike "AWS EKS" wrapping "AWS", where "EKS" is a real name but not
+    independently listed, so the combined form is the only place it
+    appears at all)."""
+    n, m = len(shorter), len(longer)
+    for i in range(m - n + 1):
+        if longer[i : i + n] == shorter:
+            extra = longer[:i] + longer[i + n :]
+            return bool(extra) and all([w] in all_word_lists for w in extra)
+    return False
+
+
 def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
     """Different heuristics above can surface both "cross-functional
     collaboration" and the noisier "experience with cross-functional
@@ -619,7 +697,12 @@ def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
     extra content is itself just filler -- "AWS EKS" is not a redundant
     wrapper of "AWS" the way the collaboration example is a wrapper of its
     shorter form, since "EKS" is a real, separately-meaningful name, not
-    noise riding along on a real keyword's coattails.
+    noise riding along on a real keyword's coattails. A wrapper is ALSO
+    dropped when its extra word(s) are themselves already separately kept
+    elsewhere in the list (see _extra_words_have_own_entries) -- a
+    parenthetical-example artifact like "microprocessors ARM" (from
+    "...microprocessors (ARM, PowerPC...)") is real-word-shaped but names
+    nothing beyond what the two already-separate keywords already say.
 
     Containment is checked word-by-word, not as a raw character substring --
     "Java" is not a redundant wrapper of "JavaScript", nor is "C" of "C++",
@@ -632,7 +715,10 @@ def _drop_redundant_superstrings(phrases: list[str]) -> list[str]:
             i != j
             and word_lists[j] != word_lists[i]
             and _is_word_run(word_lists[j], word_lists[i])
-            and _extra_words_are_noise(word_lists[j], word_lists[i])
+            and (
+                _extra_words_are_noise(word_lists[j], word_lists[i])
+                or _extra_words_have_own_entries(word_lists[j], word_lists[i], word_lists)
+            )
             for j in range(len(phrases))
         )
     ]
@@ -676,6 +762,10 @@ _NARRATIVE_FILLER_PHRASES = {
     # real tech acronym, but a degree ("BS/MS/PhD in Computer Science") or
     # a bare, too-generic-to-name-alone abbreviation, not a technology
     "phd", "ms", "bs", "ba", "mba", "ui", "ip",
+    # "all aspects of the SDLC" -- names the software development process
+    # generically, not a specific tool/language/framework a candidate can
+    # claim experience with the way "CI/CD" or "Kubernetes" names one.
+    "sdlc",
     # "EOE, including disability/vets." is standalone legal shorthand for
     # "Equal Opportunity Employer" that shows up ahead of the fuller EEO/
     # affirmative-action paragraph _strip_boilerplate_tail cuts at -- same
@@ -685,6 +775,12 @@ _NARRATIVE_FILLER_PHRASES = {
     # "such as PTO and parental leave" -- a benefits-section acronym, not a
     # technology, with the same short-and-uppercase shape as a real one.
     "pto",
+    # "Amazon Restricted Stock Units (RSUs)" -- a compensation term, not a
+    # technology, that only survives via the acronym-definition bypass
+    # (the posting itself defines it) the same way a real term like TDD
+    # does. Denylisting the acronym form is enough since the dedup loop
+    # checks both the spelled-out phrase and its acronym against this set.
+    "rsus",
     # "M-F, 9:00 a.m. to 5:00 p.m." -- a work-schedule abbreviation
     # (Monday-Friday), shaped exactly like a real hyphenated compound term.
     "m-f",
@@ -781,19 +877,23 @@ _EXPERIENCE_YEARS_ANNOTATION = re.compile(r"\(\s*\d+(?:\.\d+)?\+?\s*years?\s*\)"
 # Every heuristic above only looks for a specific structural shape (a short
 # line, a comma list, a parenthetical, a Capitalized run) -- none of them
 # ever look at plain lowercase prose sitting mid-paragraph, so a real,
-# already-curated multi-word term written that way ("Leverage JUnit for
-# unit testing and TestNG for crafting integration tests...") is invisible
-# to all of them at once. Being on the curated list is already the bar
-# every other heuristic's output has to clear before it survives -- an
-# exact match found by scanning the raw text directly clears that same bar
-# by construction, so it can be trusted the same way. Restricted to
-# multi-word names: a single curated word turning up anywhere in running
-# prose is far likelier to just be that ordinary word, and single-word
-# terms are already well covered by the proper-noun/acronym heuristics.
+# already-curated term written that way ("Leverage JUnit for unit testing
+# and TestNG for crafting integration tests...", "1+ years developing
+# real-time embedded software...") is invisible to all of them at once.
+# Being on the curated list is already the bar every other heuristic's
+# output has to clear before it survives -- an exact match found by
+# scanning the raw text directly clears that same bar by construction, so
+# it can be trusted the same way. Restricted to multi-word AND hyphenated
+# names (never a bare single word with no punctuation of its own): a
+# single ordinary word turning up anywhere in running prose is far likelier
+# to just be that ordinary word, but "real-time"/"object-oriented" are
+# specific enough compounds that the same false-positive risk doesn't
+# apply, and single bare words are already well covered by the
+# proper-noun/acronym heuristics regardless.
 _MULTIWORD_TECH_PATTERNS = [
     re.compile(r"(?<!\w)" + re.escape(name) + r"(?!\w)", re.IGNORECASE)
     for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n), n))
-    if " " in name
+    if " " in name or "-" in name
 ]
 
 
@@ -840,10 +940,58 @@ def _looks_like_acronym(phrase: str) -> bool:
 
 def _strip_wrapping_parens(phrase: str) -> str:
     """"(GNC)" -> "GNC" when the parens wrap the entire phrase and nothing
-    else -- still a literal substring of the source text either way."""
+    else -- still a literal substring of the source text either way. Unlike
+    _strip_unbalanced_parens below, this fires even though "(GNC)" is
+    internally balanced: a candidate that IS just one parenthetical, in
+    full, is normalized down to its content so a denylist/curated-name
+    check keyed on the bare acronym ("rsus") isn't defeated by the posting
+    itself always writing it as "(RSUs)"."""
     if phrase.startswith("(") and phrase.endswith(")") and phrase.count("(") == 1:
         return phrase[1:-1].strip()
     return phrase
+
+
+def _strip_unbalanced_parens(phrase: str) -> str:
+    """Remove any "(" or ")" that has no matching partner anywhere in
+    `phrase`, wherever it sits in the string -- not just at the edges.
+
+    "(GNC)" (balanced) is untouched here (see _strip_wrapping_parens for
+    that case). "microprocessors (ARM" (a raw candidate trimmed down to a
+    contiguous matched run that happens to include a comma-list's stray
+    opening paren -- the closing ")" landed in a different split fragment
+    entirely) becomes "microprocessors ARM". Still always a literal
+    substring of the source text with characters only ever removed, never
+    rearranged.
+    """
+    keep = [True] * len(phrase)
+    open_positions: list[int] = []
+    for i, c in enumerate(phrase):
+        if c == "(":
+            open_positions.append(i)
+        elif c == ")":
+            if open_positions:
+                open_positions.pop()
+            else:
+                keep[i] = False
+    for i in open_positions:
+        keep[i] = False
+    return "".join(c for i, c in enumerate(phrase) if keep[i])
+
+
+def _collapse_adjacent_duplicates(words: list[str]) -> list[str]:
+    """"Salesforce Salesforce" -> "Salesforce". A copy-pasted posting can
+    genuinely repeat a word back to back (a hidden SEO/accessibility text
+    node duplicating the visible text is a common real-world cause), and
+    when both occurrences are independently curated tech names, the
+    contiguous-run matching above joins them into one candidate instead of
+    picking either alone -- but "X X" is never itself a distinct keyword,
+    so immediate repeats collapse down to a single occurrence regardless
+    of why the source text repeated it."""
+    collapsed: list[str] = []
+    for word in words:
+        if not collapsed or collapsed[-1].lower() != word.lower():
+            collapsed.append(word)
+    return collapsed
 
 
 def _known_technical_span(phrase: str) -> str | None:
@@ -869,7 +1017,14 @@ def _known_technical_span(phrase: str) -> str | None:
     silently breaking the "same text, same output every time" guarantee
     this whole module exists to provide.
     """
-    # a candidate that's nothing but "(X)" -- some upstream heuristic
+    # A candidate reaching here isn't guaranteed to have gone through
+    # _clean_phrase first (_proper_noun_phrases and _phrases_from_direct_
+    # scan build their own raw substrings directly), so a stray unmatched
+    # paren is fixed here too, not just at the end of this function --
+    # otherwise the whole-phrase acronym-shape bypass just below can return
+    # something like "SSRF)" verbatim before word-level matching ever runs.
+    phrase = _strip_unbalanced_parens(phrase)
+    # A candidate that's nothing but "(X)" -- some upstream heuristic
     # grabbed just the parenthetical off "...Guidance Navigation Control
     # (GNC) required", not the phrase it was defining -- is unwrapped down
     # to "X" before every check below, the same denylisted/curated-name
@@ -917,12 +1072,16 @@ def _known_technical_span(phrase: str) -> str | None:
                 best_start, best_len = run_start, run_len
         else:
             run_len = 0
-    # the matched run can be a single word that still carries its own
-    # enclosing parens ("(GNC)" matched via the lone-acronym fallback
-    # above) -- stripped the same way the whole-phrase case at the top of
-    # this function is, so a denylist/curated-name check downstream keyed
-    # on the bare acronym isn't defeated by leftover punctuation.
-    return _strip_wrapping_parens(" ".join(words[best_start : best_start + best_len]))
+    span_words = _collapse_adjacent_duplicates(words[best_start : best_start + best_len])
+    # the matched run can carry a stray, unbalanced paren anywhere in it --
+    # a single word with its own enclosing parens ("(GNC)" matched via the
+    # lone-acronym fallback above), or a whole word's worth of prefix
+    # attached to a comma-list fragment's opening paren with the closing
+    # ")" stuck to a *different* word entirely ("microprocessors (ARM,
+    # PowerPC or equivalent)" split on its own commas -> the raw candidate
+    # is "microprocessors (ARM", and curating "microprocessors" separately
+    # makes it part of the matched run too, not just "(ARM" alone).
+    return _strip_wrapping_parens(_strip_unbalanced_parens(" ".join(span_words)))
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -949,7 +1108,11 @@ def extract_keywords(text: str) -> list[str]:
     # spells out an excluded acronym ("Guidance Navigation Control (GNC)")
     # can't smuggle it back in just by writing it out in full
     acronym_by_key = {phrase.lower(): acronym for phrase, acronym in acronym_defined_pairs}
-    defined_acronyms = {acronym for _, acronym in acronym_defined_pairs}
+    # .upper(), not the raw acronym: a plural acronym ("LLMs") keeps its
+    # trailing lowercase "s" in canonical_acronym_form for display, but a
+    # bare candidate for the same acronym is compared case-insensitively
+    # here, and phrase.upper() below would never equal a mixed-case "LLMs".
+    defined_acronyms = {acronym.upper() for _, acronym in acronym_defined_pairs}
     # Named technologies/acronyms are rarely wrong and there are usually
     # few of them, so they all make the cut first. Everything else is
     # round-robined one-per-heuristic instead of concatenated -- a strict
@@ -993,7 +1156,14 @@ def extract_keywords(text: str) -> list[str]:
         if kept_key not in seen:
             seen.add(kept_key)
             deduped.append(kept)
-    return _drop_redundant_superstrings(deduped)[:MAX_KEYWORDS]
+    final = _drop_redundant_superstrings(deduped)
+    # stable sort: within a tier, first-seen order (the original heuristic
+    # priority/round-robin) is unchanged -- only which TIER comes first
+    # shifts, so a language/framework surviving purely by having been
+    # found later never loses its spot to an earlier-found concept/field
+    # once the list is longer than MAX_KEYWORDS.
+    final.sort(key=_keyword_tier)
+    return final[:MAX_KEYWORDS]
 
 
 _NAME_SEGMENT_SPLIT = re.compile(r",|\s[-|]\s|[()]")
