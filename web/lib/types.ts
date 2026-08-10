@@ -101,7 +101,7 @@ export interface JdPreview {
   resolved_jd_text: string;
 }
 
-export type ApplicationMode = "refactor" | "tailor";
+export type ApplicationMode = "refactor" | "tailor" | "polish";
 export type ApplicationStatus = "queued" | "running" | "done" | "failed";
 
 // keyed by a bullet's first source_fact_id, mirrors api's BulletSelection
