@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { KeywordChips } from "@/components/keyword-chips";
 import { MatchScoreRing } from "@/components/match-score-ring";
@@ -34,8 +34,23 @@ Requirements:
 - Strong communication and code review habits`;
 
 export default function WorkspacePage() {
+  return (
+    // useSearchParams (below, for the ?mode=refactor deep link from the
+    // landing page's "Just format it" section) opts this page out of static
+    // rendering unless wrapped in Suspense -- there's no meaningful loading
+    // state to show since the form renders instantly either way.
+    <Suspense fallback={null}>
+      <WorkspaceForm />
+    </Suspense>
+  );
+}
+
+function WorkspaceForm() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("tailor");
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<Mode>(() =>
+    searchParams.get("mode") === "refactor" ? "refactor" : "tailor"
+  );
   const [jdText, setJdText] = useState("");
   const [jdUrl, setJdUrl] = useState("");
   const [preview, setPreview] = useState<JdPreview | null>(null);
@@ -149,7 +164,7 @@ export default function WorkspacePage() {
             Don&apos;t need to tailor, just want to edit?
           </h2>
           <p className="mb-4 text-sm text-ink/70">
-            No job posting needed. Typeset your confirmed resume as a starting
+            No job posting needed. Format your confirmed resume as a starting
             point, then click any line on the export screen to rewrite it
             however you want, in your own words.
           </p>

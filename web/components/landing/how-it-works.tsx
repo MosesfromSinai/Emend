@@ -26,7 +26,7 @@ const STEPS = [
     n: "03",
     kicker: "TYPESET & SHIP",
     title: "A real PDF and its LaTeX source, side by side.",
-    body: "Download a professionally typeset PDF, or take the .tex source with you. Clean formatting that reads beautifully to both hiring systems and humans.",
+    body: "Download a professionally formatted PDF, or take the .tex source with you. Clean formatting that reads beautifully to both hiring systems and humans.",
     reverse: false,
   },
 ];
@@ -43,7 +43,7 @@ export function HowItWorks() {
             How it works.
           </h2>
           <p className="mb-13 text-base text-ink/70">
-            From job posting to typeset resume in under a minute.
+            From job posting to formatted resume in under a minute.
           </p>
         </Reveal>
         {STEPS.map((step) => (

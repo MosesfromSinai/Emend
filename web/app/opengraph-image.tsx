@@ -173,7 +173,7 @@ export default function Image() {
                 borderRadius: 999,
               }}
             >
-              LaTeX typeset
+              LaTeX formatted
             </div>
           </div>
         </div>
