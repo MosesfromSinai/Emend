@@ -213,6 +213,29 @@ def test_extract_keywords_then_drop_known_names_removes_the_posting_own_company(
     assert drop_known_names(keywords, "Salesforce", "Software Engineer") == ["cloud computing"]
 
 
+def test_extract_keywords_splits_a_colon_label_from_its_list():
+    # "iOS: Swift, Xcode, MVC Architecture" -- a colon-labeled list item
+    # heading a comma list is common in a JD's own tech-stack breakdown,
+    # and without splitting on the colon too, the label glues onto the
+    # first item ("iOS: Swift") instead of surfacing as its own line
+    keywords = extract_keywords("Mobile Development: iOS: Swift, Xcode, MVC Architecture.")
+    assert "iOS: Swift" not in keywords
+    assert "Swift" in keywords
+    assert "Xcode" in keywords
+
+
+def test_extract_keywords_drops_a_phrase_whose_extra_word_is_already_its_own_entry():
+    # "microprocessors (ARM, PowerPC or equivalent)" split on its own
+    # commas trims down to "microprocessors ARM" -- real-word-shaped, but
+    # redundant once "microprocessors" and "ARM" already appear separately
+    keywords = extract_keywords(
+        "Experience with hardware or microprocessors (ARM, PowerPC or equivalent)."
+    )
+    assert "microprocessors ARM" not in keywords
+    assert "microprocessors" in keywords
+    assert "ARM" in keywords
+
+
 def test_extract_keywords_drops_soft_skill_phrases_in_a_list():
     # only a real language/framework/library/platform/tool counts now --
     # a structurally perfect list item is still dropped if it isn't one,
