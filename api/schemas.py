@@ -24,10 +24,6 @@ class CreateApplicationRequest(BaseModel):
         default=None, min_length=1, max_length=settings.max_text_chars
     )
     jd_url: str | None = Field(default=None, min_length=1, max_length=2048)
-    # No-JD path, opted into: an LLM rewrite for stronger wording instead of
-    # the default no-AI typeset pass-through. Ignored when jd_text/jd_url is
-    # set -- tailoring to a posting already implies a rewrite.
-    polish: bool = False
 
     @model_validator(mode="after")
     def validate_jd_text_and_url_are_exclusive(self) -> "CreateApplicationRequest":
