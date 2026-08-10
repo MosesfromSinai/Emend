@@ -762,6 +762,10 @@ _NARRATIVE_FILLER_PHRASES = {
     # real tech acronym, but a degree ("BS/MS/PhD in Computer Science") or
     # a bare, too-generic-to-name-alone abbreviation, not a technology
     "phd", "ms", "bs", "ba", "mba", "ui", "ip",
+    # "all aspects of the SDLC" -- names the software development process
+    # generically, not a specific tool/language/framework a candidate can
+    # claim experience with the way "CI/CD" or "Kubernetes" names one.
+    "sdlc",
     # "EOE, including disability/vets." is standalone legal shorthand for
     # "Equal Opportunity Employer" that shows up ahead of the fuller EEO/
     # affirmative-action paragraph _strip_boilerplate_tail cuts at -- same
