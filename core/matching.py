@@ -37,13 +37,15 @@ from core.tech_names import ALL_TECH_NAMES
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 MAX_PHRASE_WORDS = 5
-# A rich modern SWE posting routinely names 20-30 distinct real
-# technologies on its own (languages, frameworks, datastores, testing
-# tools...) -- capping well below that silently drops legitimate,
-# already-curated keywords (a real "microservices" mention, say) in favor
-# of whichever ones happened to be produced by an earlier-priority
-# heuristic, purely because the document had a lot of named proper nouns.
-MAX_KEYWORDS = 30
+# A ceiling, not a target -- every candidate still has to clear the
+# curated-name/denylist gates below on its own merit, so raising this
+# never makes the list less strict, only lets a posting that genuinely
+# names this many distinct real technologies (an unusually dense stack
+# listing -- Java, Kafka, Kubernetes, PyTorch, LangChain, iOS, Swift...
+# all in one real posting) keep them instead of an arbitrary cutoff
+# discarding real ones like "Kubernetes" in favor of whichever survived
+# from an earlier-priority heuristic.
+MAX_KEYWORDS = 40
 
 # Words too generic to ever stand alone as a keyword, and too common as
 # sentence-starters for the proper-noun heuristic below to trust on their own.
