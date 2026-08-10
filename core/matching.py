@@ -61,18 +61,19 @@ MAX_KEYWORDS = 30
 # Lower is higher priority when trimming to MAX_KEYWORDS. Tier 0 (languages
 # and frameworks) is what a resume keyword match is most valuable for
 # surfacing first -- the concrete, nameable building blocks of a stack.
-# Tier 1 is still a specific, nameable thing (a platform, a tool, a
-# protocol, a certification) just not a language or framework itself.
-# Tier 2 (concepts, methodologies, fields -- "object-oriented programming",
-# "MLOps", "cloud computing") is real and legitimate, but more abstract
-# than a specific tool a candidate either has used or hasn't, so it's the
-# first to get crowded out once a posting names more real things than the
-# cap can show.
+# Tier 1 is still a specific, nameable thing a candidate either has used or
+# hasn't (a platform, a tool, a protocol, a named architecture concept like
+# "microservices" or "object-oriented programming") just not a language or
+# framework itself. Tier 2 (certifications and broader fields -- "MLOps",
+# "cloud computing", "AWS Certified Solutions Architect") is the most
+# abstract or the most credential-shaped rather than skill-shaped, so it's
+# the first to get crowded out once a posting names more real things than
+# the cap can show.
 _TIER_BY_NAME: dict[str, int] = {}
 for _names, _tier in (
     (LANGUAGES | FRAMEWORKS_LIBRARIES, 0),
-    (SYSTEMS_PLATFORMS | TOOLS_TESTING | NETWORKING | SECURITY | CERTIFICATIONS, 1),
-    (ARCHITECTURE_CONCEPTS | FIELDS, 2),
+    (SYSTEMS_PLATFORMS | TOOLS_TESTING | NETWORKING | SECURITY | ARCHITECTURE_CONCEPTS, 1),
+    (CERTIFICATIONS | FIELDS, 2),
 ):
     for _name in _names:
         _TIER_BY_NAME[_name] = _tier
