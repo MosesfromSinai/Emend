@@ -24,7 +24,7 @@ const BENEFITS: { lead: string; rest: string }[] = [
 
 export function FormatSection() {
   return (
-    <div id="polish" className="border-y border-em-softb bg-white">
+    <div id="polish" className="border-b border-em-softb bg-white">
       <div className="mx-auto grid max-w-270 grid-cols-1 items-center gap-13 px-8 py-19 md:grid-cols-2">
         <Reveal>
           <div className="mb-2.5 font-mono text-[11px] tracking-[.12em] text-em-accent">
