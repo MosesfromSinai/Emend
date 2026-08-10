@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AppStepper } from "@/components/app-stepper";
 import { DeleteDataButton } from "@/components/delete-data-button";
+import { EmendMark } from "@/components/emend-mark";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,8 +30,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
           <Link
             href="/app"
-            className="shrink-0 font-serif text-[17px] font-semibold text-ink"
+            className="flex shrink-0 items-center gap-2 font-serif text-[17px] font-semibold text-ink"
           >
+            <EmendMark size={18} />
             Emend
           </Link>
           <Suspense fallback={null}>

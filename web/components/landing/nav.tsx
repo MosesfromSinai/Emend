@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { EmendLockup } from "@/components/emend-mark";
+
 export function LandingNav() {
   return (
     <div className="sticky top-0 z-50 border-b border-em-softb/60 bg-paper/90 backdrop-blur">
       <div className="mx-auto flex max-w-270 items-center justify-between px-8 py-3.5">
-        <span className="font-serif text-xl font-semibold text-ink">Emend</span>
+        <EmendLockup />
         <div className="flex items-center gap-6">
           <a href="#how" className="hidden text-sm text-ink/70 hover:text-ink sm:inline">
             How it works
