@@ -1,42 +1,35 @@
 # Blocked items
 
-## Real-mode eval numbers need a working ANTHROPIC_API_KEY
+Nothing currently blocked. Kept as a record of what was resolved and how it
+was verified, in case the same class of issue comes up again.
 
-**What's blocked:** `core/tests/test_evals.py::test_real_mode_grounding_and_keyword_coverage`
-(gated behind `RUN_REAL_EVALS=1`) and the cost-per-run numbers in
-`docs/evals.md` need a live, billable Anthropic API key to run
-`parse_jd`/`tailor`/`judge_bullets` in real mode (`MOCK=0`) against the 5
-posting fixtures in `core/fixtures/postings/`.
+## RESOLVED: ANTHROPIC_API_KEY / MOCK=0 in production
 
-**What happened:** the `ANTHROPIC_API_KEY` present in this shell environment
-returns `401 authentication_error: API key is invalid` when used directly
-against the Anthropic Messages API via the `anthropic` Python SDK. It's
-likely a Claude Code session credential rather than a standalone Anthropic
-Console API key — those aren't necessarily interchangeable.
+A working, billable `ANTHROPIC_API_KEY` was added on Railway and `MOCK=0`
+is set (Moses, 2026-08-09). Confirmed live, not just inferred: the
+production site has already served real tailoring requests. The earlier
+`401 authentication_error` in this shell was a Claude Code session
+credential mistakenly used in place of a real Anthropic Console key —
+those aren't interchangeable; not an issue with the app itself.
 
-**What I need from you:** a valid `ANTHROPIC_API_KEY` from
-console.anthropic.com (with billing enabled) exported in the shell, or
-confirmation of where one already lives (e.g. `infra/.env`, a secrets
-manager) that I should be reading from instead.
-
-**What I did instead:** built the full eval harness so it runs the moment a
-working key is available (`RUN_REAL_EVALS=1 EMEND_TRACE_PATH=<path> pytest
-core/tests/test_evals.py -k real_mode -s`), and wrote `docs/evals.md` with
-the report structure and every number marked `TODO(BLOCKED.md#real-mode)`
-instead of guessing at figures. Everything else in this phase (schema
-validity across fixtures, mock-mode tests, the trace writer itself) does
-not need a key and is done and verified.
+Still open, not blocking: the cost-per-run numbers in `docs/evals.md` are
+marked `TODO(BLOCKED.md#real-mode)` pending an actual
+`RUN_REAL_EVALS=1 EMEND_TRACE_PATH=<path> pytest core/tests/test_evals.py -k real_mode -s`
+run against the now-working key.
 
 ## RESOLVED: Phase 4 (deploy) — Neon + Railway + Vercel are live
 
-Deployed and serving: **https://emend-two.vercel.app** (web on Vercel, api on
-Railway, Postgres on Neon; `MOCK=1`, no working key yet — see the item above).
-Details in `00-project-brief.md`'s "Deployment — as built" section and
-`infra/runbook.md`.
+Deployed and serving: **https://emend-two.vercel.app** (web on Vercel) and
+**https://emend-production.up.railway.app** (api on Railway), Postgres on
+Neon. Details in `00-project-brief.md`'s "Deployment — as built" section
+and `infra/runbook.md`.
 
-**Still open:** the CI→Railway auto-deploy workflow
-(`.github/workflows/deploy.yml`) is failing on every run with `Invalid
-RAILWAY_TOKEN` — the repo has no `RAILWAY_TOKEN` secret set. The live site
-was deployed some other way and isn't guaranteed to track the latest merged
-`main`. Set the secret (Railway dashboard → project → Settings → Tokens) and
-confirm the next merge actually redeploys.
+Verified directly (2026-08-09), not just inferred from "Railway is up":
+- `GET /health` → `200 {"status":"ok"}`
+- `dynamic-resume` is fully merged into `main` (`git merge-base
+  --is-ancestor dynamic-resume origin/main` → true) as of PR #55, so `main`
+  is current through every fix landed there.
+- `ENVIRONMENT=production` is now set on the Railway service. Before it was
+  added, `/docs` and `/openapi.json` returned 200 (publicly exposed,
+  unauthenticated); after adding it and redeploying, both return 404,
+  confirmed live.
