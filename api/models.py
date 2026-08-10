@@ -4,7 +4,7 @@ JSONB on Postgres, plain JSON elsewhere (SQLite in tests) via `with_variant`.
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -90,8 +90,14 @@ class ResumeVersion(Base):
     # later edit can make a stale fact id collide with a different fact (or
     # vanish), silently showing an AI rewrite as the user's original wording.
     source_facts: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True)
+    # Python-side default (not server_default=func.now()) so this carries
+    # real microsecond precision -- SQLite's CURRENT_TIMESTAMP is
+    # second-resolution, and an application can now get two versions
+    # (format, then AI-polish) within the same second. `_latest_version`'s
+    # ordering must actually reflect which one is newer, not tie-break on
+    # insertion order it never captured.
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     application: Mapped[Application] = relationship(back_populates="versions")
