@@ -11,6 +11,12 @@ const TERMINAL_STATUSES = new Set(["done", "failed"]);
 export function usePollApplication(id: string) {
   const [application, setApplication] = useState<ApplicationOut | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumped to re-enter the effect below after the poll loop has already
+  // stopped at a terminal status -- e.g. right after triggering the
+  // AI-polish upgrade on an already-`done` application, which flips it back
+  // to `queued` server-side but wouldn't otherwise be noticed until the
+  // caller re-mounts.
+  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +40,7 @@ export function usePollApplication(id: string) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [id]);
+  }, [id, generation]);
 
-  return { application, error };
+  return { application, error, restartPolling: () => setGeneration((g) => g + 1) };
 }

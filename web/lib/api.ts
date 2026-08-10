@@ -95,14 +95,12 @@ export function getMaster(): Promise<MasterResume> {
 export function createApplication(options?: {
   jdText?: string;
   jdUrl?: string;
-  polish?: boolean;
 }): Promise<{ id: string }> {
   return apiFetch("/applications", {
     method: "POST",
     body: JSON.stringify({
       jd_text: options?.jdText ?? null,
       jd_url: options?.jdUrl ?? null,
-      polish: options?.polish ?? false,
     }),
   });
 }
@@ -120,6 +118,13 @@ export function previewJd(options: { jdText?: string; jdUrl?: string }): Promise
 
 export function getApplication(id: string): Promise<ApplicationOut> {
   return apiFetch(`/applications/${id}`);
+}
+
+// The "make this as strong as possible" upgrade, offered on Export once a
+// plain (no-AI) formatted resume already exists -- re-runs generation in
+// place as an AI rewrite of the same confirmed facts.
+export function polishApplication(id: string): Promise<ApplicationOut> {
+  return apiFetch(`/applications/${id}/polish`, { method: "POST" });
 }
 
 export interface RenderOptions {
