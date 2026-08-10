@@ -1,6 +1,17 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { ImageResponse } from "next/og";
 
 import { DEMO_SENTENCE_COUNT, PERSONA_NAME } from "@/lib/demo-persona";
+
+// Satori (the renderer behind ImageResponse) doesn't support arbitrary
+// inline <svg> element trees -- embedding the real mark as a data-URI <img>
+// is the documented workaround, and keeps this the same file every other
+// surface uses (brand/emend-mark.svg via public/).
+const MARK_DATA_URI = `data:image/svg+xml;base64,${fs
+  .readFileSync(path.join(process.cwd(), "public/emend-mark.svg"))
+  .toString("base64")}`;
 
 export const alt = "Emend — a tailored resume that can't lie about you.";
 export const size = { width: 1200, height: 630 };
@@ -97,10 +108,10 @@ export default function Image() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 14,
+              gap: 26,
             }}
           >
-            <div style={{ display: "flex", width: 14, height: 14, borderRadius: 4, backgroundColor: ACCENT }} />
+            <img src={MARK_DATA_URI} width={72} height={72} alt="" />
             <div
               style={{
                 display: "flex",

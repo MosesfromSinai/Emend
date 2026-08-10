@@ -23,6 +23,14 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://emend-two.vercel.app"),
   title: "Emend",
   description,
+  icons: {
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/emend-mark.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: "Emend",
     description,
