@@ -52,6 +52,33 @@ def test_refactor_mode_end_to_end(client, master, pipeline):
     assert bullet["variants"][0] == bullet["variants"][1] == bullet["variants"][2]
 
 
+def test_polish_mode_end_to_end(client, master, pipeline):
+    confirm_master(client, master)
+    r = client.post("/applications", json={"polish": True})
+    assert r.status_code == 202
+    app_id = r.json()["id"]
+
+    got = client.get(f"/applications/{app_id}").json()
+    assert got["status"] == "done"
+    assert got["mode"] == "polish"
+    assert got["match_score"] is None and got["error"] is None
+    # no JD to parse/score against, but grounding still gets a report
+    assert pipeline == ["validate", "render_and_compile"]
+
+    version = got["version"]
+    assert version["report"] is not None
+    assert version["report"]["grounding_ok"] is True
+    assert version["tailored"] is not None
+
+
+def test_refactor_mode_ignores_polish_flag_without_jd_confusion(client, master, pipeline):
+    # polish defaults False -- omitting it entirely must still be refactor mode
+    confirm_master(client, master)
+    r = client.post("/applications", json={})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+    assert got["mode"] == "refactor"
+
+
 def test_tailor_mode_end_to_end(client, master, pipeline):
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_text": "We need a backend engineer..."})
