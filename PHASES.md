@@ -46,7 +46,7 @@ complete. Remaining open item is the blocked real-mode eval numbers above.
 
 ## Phase 4 — Deploy + finish line
 
-**Deploy is done.** Live at https://emend-two.vercel.app (Vercel + Railway +
+**Deploy is done.** Live at https://www.useemend.com (Vercel + Railway +
 Neon), running `MOCK=1`. See `00-project-brief.md`'s "Deployment — as built".
 
 Still open from this phase:
