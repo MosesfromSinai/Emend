@@ -657,15 +657,6 @@ export default function ApplicationPage({
   }
 
   async function startPolish() {
-    if (
-      !window.confirm(
-        "This uses AI to rewrite your bullets for stronger, more professional wording. " +
-          "Every line still gets checked against your confirmed facts, so nothing gets " +
-          "invented -- just phrased better. Continue?"
-      )
-    ) {
-      return;
-    }
     setPolishBusy(true);
     setPolishError(null);
     try {
@@ -762,23 +753,10 @@ export default function ApplicationPage({
             </button>
           </>
         ) : (
-          <>
-            <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
-              0 rewrites
-            </span>
-            <button
-              type="button"
-              onClick={startPolish}
-              disabled={polishBusy}
-              className="text-xs font-medium text-em-accent hover:text-em-deep disabled:opacity-60"
-            >
-              {polishBusy
-                ? "Starting…"
-                : "Want to make this as strong as possible, professionally? Click here."}
-            </button>
-          </>
+          <span className="rounded-full bg-em-line-2 px-2.5 py-1 font-mono text-[11px] font-semibold text-em-muted-2">
+            0 rewrites
+          </span>
         )}
-        {polishError && <p className="text-xs text-red-700">{polishError}</p>}
 
         <SegmentedControl
           value={view}
@@ -812,6 +790,26 @@ export default function ApplicationPage({
           </Button>
         </div>
       </div>
+
+      {!report && (
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-em-softb bg-em-soft/40 px-4 py-3">
+          <p className="text-xs text-ink/60">
+            Don&apos;t have a job posting yet? That&apos;s fine, you can format and edit
+            your resume without tailoring to anything.
+          </p>
+          <button
+            type="button"
+            onClick={startPolish}
+            disabled={polishBusy}
+            className="shrink-0 rounded-full border border-em-softb bg-white px-3.5 py-1.5 text-xs font-semibold text-em-accent hover:border-em-accent hover:text-em-deep disabled:opacity-60"
+          >
+            {polishBusy
+              ? "Starting…"
+              : "✨ Extra: make this as strong as possible, professionally →"}
+          </button>
+        </div>
+      )}
+      {polishError && <p className="shrink-0 text-xs text-red-700">{polishError}</p>}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {view === "resume" ? (
