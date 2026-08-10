@@ -447,6 +447,24 @@ def test_drop_known_names_drops_a_parenthesized_team_name():
     assert keywords == ["C++", "Python"]
 
 
+def test_drop_known_names_drops_the_companys_own_employee_demonym():
+    # "As an NVIDIAN, you'll be immersed..." -- a colloquial employee
+    # demonym built from the company's own name, not a second, unrelated
+    # technology that happens to start with the same letters
+    keywords = drop_known_names(["NVIDIAN", "CUDA", "GPU"], "NVIDIA", "Systems Software Engineer")
+    assert keywords == ["CUDA", "GPU"]
+    # "Googler" is built by adding "r" alone (Google already ends in "e"),
+    # not "-er" -- both suffix shapes need to resolve to the same company
+    assert drop_known_names(["Googler", "Python"], "Google", "Software Engineer") == ["Python"]
+
+
+def test_drop_known_names_does_not_drop_an_unrelated_word_sharing_a_prefix():
+    # "Meta" is also an ordinary word's prefix -- "Metal" must never be
+    # caught just because it starts with the same letters as the company
+    keywords = drop_known_names(["Metal", "Metadata", "Python"], "Meta", "Software Engineer")
+    assert keywords == ["Metal", "Metadata", "Python"]
+
+
 def test_extract_keywords_ignores_city_state_addresses():
     text = "Software Engineer San Mateo, CA, United States. Experience with Kubernetes required."
     keywords = extract_keywords(text)
