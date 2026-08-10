@@ -55,7 +55,7 @@ export function FormatSection() {
           </ul>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/app/workspace?mode=refactor"
+              href="/app"
               className="rounded-lg bg-em-accent px-6.5 py-3.5 text-[15px] font-semibold text-paper shadow-[0_2px_10px_rgba(138,58,48,.35)] hover:bg-em-deep hover:shadow-[0_4px_14px_rgba(138,58,48,.45)]"
             >
               Just format my resume
