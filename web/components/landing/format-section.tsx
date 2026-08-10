@@ -13,8 +13,8 @@ const BENEFITS: { lead: string; rest: string }[] = [
     rest: "Margins, dates, bullet spacing, and section rules all line up on their own.",
   },
   {
-    lead: "Polish any line with AI.",
-    rest: "Click a sentence and we'll rewrite it professionally, or edit it yourself. Still grounded in what you wrote.",
+    lead: "Polish it with AI, or edit it yourself.",
+    rest: "Ask for a professional rewrite of the whole resume whenever you want, or click any line and write it in your own words. Still grounded in what you confirmed.",
   },
   {
     lead: "Yours to keep.",
@@ -38,7 +38,7 @@ export function FormatSection() {
             that says the right things and looks like a Word document from
             2011. Skip the job description entirely and Emend will format
             exactly what you wrote, word for word, in real LaTeX. Then, if
-            you want, have us rewrite any single sentence to read more
+            you want, ask us to rewrite the whole thing to read more
             professionally.
           </p>
           <ul className="mb-7 flex flex-col gap-3">
