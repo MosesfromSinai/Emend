@@ -93,17 +93,34 @@ export default function Image() {
             padding: "0 56px",
           }}
         >
-          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: DEEP }}>
-            Emend
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "flex", width: 14, height: 14, borderRadius: 4, backgroundColor: ACCENT }} />
+            <div
+              style={{
+                display: "flex",
+                fontSize: 64,
+                fontWeight: 800,
+                color: DEEP,
+                letterSpacing: -2,
+              }}
+            >
+              Emend
+            </div>
           </div>
           <div
             style={{
               display: "flex",
-              marginTop: 22,
-              fontSize: 42,
+              marginTop: 30,
+              fontSize: 38,
               fontWeight: 700,
               color: INK,
-              lineHeight: 1.15,
+              lineHeight: 1.2,
             }}
           >
             A tailored resume that can&apos;t lie about you.
