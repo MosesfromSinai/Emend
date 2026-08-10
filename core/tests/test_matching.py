@@ -188,6 +188,31 @@ def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
     assert extract_keywords("Familiarity with Standard Template Library (STL) is a plus.") == []
 
 
+def test_extract_keywords_collapses_an_accidentally_repeated_word():
+    # a copy-pasted posting can genuinely repeat a word back to back (a
+    # hidden SEO/accessibility text node duplicating the visible text is a
+    # common real-world cause) -- "Salesforce Salesforce" is never itself a
+    # distinct keyword, so it collapses to one occurrence
+    keywords = extract_keywords(
+        "Join Salesforce Salesforce and define the future of cloud computing."
+    )
+    assert "Salesforce Salesforce" not in keywords
+    assert keywords == ["Salesforce", "cloud computing"]
+
+
+def test_extract_keywords_then_drop_known_names_removes_the_posting_own_company():
+    # "Salesforce" is a real, independently curated CRM platform -- a
+    # legitimate skill on someone else's posting -- but on a posting FROM
+    # Salesforce, every mention of it is the employer's own name, not a
+    # requirement. extract_keywords doesn't know who posted the JD, so
+    # dropping it is drop_known_names's job once parse_jd knows the
+    # company; this pins that the two compose correctly.
+    keywords = extract_keywords(
+        "Join Salesforce Salesforce and define the future of cloud computing."
+    )
+    assert drop_known_names(keywords, "Salesforce", "Software Engineer") == ["cloud computing"]
+
+
 def test_extract_keywords_drops_soft_skill_phrases_in_a_list():
     # only a real language/framework/library/platform/tool counts now --
     # a structurally perfect list item is still dropped if it isn't one,

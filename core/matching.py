@@ -846,6 +846,22 @@ def _strip_wrapping_parens(phrase: str) -> str:
     return phrase
 
 
+def _collapse_adjacent_duplicates(words: list[str]) -> list[str]:
+    """"Salesforce Salesforce" -> "Salesforce". A copy-pasted posting can
+    genuinely repeat a word back to back (a hidden SEO/accessibility text
+    node duplicating the visible text is a common real-world cause), and
+    when both occurrences are independently curated tech names, the
+    contiguous-run matching above joins them into one candidate instead of
+    picking either alone -- but "X X" is never itself a distinct keyword,
+    so immediate repeats collapse down to a single occurrence regardless
+    of why the source text repeated it."""
+    collapsed: list[str] = []
+    for word in words:
+        if not collapsed or collapsed[-1].lower() != word.lower():
+            collapsed.append(word)
+    return collapsed
+
+
 def _known_technical_span(phrase: str) -> str | None:
     """None if nothing in `phrase` is a known technology; otherwise the
     longest recognized contiguous span, in the phrase's own original
@@ -917,12 +933,13 @@ def _known_technical_span(phrase: str) -> str | None:
                 best_start, best_len = run_start, run_len
         else:
             run_len = 0
+    span_words = _collapse_adjacent_duplicates(words[best_start : best_start + best_len])
     # the matched run can be a single word that still carries its own
     # enclosing parens ("(GNC)" matched via the lone-acronym fallback
     # above) -- stripped the same way the whole-phrase case at the top of
     # this function is, so a denylist/curated-name check downstream keyed
     # on the bare acronym isn't defeated by leftover punctuation.
-    return _strip_wrapping_parens(" ".join(words[best_start : best_start + best_len]))
+    return _strip_wrapping_parens(" ".join(span_words))
 
 
 def extract_keywords(text: str) -> list[str]:
