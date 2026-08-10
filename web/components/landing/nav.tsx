@@ -11,6 +11,9 @@ export function LandingNav() {
           <a href="#how" className="hidden text-sm text-ink/70 hover:text-ink sm:inline">
             How it works
           </a>
+          <a href="#polish" className="hidden text-sm text-ink/70 hover:text-ink sm:inline">
+            Just format it
+          </a>
           <a
             href="#rewrite"
             className="hidden text-sm text-ink/70 hover:text-ink sm:inline"

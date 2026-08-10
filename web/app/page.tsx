@@ -1,5 +1,6 @@
 import { LandingNav } from "@/components/landing/nav";
 import { Hero } from "@/components/landing/hero";
+import { FormatSection } from "@/components/landing/format-section";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { SentenceDemo } from "@/components/landing/sentence-demo";
 import { WhatItIs } from "@/components/landing/what-it-is";
@@ -12,6 +13,7 @@ export default function Home() {
       <LandingNav />
       <Hero />
       <HowItWorks />
+      <FormatSection />
       <SentenceDemo />
       <WhatItIs />
       <Faq />
