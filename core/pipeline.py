@@ -402,7 +402,24 @@ def _is_entry_boundary(lines: list[str], index: int, kind: str) -> bool:
     if kind == "project" and "|" in line:
         return True
     following = lines[index + 1] if index + 1 < len(lines) else ""
-    return bool(following) and not _looks_like_fact_line(following) and _has_date(following)
+    if bool(following) and not _looks_like_fact_line(following) and _has_date(following):
+        return True
+    # A bare trailing year on this line alone ("Google Cloud Professional -
+    # Google, 2021") is just as strong a signal as a full range, EXCEPT
+    # when the immediately preceding line is itself a dateless header
+    # that's already relying on THIS line to supply its date -- the
+    # "Technical Lead" / "ACM @ UCR Riverside, CA 2025" shape the check
+    # above exists for, where this line is the second half of the entry
+    # that already started, not a fresh one. Without this exception, a
+    # single-line entry with nothing following it (the last item in a
+    # bare-year list, say) never gets recognized as its own boundary at
+    # all, since the following-line check above has nothing left to look
+    # at by then.
+    preceding = lines[index - 1] if index > 0 else ""
+    preceding_awaits_this_date = (
+        bool(preceding) and not _looks_like_fact_line(preceding) and not _has_date(preceding)
+    )
+    return bool(BARE_YEAR_PATTERN.search(line)) and not preceding_awaits_this_date
 
 
 def _split_entries(lines: list[str], kind: str) -> list[list[str]]:
@@ -485,9 +502,15 @@ def _parse_entry_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:
     if not title:
         title = company
 
+    # header lines beyond the two consumed above (rare: 3+ dateless,
+    # locationless header-shaped lines, e.g. several bare certification
+    # lines run together with no blank line between them) still have real
+    # content -- surfacing them as fact lines under this entry loses the
+    # clean multi-entry split, but that beats silently discarding them,
+    # which is what returning only `lines[idx:]` here used to do.
     return (
         {"company": company, "title": title, "location": location, "start": start, "end": end},
-        lines[idx:],
+        [*plain, *lines[idx:]],
     )
 
 
@@ -533,6 +556,40 @@ def _parse_education_entry(lines: list[str]) -> Education:
     )
 
 
+# common lowercase surname particles across several naming conventions --
+# never capitalized by _fix_name_casing when not the name's first word
+_NAME_PARTICLES = {
+    "van", "von", "der", "den", "de", "del", "della", "di", "da", "das",
+    "dos", "la", "le", "du", "bin", "ibn", "al", "af", "ter", "ten",
+}
+
+
+def _fix_name_casing(name: str) -> str:
+    """Some resume templates render a header name in small caps by styling
+    ordinary lowercase text at the font level ("Vila" stored as "vila",
+    drawn as capitals) rather than actually capitalizing it -- a PDF's text
+    layer faithfully extracts that underlying lowercase text, not the
+    visual effect, so it comes through as "sam a. vila" or "Sam A.
+    vila" even though the resume visibly reads "Sam A. Vila". A person's
+    name is never actually meant to read all-lowercase, so any word with NO
+    uppercase letter at all gets its first letter capitalized. A word that
+    already has an uppercase letter somewhere ("McDonald", "O'Brien") is
+    left completely untouched -- this can't tell that apart from a real,
+    intentional casing, so it only ever corrects the unambiguous case.
+
+    A curated set of lowercase name particles ("van", "von", "de"...) is
+    also left alone when NOT the first word -- "Vincent van Gogh" is far
+    more likely a real, intentionally-lowercase particle than the same
+    font artifact, which uniformly lowercases an entire name rather than
+    just the one word in the middle of an otherwise normally-cased one.
+    """
+    words = name.split()
+    return " ".join(
+        w[:1].upper() + w[1:] if w.islower() and not (i > 0 and w in _NAME_PARTICLES) else w
+        for i, w in enumerate(words)
+    )
+
+
 def _extract_name(first_line: str) -> str:
     """The name portion of a header line, cut off before any contact info."""
     matches = [
@@ -546,7 +603,7 @@ def _extract_name(first_line: str) -> str:
     ]
     candidate = first_line[: min(m.start() for m in matches)] if matches else first_line
     candidate = re.split(r"\s*[|•·]\s*", candidate)[0].strip()
-    return candidate or "Unknown"
+    return _fix_name_casing(candidate) if candidate else "Unknown"
 
 
 def _text_master_resume(text: str) -> MasterResume:
@@ -845,7 +902,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
             )
         )
     return MasterResume(
-        name=raw.name,
+        name=_fix_name_casing(raw.name),
         email=raw.email,
         phone=raw.phone,
         links=raw.links,

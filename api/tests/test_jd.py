@@ -43,6 +43,7 @@ def test_preview_scores_a_url(client, master, monkeypatch):
     _stub_parse_and_match(monkeypatch)
 
     class FakeResponse:
+        is_redirect = False
         text = "<html><body><main>Python backend role.</main></body></html>"
 
         def raise_for_status(self):
@@ -64,6 +65,7 @@ def test_url_fetch_sends_a_browser_user_agent(client, master, monkeypatch):
     seen_headers = {}
 
     class FakeResponse:
+        is_redirect = False
         text = "<html><body><main>Role.</main></body></html>"
 
         def raise_for_status(self):
@@ -109,6 +111,7 @@ def test_preview_fails_clearly_on_unreadable_url(client, master, monkeypatch):
     confirm_master(client, master)
 
     class FakeResponse:
+        is_redirect = False
         text = "<html><body><noscript>Enable JavaScript to view this page.</noscript></body></html>"
 
         def raise_for_status(self):

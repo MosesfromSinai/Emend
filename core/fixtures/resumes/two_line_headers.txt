@@ -1,29 +1,29 @@
-Moses Avila
-(951) 555-0142 | moses.avila@example.com | linkedin.com/in/moses-avila | github.com/moses-avila
+Jordan Rivera
+(951) 555-0148 | jordan.rivera@example.com | linkedin.com/in/jordan-rivera | github.com/jordan-rivera
 
 Education
-University of California, Riverside Riverside, CA
+Cascadia University Millbrook, CA
 Bachelor of Science in Computer Science Expected Jun 2027
 Coursework: Operating Systems, Computer Architecture, Data Structures & Algorithms, Edge Computing
 
 Experience
 Software Engineering Intern Jun 2025 - Sep 2025
-General Atomics San Diego, CA
+Solara Defense Systems San Diego, CA
 • Developed 25+ integration tests using behave and Gherkin on the Advanced C2 Systems team.
 • Automated startup and shutdown scripts for RHEL 8 virtual machines.
 • Debugged message routing failures across three internal services.
 Technical Lead
-ACM @ UCR Riverside, CA
+ACM @ Cascadia Millbrook, CA
 2025
 • Led a team of four students building the chapter's event registration site.
 • Ran weekly code reviews for 20+ contributors.
 Undergraduate Research Assistant Jan 2024 - Dec 2024
-NASA California Space Grant Consortium Los Angeles, CA
+Pacific Aerospace Research Consortium Los Angeles, CA
 • Analyzed telemetry data from 12 high-altitude balloon flights.
 • Presented findings at the statewide research symposium.
 
 Projects
-Emend | Python, FastAPI, PostgreSQL, LaTeX • Built an AI resume tailoring service that cites every generated line back to a confirmed fact.
+Pathwise | Python, FastAPI, PostgreSQL, LaTeX • Built an AI resume tailoring service that cites every generated line back to a confirmed fact.
 • Deployed the API and Postgres database behind a container healthcheck.
 ThreatSense | Python, Flask, OpenCV, YOLOv8, NVIDIA Jetson, AWS EC2
 2026

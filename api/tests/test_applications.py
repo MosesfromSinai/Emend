@@ -1,97 +1,11 @@
 import uuid
 from pathlib import Path
 
-import pytest
-
 from api import core_bridge
 from api.core_bridge import CoreUnavailableError
-from core.schemas import (
-    BulletVerdict,
-    Fact,
-    JDExtract,
-    Report,
-    TailoredBullet,
-    TailoredResume,
-    TailoredSection,
-)
+from api.tests.conftest import FAKE_TEX
+from core.schemas import Fact, TailoredBullet, TailoredResume, TailoredSection
 from core.validation import GroundingError
-
-FAKE_TEX = """\\documentclass{article}
-% grounded: ACME-01, ACME-02
-\\begin{document}Sam Sample\\end{document}
-"""
-
-
-@pytest.fixture()
-def pipeline(monkeypatch, tmp_path):
-    """Stub every core/latex call at the bridge seam and record invocations."""
-    calls = []
-
-    def parse_jd(text):
-        calls.append("parse_jd")
-        return JDExtract(
-            company="Acme Cloud",
-            title="Backend Engineer",
-            hard_skills=["python", "postgresql"],
-            soft_requirements=["ownership"],
-            responsibilities=["ship REST APIs"],
-            keywords=["python", "postgresql", "kubernetes"],
-        )
-
-    def keyword_match(jd, master):
-        calls.append("keyword_match")
-        return 0.82, ["python", "postgresql"], ["kubernetes"]
-
-    def tailor(master, jd):
-        calls.append("tailor")
-        return TailoredResume(
-            summary_of_strategy="Lead with backend work",
-            experiences=[
-                TailoredSection(
-                    ref_id="ACME",
-                    bullets=[
-                        TailoredBullet(
-                            variants=["Built a reporting dashboard"] * 3,
-                            source_fact_ids=["ACME-01"],
-                        )
-                    ],
-                )
-            ],
-            projects=[],
-            skills={"Languages": ["Python"]},
-        )
-
-    def validate(master, tailored, match_score, matched_keywords, missing_keywords):
-        calls.append("validate")
-        return Report(
-            match_score=match_score,
-            matched_keywords=matched_keywords,
-            missing_keywords=missing_keywords,
-            grounding_ok=True,
-            verdicts=[
-                BulletVerdict(
-                    bullet="Built a reporting dashboard",
-                    supported=True,
-                    reason="cites ACME-01",
-                )
-            ],
-        )
-
-    def render_and_compile(master, tailored, *_args, **_kwargs):
-        calls.append("render_and_compile")
-        pdf = tmp_path / "out.pdf"
-        pdf.write_bytes(b"%PDF-1.4 fake")
-        return FAKE_TEX, str(pdf), "compile ok"
-
-    for name, fn in [
-        ("parse_jd", parse_jd),
-        ("keyword_match", keyword_match),
-        ("tailor", tailor),
-        ("validate", validate),
-        ("render_and_compile", render_and_compile),
-    ]:
-        monkeypatch.setattr(core_bridge, name, fn)
-    return calls
 
 
 def confirm_master(client, master):
@@ -318,6 +232,7 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
 
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
     class FakeResponse:
+        is_redirect = False
         text = (
             "<html><body><nav>skip me</nav>"
             "<main>We need a backend engineer with Python.</main></body></html>"

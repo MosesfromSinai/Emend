@@ -4,6 +4,7 @@ from core.llm import LLMUnavailableError
 from core.pipeline import (
     _entity_prefix,
     _fact_violations,
+    _fix_name_casing,
     _parse_education_entry,
     _split_entries,
     _split_location,
@@ -39,6 +40,30 @@ def test_entity_prefix_keeps_a_name_whose_camel_tail_is_too_short():
     assert _entity_prefix("Emend", set()) == "EMEND"
 
 
+def test_fix_name_casing_capitalizes_an_all_lowercase_word():
+    # a small-caps-styled PDF header extracts as lowercase text ("vila")
+    # even though the resume visibly reads "Vila"
+    assert _fix_name_casing("Sam A. vila") == "Sam A. Vila"
+    assert _fix_name_casing("sam a. vila") == "Sam A. Vila"
+
+
+def test_fix_name_casing_leaves_an_already_mixed_case_word_alone():
+    # a word with any uppercase letter already looks intentional
+    # ("McDonald") -- not distinguishable from a real casing, so untouched
+    assert _fix_name_casing("Sam McDonald") == "Sam McDonald"
+
+
+def test_fix_name_casing_leaves_a_lowercase_name_particle_alone():
+    # a lone lowercase word mid-name is more likely a real particle than
+    # the font artifact this function targets, which lowercases the whole
+    # name uniformly, not just one word in the middle of it
+    assert _fix_name_casing("Vincent van Gogh") == "Vincent van Gogh"
+    assert _fix_name_casing("Wernher von Braun") == "Wernher von Braun"
+    # a particle is never the first word of a name, so this is still the
+    # real small-caps bug, not a name starting with "van"
+    assert _fix_name_casing("van Gogh") == "Van Gogh"
+
+
 def test_entity_prefix_adds_numeric_suffix_on_collision():
     used: set[str] = set()
     assert _entity_prefix("General Atomics", used) == "GA"
@@ -70,6 +95,19 @@ def test_split_entries_breaks_when_the_date_is_on_the_second_header_line():
     ]
 
     assert _split_entries(lines, "experience") == [lines[:3], lines[3:]]
+
+
+def test_split_entries_breaks_at_each_bare_year_line_with_nothing_following():
+    # three one-line certifications run together with no blank lines --
+    # each carries its own bare year and none has a bulleted fact after it,
+    # so the "following line has a date" rule alone can't segment them
+    lines = [
+        "AWS Certified Solutions Architect - Amazon, 2023",
+        "Certified Kubernetes Administrator - CNCF, 2022",
+        "Google Cloud Professional - Google, 2021",
+    ]
+
+    assert _split_entries(lines, "custom") == [[lines[0]], [lines[1]], [lines[2]]]
 
 
 def test_split_entries_breaks_projects_at_a_tech_header():

@@ -98,21 +98,21 @@ def test_two_line_header_resume_segments_every_entry():
     master = structure_resume(text)
 
     assert [(e.company, e.title, e.start, e.end) for e in master.experiences] == [
-        ("General Atomics", "Software Engineering Intern", "Jun 2025", "Sep 2025"),
-        ("ACM @ UCR", "Technical Lead", "", "2025"),
+        ("Solara Defense Systems", "Software Engineering Intern", "Jun 2025", "Sep 2025"),
+        ("ACM @ Cascadia", "Technical Lead", "", "2025"),
         (
-            "NASA California Space Grant Consortium",
+            "Pacific Aerospace Research Consortium",
             "Undergraduate Research Assistant",
             "Jan 2024",
             "Dec 2024",
         ),
     ]
 
-    assert [p.name for p in master.projects] == ["Emend", "ThreatSense", "TermIt"]
+    assert [p.name for p in master.projects] == ["Pathwise", "ThreatSense", "TermIt"]
     assert all(p.tech for p in master.projects)
 
     assert len(master.education) == 1
-    assert master.education[0].school == "University of California, Riverside"
+    assert master.education[0].school == "Cascadia University"
     assert master.education[0].coursework
     assert "Operating Systems" in master.education[0].coursework
 
@@ -124,8 +124,8 @@ def test_two_line_header_resume_segments_every_entry():
     }
 
     # one prefix per entry -- never one spanning several
-    assert [e.id for e in master.experiences] == ["GA", "ACM", "NASA"]
-    assert [p.id for p in master.projects] == ["EMEND", "TS", "TERMIT"]
+    assert [e.id for e in master.experiences] == ["SDS", "ACM", "PARC"]
+    assert [p.id for p in master.projects] == ["PATHWI", "TS", "TERMIT"]
 
     for entry in [*master.experiences, *master.projects]:
         company = getattr(entry, "company", "") or getattr(entry, "name", "")

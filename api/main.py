@@ -5,11 +5,21 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
 from api.errors import error_response, register_error_handlers
-from api.routers import applications, artifacts, health, jd, resumes
+from api.routers import account, applications, artifacts, health, jd, resumes
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Emend API", version="0.1.0")
+    # Interactive docs are a full, unauthenticated map of every route and
+    # schema -- free reconnaissance for an attacker once real user data is
+    # flowing through this API, so they're only served in local development.
+    is_dev = settings.environment == "development"
+    app = FastAPI(
+        title="Emend API",
+        version="0.1.0",
+        docs_url="/docs" if is_dev else None,
+        redoc_url="/redoc" if is_dev else None,
+        openapi_url="/openapi.json" if is_dev else None,
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -59,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(applications.router)
     app.include_router(jd.router)
     app.include_router(artifacts.router)
+    app.include_router(account.router)
     return app
 
 

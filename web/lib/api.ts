@@ -164,6 +164,12 @@ export function listApplications(): Promise<ApplicationListItem[]> {
   return apiFetch("/applications");
 }
 
+// Permanently deletes the confirmed master resume, every application and
+// its rendered PDF, and the session itself -- irreversible, no undo.
+export function deleteMyData(): Promise<void> {
+  return apiFetch("/account", { method: "DELETE" });
+}
+
 // pdf_url / tex_url from the API are already absolute paths like
 // "/artifacts/<id>.pdf" — just point them at the api origin.
 export function artifactUrl(path: string): string {

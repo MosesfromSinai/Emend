@@ -180,6 +180,14 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     assert keywords == ["machine learning", "k8s"]
 
 
+def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
+    # "gnc" is denylisted as a bare acronym (too org-specific to generalize)
+    # -- spelling it out with its own parenthetical shouldn't smuggle the
+    # same excluded term back in under its long form
+    assert extract_keywords("Experience with Guidance Navigation Control (GNC) required.") == []
+    assert extract_keywords("Familiarity with Standard Template Library (STL) is a plus.") == []
+
+
 def test_extract_keywords_drops_soft_skill_phrases_in_a_list():
     # only a real language/framework/library/platform/tool counts now --
     # a structurally perfect list item is still dropped if it isn't one,

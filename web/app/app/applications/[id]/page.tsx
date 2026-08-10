@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { OverrideEditor } from "@/components/export/override-editor";
@@ -593,15 +594,30 @@ export default function ApplicationPage({
     sessionStorage.removeItem(savedEditsKey(id));
   }
 
-  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf" -- falls back to a plain
-  // "Resume.ext" if the name is missing or has nothing filename-safe in it.
+  // "Sam Reyes" -> "Sam_Reyes_Resume.pdf"; a middle name/initial is dropped
+  // ("Moses A. Vila" -> "Moses_Vila_Resume.pdf") rather than included, so
+  // the filename stays first-and-last regardless of how many words are in
+  // between. Falls back to a plain "Resume.ext" if the name is missing or
+  // has nothing filename-safe in it.
   function resumeFileName(name: string, extension: "pdf" | "tex"): string {
     const parts = name
       .trim()
       .split(/\s+/)
-      .map((part) => part.replace(/[^a-zA-Z0-9'-]/g, ""))
+      // NFKD splits an accented letter into its base letter + a separate
+      // combining mark ("é" -> "e" + ́), so stripping the marks first
+      // turns "José" into a readable "Jose" instead of a mangled "Jos" --
+      // a name in a script with no Latin decomposition at all (Chinese,
+      // Arabic...) still strips to nothing and correctly falls through to
+      // the plain "Resume.ext" fallback below, same as an empty name.
+      .map((part) =>
+        part
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9'-]/g, "")
+      )
       .filter(Boolean);
-    const base = parts.length > 0 ? `${parts.join("_")}_Resume` : "Resume";
+    const firstLast = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : parts;
+    const base = firstLast.length > 0 ? `${firstLast.join("_")}_Resume` : "Resume";
     return `${base}.${extension}`;
   }
 
@@ -664,12 +680,28 @@ export default function ApplicationPage({
         <pre className="overflow-auto whitespace-pre-wrap rounded-md bg-code-pane p-4 text-xs text-white/85">
           {application.error ?? "No error detail was recorded."}
         </pre>
+        <Link
+          href="/app/workspace"
+          className="w-fit text-sm font-medium text-em-accent hover:text-em-deep"
+        >
+          ← Back to Tailor, try again
+        </Link>
       </div>
     );
   }
 
   if (!version) {
-    return <p className="text-sm text-ink/60">Done, but no artifact was recorded.</p>;
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-ink/60">Done, but no artifact was recorded.</p>
+        <Link
+          href="/app/workspace"
+          className="w-fit text-sm font-medium text-em-accent hover:text-em-deep"
+        >
+          ← Back to Tailor, try again
+        </Link>
+      </div>
+    );
   }
 
   const report = version.report;

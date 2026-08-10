@@ -19,11 +19,54 @@ deterministic and not validation's business). If core prefers returning a
 full `Report`, only `validate` below changes.
 """
 
+import ipaddress
+import socket
+from urllib.parse import urljoin, urlparse
+
 import httpx
 
 from core.schemas import JDExtract, MasterResume, Report, TailoredResume
 
 JD_FETCH_TIMEOUT_SECONDS = 10
+JD_FETCH_MAX_REDIRECTS = 5
+
+
+class JdUrlBlockedError(ValueError):
+    """A user-supplied JD URL resolves somewhere this server should never
+    fetch from on someone else's behalf -- loopback, a private/internal
+    range, or a cloud metadata endpoint. Raised before any request is made
+    for the initial URL, and again on every redirect hop, since a public
+    URL can redirect straight into an internal address otherwise."""
+
+
+def _assert_public_http_url(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise JdUrlBlockedError(f"unsupported URL scheme: {parsed.scheme!r}")
+    if not parsed.hostname:
+        raise JdUrlBlockedError("URL has no host")
+    try:
+        addrinfo = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror as exc:
+        raise JdUrlBlockedError(f"could not resolve host: {parsed.hostname}") from exc
+    # Every address a hostname resolves to is checked, not just the first --
+    # a name can round-robin across both a public and an internal address.
+    # Note: this resolves the host once here and httpx resolves it again
+    # when it actually connects a moment later, so a DNS answer that
+    # changes in between (DNS rebinding) isn't caught by this check alone;
+    # accepted here as a real but low-probability residual risk for this
+    # app's threat model, not something worth a custom transport for.
+    for _family, _type, _proto, _canon, sockaddr in addrinfo:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            raise JdUrlBlockedError(f"URL resolves to a non-public address: {ip}")
 
 # Without a browser-like User-Agent, httpx's default ("python-httpx/...")
 # gets silently dropped by bot-protection CDNs in front of major ATS/careers
@@ -50,15 +93,31 @@ def fetch_jd_text(url: str) -> str:
 
     Shared by the async tailor job and /jd/preview's live score card, so a
     fetch/extract fix lands in exactly one place.
+
+    Redirects are followed manually, one hop at a time, with every hop
+    re-validated -- an SSRF-safe URL can still redirect straight into
+    localhost/an internal address/a cloud metadata endpoint, so trusting
+    httpx's own `follow_redirects` would only ever check the URL the user
+    supplied, not where it actually ends up.
     """
-    response = httpx.get(
-        url,
-        timeout=JD_FETCH_TIMEOUT_SECONDS,
-        follow_redirects=True,
-        headers=JD_FETCH_HEADERS,
-    )
-    response.raise_for_status()
-    return html_to_jd_text(response.text)
+    current = url
+    for _ in range(JD_FETCH_MAX_REDIRECTS + 1):
+        _assert_public_http_url(current)
+        response = httpx.get(
+            current,
+            timeout=JD_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=False,
+            headers=JD_FETCH_HEADERS,
+        )
+        if response.is_redirect:
+            location = response.headers.get("location")
+            if not location:
+                break
+            current = urljoin(current, location)
+            continue
+        response.raise_for_status()
+        return html_to_jd_text(response.text)
+    raise JdUrlBlockedError(f"too many redirects fetching {url}")
 
 
 def _core_fn(name: str):

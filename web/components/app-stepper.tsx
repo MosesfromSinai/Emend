@@ -28,7 +28,7 @@ export function AppStepper() {
   const currentIndex = STEPS.findIndex((s) => s.key === current);
 
   return (
-    <div className="ml-2 flex items-center gap-1">
+    <div className="ml-2 flex shrink-0 items-center gap-1">
       {STEPS.map((step, index) => {
         const isActive = step.key === current;
         const isDone = currentIndex >= 0 && index < currentIndex;
@@ -58,7 +58,7 @@ export function AppStepper() {
             >
               {index + 1}
             </span>
-            {step.label}
+            <span className="hidden sm:inline">{step.label}</span>
           </span>
         );
 
