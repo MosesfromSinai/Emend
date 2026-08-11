@@ -42,6 +42,23 @@ export default function OnboardingPage() {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("EDUCATION");
   const resumePaperRef = useRef<HTMLDivElement>(null);
+  // Clicking the resume preview here looks exactly like Export's click-to-edit
+  // paper (same component), so people naturally try it -- Confirm only
+  // toggles/switches tabs, though, real editing is Export-only. A quiet
+  // top-right hint (not a modal) tells them where editing actually lives
+  // without interrupting whatever they were doing.
+  const [showEditHint, setShowEditHint] = useState(false);
+  const editHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function flashEditHint() {
+    setShowEditHint(true);
+    if (editHintTimer.current) clearTimeout(editHintTimer.current);
+    editHintTimer.current = setTimeout(() => setShowEditHint(false), 3200);
+  }
+  useEffect(() => {
+    return () => {
+      if (editHintTimer.current) clearTimeout(editHintTimer.current);
+    };
+  }, []);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   // the error object, not a flattened string: ParseError decides what of it
   // a person should see, and keeps the raw text behind a toggle
@@ -203,6 +220,15 @@ export default function OnboardingPage() {
       // block, so nothing reserves bottom space anymore -- the panels below
       // get the full remaining height.
       <div className="flex h-full flex-col gap-4">
+        <div
+          aria-live="polite"
+          className={cn(
+            "fixed top-4 right-4 z-50 rounded-lg border border-em-softb bg-white px-3.5 py-2.5 text-xs font-medium text-ink shadow-lg transition-opacity duration-300",
+            showEditHint ? "opacity-100" : "pointer-events-none opacity-0"
+          )}
+        >
+          You&apos;ll be able to edit this on the next page.
+        </div>
         <div className="flex shrink-0 items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-2xl font-semibold">Did we get this right?</h1>
@@ -270,9 +296,11 @@ export default function OnboardingPage() {
               hoveredKey={hoveredKey}
               onHoverRow={setHoveredKey}
               onClickRow={(row) => {
+                flashEditHint();
                 const section = sectionForKey(row.key);
                 if (section) setActiveSection(section);
               }}
+              onClickHeaderField={flashEditHint}
               activeSectionHeading={activeSection}
               confirmedKeys={confirmed}
               renderRowExtra={(row) => (
