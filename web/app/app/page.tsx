@@ -309,6 +309,8 @@ export default function OnboardingPage() {
                 if (section) setActiveSection(section);
               }}
               onClickHeaderField={flashEditHint}
+              onClickBlockField={flashEditHint}
+              onClickSectionHeading={flashEditHint}
               activeSectionHeading={activeSection}
               confirmedKeys={confirmed}
               renderRowExtra={(row) => (
