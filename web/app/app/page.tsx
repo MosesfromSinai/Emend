@@ -237,6 +237,14 @@ export default function OnboardingPage() {
               anything that&apos;s off before confirming. You can also add a new
               entry or delete one you don&apos;t want, in any section.
             </p>
+            <button
+              type="button"
+              onClick={confirm}
+              disabled={busySave}
+              className="mt-1.5 text-xs font-medium text-em-accent underline hover:text-em-deep disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Everything look right as-is? Skip the review →
+            </button>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <div className="flex items-center gap-3">
