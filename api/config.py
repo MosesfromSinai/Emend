@@ -58,8 +58,14 @@ class Settings:
     max_text_chars: int = field(
         default_factory=lambda: int(os.environ.get("MAX_TEXT_CHARS", "50000"))
     )
+    # Derived from core's own PDF limit (plus headroom for multipart
+    # boundary/header overhead) rather than a second hardcoded number --
+    # the two drifting apart is exactly what silently capped every PDF
+    # upload at 2MB despite core/extract.py documenting 5MB as the real limit.
     max_body_bytes: int = field(
-        default_factory=lambda: int(os.environ.get("MAX_BODY_BYTES", "2000000"))
+        default_factory=lambda: int(
+            os.environ.get("MAX_BODY_BYTES", str(MAX_PDF_BYTES + 100_000))
+        )
     )
 
 
