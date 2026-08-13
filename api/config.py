@@ -3,6 +3,8 @@
 import os
 from dataclasses import dataclass, field
 
+from core.extract import MAX_PDF_BYTES
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.environ.get(name)
