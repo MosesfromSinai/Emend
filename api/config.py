@@ -68,5 +68,19 @@ class Settings:
         )
     )
 
+    def __post_init__(self) -> None:
+        # SameSite=None without Secure is not a weaker version of the
+        # cookie -- modern browsers reject it outright, silently breaking
+        # every session (and everything gated behind one) with no error
+        # anywhere in this app's own logs. The two env vars are independent
+        # knobs with no cross-check between them, so this is exactly the
+        # kind of misconfiguration that ships quietly: fail loudly at
+        # startup instead.
+        if self.session_cookie_samesite.lower() == "none" and not self.session_cookie_secure:
+            raise RuntimeError(
+                "SESSION_COOKIE_SAMESITE=none requires SESSION_COOKIE_SECURE=1 -- "
+                "browsers reject a SameSite=None cookie that isn't also Secure"
+            )
+
 
 settings = Settings()
