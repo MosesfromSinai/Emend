@@ -114,6 +114,39 @@ def test_empty_source_fact_ids_still_renders_receipt(master, tailored):
     assert "% grounded:" in [line.strip() for line in tex.splitlines()]
 
 
+def test_empty_source_fact_ids_survives_excludes_and_reorder(master, tailored):
+    # Reproduces a real crash: _exclude_by_key/_reorder_by_key both keyed
+    # bullets by source_fact_ids[0] unconditionally, so a sourceless bullet
+    # raised an uncaught IndexError the moment excluded_facts or fact_order
+    # was non-empty -- exactly what a normal Export edit sends.
+    section = tailored.experiences[0]
+    section.bullets[0].source_fact_ids = []
+    other_fact_id = tailored.projects[0].bullets[0].source_fact_ids[0]
+    tex = render_tex(
+        master,
+        tailored,
+        excluded_facts=[other_fact_id],
+        fact_order={section.ref_id: [other_fact_id]},
+    )
+    assert "% grounded:" in [line.strip() for line in tex.splitlines()]
+
+
+def test_two_sourceless_bullets_both_still_render(master, tailored):
+    # each sourceless bullet must get its own key -- if _reorder_by_key's
+    # by_key dict ever collided two of them onto the same key again, one
+    # would silently vanish from the render instead of erroring loudly
+    tailored.experiences[0].bullets[0].source_fact_ids = []
+    tailored.projects[0].bullets[0].source_fact_ids = []
+    n_bullets = sum(len(s.bullets) for s in (*tailored.experiences, *tailored.projects))
+    tex = render_tex(
+        master,
+        tailored,
+        excluded_facts=["SOMETHING-ELSE"],
+        fact_order={tailored.experiences[0].ref_id: ["SOMETHING-ELSE"]},
+    )
+    assert tex.count("% grounded:") == n_bullets
+
+
 def test_fact_order_reorders_tailored_bullets(master, tailored):
     tex = render_tex(master, tailored, fact_order={"BAB": ["BAB-02", "BAB-01"]})
     idx_02 = tex.index("Boosted processing throughput")
