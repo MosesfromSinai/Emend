@@ -27,11 +27,23 @@ export function usePollApplication(id: string) {
         const app = await getApplication(id);
         if (cancelled) return;
         setApplication(app);
+        setError(null); // clear a stale transient-error message once polling recovers
         if (!TERMINAL_STATUSES.has(app.status)) {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof ApiError ? e.message : "Network error.");
+        if (cancelled) return;
+        if (e instanceof ApiError) {
+          // A real response from the server (e.g. 404 -- not found/not
+          // yours) is a definitive answer; retrying won't change it.
+          setError(e.message);
+          return;
+        }
+        // Anything else means fetch itself threw before any response came
+        // back -- a transient network blip, not a definitive answer, so
+        // keep polling instead of leaving the page stuck on one hiccup.
+        setError("Network error.");
+        timer = setTimeout(poll, POLL_INTERVAL_MS);
       }
     }
 
