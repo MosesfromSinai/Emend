@@ -42,3 +42,18 @@ def test_rejects_thin_text_layer():
 def test_rejects_unparseable_bytes():
     with pytest.raises(PdfExtractionError, match="could not read"):
         pdf_to_text(b"not a pdf at all")
+
+
+def test_wraps_a_page_level_extraction_failure(monkeypatch):
+    # A crafted-but-parseable PDF can fail well past PdfReader() construction
+    # -- during page-tree traversal or content-stream decoding -- and that
+    # used to surface as an unhandled pypdf exception instead of the same
+    # clean PdfExtractionError every other bad-PDF case gets.
+    from pypdf._page import PageObject
+
+    def broken_extract_text(self, *args, **kwargs):
+        raise RuntimeError("corrupt content stream")
+
+    monkeypatch.setattr(PageObject, "extract_text", broken_extract_text)
+    with pytest.raises(PdfExtractionError, match="could not read"):
+        pdf_to_text(_read("sample_resume.pdf"))
