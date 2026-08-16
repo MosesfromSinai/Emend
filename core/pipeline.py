@@ -841,7 +841,16 @@ class _RawMasterResume(BaseModel):
 
 
 def _assign_ids(raw: _RawMasterResume) -> MasterResume:
-    """Turn LLM output with no ids into a MasterResume with entity-derived ones."""
+    """Turn LLM output with no ids into a MasterResume with entity-derived ones.
+
+    Each Fact id ends in a two-digit suffix (FACT_ID_PATTERN), so a section
+    over MAX_FACTS_PER_SECTION facts would mint a 3-digit one and fail
+    Pydantic validation -- uncaught, since this real/LLM path had no cap to
+    begin with. The mock/text-parsing path already truncates for the same
+    reason (see MAX_FACTS_PER_SECTION's other use above); truncating here
+    too keeps both paths consistent instead of one of them crashing on
+    input the other already knows how to handle.
+    """
     used_ids: set[str] = set()
     experiences = []
     for exp in raw.experiences:
@@ -856,7 +865,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
                 end=exp.end,
                 facts=[
                     Fact(id=f"{section_id}-{i:02d}", text=f.text)
-                    for i, f in enumerate(exp.facts, 1)
+                    for i, f in enumerate(exp.facts[:MAX_FACTS_PER_SECTION], 1)
                 ],
             )
         )
@@ -870,7 +879,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
                 tech=proj.tech,
                 facts=[
                     Fact(id=f"{section_id}-{i:02d}", text=f.text)
-                    for i, f in enumerate(proj.facts, 1)
+                    for i, f in enumerate(proj.facts[:MAX_FACTS_PER_SECTION], 1)
                 ],
             )
         )
@@ -890,7 +899,7 @@ def _assign_ids(raw: _RawMasterResume) -> MasterResume:
                     end=entry.end,
                     facts=[
                         Fact(id=f"{section_id}-{i:02d}", text=f.text)
-                        for i, f in enumerate(entry.facts, 1)
+                        for i, f in enumerate(entry.facts[:MAX_FACTS_PER_SECTION], 1)
                     ],
                 )
             )
