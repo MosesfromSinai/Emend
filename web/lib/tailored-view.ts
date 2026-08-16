@@ -44,6 +44,35 @@ export function tailoredBulletsByFactId(
   return map;
 }
 
+// Custom sections are never AI-tailored (same treatment as Education), so
+// this applies regardless of tailor/refactor mode -- but it still has to
+// run, or a "custom:<id>:..." text override (resume-paper.tsx wires up
+// click-to-edit for these exactly like any other field) silently has no
+// effect on the live preview even though the backend renderer
+// (latex/render.py's _custom_entry_row) already applies it to the real
+// exported PDF/tex. Mirrors overrideText/overrideList above, just walking
+// a nested structure instead of a flat field list.
+function applyCustomSectionOverrides(
+  customSections: MasterResume["custom_sections"],
+  textOverrides: Record<string, string>
+): MasterResume["custom_sections"] {
+  return customSections.map((section) => ({
+    ...section,
+    entries: section.entries.map((entry) => ({
+      ...entry,
+      title: overrideText(textOverrides, `custom:${entry.id}:title`, entry.title),
+      subtitle: overrideText(textOverrides, `custom:${entry.id}:subtitle`, entry.subtitle),
+      location: overrideText(textOverrides, `custom:${entry.id}:location`, entry.location),
+      start: overrideText(textOverrides, `custom:${entry.id}:start`, entry.start),
+      end: overrideText(textOverrides, `custom:${entry.id}:end`, entry.end),
+      facts: entry.facts.map((fact) => ({
+        ...fact,
+        text: overrideText(textOverrides, `custom:${entry.id}:fact:${fact.id}`, fact.text),
+      })),
+    })),
+  }));
+}
+
 // Builds a MasterResume-shaped view for resume-paper.tsx to render: in
 // tailor mode only the entries the tailor step selected show up, each with
 // its tailored bullets (resolved to whichever variant/edit is selected)
@@ -74,8 +103,10 @@ export function tailoredToRenderResume(
     coursework: overrideList(textOverrides, `education:${i}:coursework`, edu.coursework),
   }));
 
+  const custom_sections = applyCustomSectionOverrides(master.custom_sections, textOverrides);
+
   if (!tailored) {
-    return { ...master, name, email, phone, links, education };
+    return { ...master, name, email, phone, links, education, custom_sections };
   }
 
   const expById = new Map(master.experiences.map((e) => [e.id, e]));
@@ -133,5 +164,16 @@ export function tailoredToRenderResume(
     ])
   );
 
-  return { ...master, name, email, phone, links, education, experiences, projects, skills };
+  return {
+    ...master,
+    name,
+    email,
+    phone,
+    links,
+    education,
+    experiences,
+    projects,
+    skills,
+    custom_sections,
+  };
 }
