@@ -292,22 +292,33 @@ couldn't reach, while precision also went up, since a name/concept has to
 actually be a known one now — the two moved together, not in tension, once
 the reference list existed to arbitrate.
 
-**Still open, needs a product decision (not auto-fixed):**
-- Footer's "Privacy policy"/"Terms of service" links are dead (`href="#"`) —
-  no such pages exist yet. Decide: build stub pages, or remove the links
-  until real ones exist.
-- `PUT /resumes/master`'s check-then-insert for a brand-new session has a
-  race (two near-simultaneous first-saves can raise an unhandled
-  `IntegrityError`) — fixable with an upsert, but touches a write path worth
-  a second look before changing.
-- The global request body-size cap is smaller than `core/extract.py`'s own
-  5MB PDF limit, so a legitimate ~3MB+ PDF can get rejected earlier than
-  documented. Decide which limit is authoritative.
-- `fetch_jd_text` has no SSRF protection on user-supplied `jd_url` (no
-  block on internal/private network targets) — a security-policy decision,
-  not a pure bug fix.
-- A similar first-visit cookie race exists in session creation (low
-  likelihood, low severity) — noted, not yet addressed.
+**Resolved (this section used to call these "still open" — they aren't):**
+- The footer ("Privacy policy"/"Terms of service" dead links) doesn't exist
+  anymore; it was removed in an earlier landing-page pass. Real privacy
+  content lives at `/privacy` instead, linked from the CTA band.
+- `PUT /resumes/master`'s check-then-insert race is fixed: a concurrent
+  `IntegrityError` on the insert is caught and recovered as an update
+  instead of raising. Regression-tested (`test_save_master_recovers_from_
+  concurrent_first_save`) by simulating the exact interleaving.
+- The global request body-size cap (`settings.max_body_bytes`) is now
+  derived from `core/extract.py`'s own `MAX_PDF_BYTES`, plus multipart
+  headroom, so the two can't drift apart again. It's also enforced on the
+  actual byte stream now (a plain ASGI middleware), not just a
+  `Content-Length` header check — a chunked-encoded request with no
+  `Content-Length` at all used to skip the cap entirely.
+- `fetch_jd_text` has real SSRF protection (`_assert_public_http_url`,
+  re-checked on every redirect hop). A residual gap in it — the RFC 6598
+  carrier-grade-NAT range (`100.64.0.0/10`) wasn't covered by the enumerated
+  `is_private`/`is_loopback`/etc. checks — is also fixed, by checking
+  `not ip.is_global` instead of enumerating properties.
+
+**Still open (low severity, deliberately not fixed):**
+- Two near-simultaneous first requests from a brand-new visitor (no cookie
+  yet) can each mint their own `SessionRow` — harmless (neither request
+  errors, the visitor just ends up on whichever session's cookie their
+  browser keeps), just not deduplicated. New-session creation is now rate-
+  limited per IP against abuse (60/hour), which is the actual risk this was
+  originally flagging; the cosmetic double-session case itself remains.
 
 ## Contracts — change only via a `contract` PR approved by all four
 
