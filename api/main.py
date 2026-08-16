@@ -4,8 +4,64 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
-from api.errors import error_response, register_error_handlers
+from api.errors import ApiError, error_response, register_error_handlers
 from api.routers import account, applications, artifacts, health, jd, resumes
+
+
+class BodySizeLimitMiddleware:
+    """Rejects any request body over `max_bytes`, streamed or not.
+
+    A plain ASGI middleware (not `@app.middleware("http")`/BaseHTTPMiddleware)
+    on purpose: BaseHTTPMiddleware forwards the body to the downstream app
+    through its own background task, and overriding `receive` there raises
+    the size-limit error inside that task instead of the request's own call
+    stack -- it surfaces as an unhandled ExceptionGroup, not a clean 413.
+    Wrapping `receive` at the raw ASGI level avoids that entirely.
+
+    Content-Length is checked first as a fast path, but it's advisory and
+    absent on a chunked-encoded request -- the real enforcement is the
+    running byte count in `limited_receive`, which catches an oversized body
+    regardless of what headers claim about its size.
+    """
+
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers") or [])
+        content_length = headers.get(b"content-length")
+        if content_length is not None and content_length.isdigit():
+            if int(content_length) > self.max_bytes:
+                await self._reject(scope, receive, send)
+                return
+
+        total = 0
+
+        async def limited_receive():
+            nonlocal total
+            message = await receive()
+            if message["type"] == "http.request":
+                total += len(message.get("body", b""))
+                if total > self.max_bytes:
+                    raise ApiError(
+                        413,
+                        "payload_too_large",
+                        f"Request body exceeds {self.max_bytes} bytes",
+                    )
+            return message
+
+        await self.app(scope, limited_receive, send)
+
+    async def _reject(self, scope, receive, send) -> None:
+        response = error_response(
+            413, "payload_too_large", f"Request body exceeds {self.max_bytes} bytes"
+        )
+        await response(scope, receive, send)
 
 
 def create_app() -> FastAPI:
@@ -28,21 +84,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    @app.middleware("http")
-    async def limit_body_size(request: Request, call_next):
-        length = request.headers.get("content-length")
-        if (
-            length is not None
-            and length.isdigit()
-            and int(length) > settings.max_body_bytes
-        ):
-            return error_response(
-                413,
-                "payload_too_large",
-                f"Request body exceeds {settings.max_body_bytes} bytes",
-            )
-        return await call_next(request)
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
 
     @app.middleware("http")
     async def attach_session_cookie(request: Request, call_next):

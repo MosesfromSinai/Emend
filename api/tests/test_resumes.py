@@ -162,3 +162,20 @@ def test_oversized_body_rejected(client):
     )
     assert r.status_code == 413
     assert r.json()["error"]["code"] == "payload_too_large"
+
+
+def test_oversized_streamed_body_rejected_with_no_content_length(client):
+    # A streamed/chunked body has no Content-Length header at all -- the
+    # size guard has to cap it as it arrives, not just read one header.
+    def chunks():
+        chunk = b"x" * 8192
+        sent = 0
+        while sent <= settings.max_body_bytes:
+            yield chunk
+            sent += len(chunk)
+
+    r = client.post(
+        "/resumes/import", content=chunks(), headers={"content-type": "application/json"}
+    )
+    assert r.status_code == 413
+    assert r.json()["error"]["code"] == "payload_too_large"
