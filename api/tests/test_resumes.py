@@ -117,6 +117,44 @@ def test_master_rejects_invalid_schema(client):
     assert r.status_code == 422
 
 
+def test_save_master_recovers_from_concurrent_first_save(master, db_engine, monkeypatch):
+    """Two near-simultaneous first-saves for the same brand-new session both
+    pass save_master's "does a row already exist" check before either
+    commits -- simulated here by having a second, independent DB session
+    win the insert race right after this request's own `db.add`, so the
+    real `db.commit()` below hits the session_id unique constraint for real."""
+    from sqlalchemy.orm import sessionmaker
+
+    from api.models import MasterResumeRow, SessionRow
+    from api.routers.resumes import save_master
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    session_row = SessionRow()
+    setup.add(session_row)
+    setup.commit()
+    setup.close()
+
+    db = Session()
+    real_add = db.add
+
+    def add_then_race(row):
+        real_add(row)
+        other = Session()
+        other.add(MasterResumeRow(session_id=session_row.id, data={"raced": True}))
+        other.commit()
+        other.close()
+
+    monkeypatch.setattr(db, "add", add_then_race)
+
+    result = save_master(master, session_row, db)
+
+    assert result == master
+    check = Session()
+    saved = check.query(MasterResumeRow).filter_by(session_id=session_row.id).first()
+    assert saved.data["name"] == master.name  # this request's data won, not "raced"
+
+
 def test_oversized_body_rejected(client):
     huge = "x" * (settings.max_body_bytes + 1)
     r = client.post(

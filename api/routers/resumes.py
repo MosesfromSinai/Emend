@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api import core_bridge
@@ -71,9 +72,23 @@ def save_master(body: MasterResume, session: CurrentSession, db: DB) -> MasterRe
     if row is None:
         row = MasterResumeRow(session_id=session.id, data=body.model_dump())
         db.add(row)
+        try:
+            db.commit()
+        except IntegrityError:
+            # Two near-simultaneous first-saves for the same brand-new
+            # session both passed the check above; the loser's insert hits
+            # session_id's unique constraint. Recover as an update instead
+            # of a raw 500 -- whichever request's data lands is exactly as
+            # correct as if this one had simply run second.
+            db.rollback()
+            row = db.scalars(
+                select(MasterResumeRow).where(MasterResumeRow.session_id == session.id)
+            ).first()
+            row.data = body.model_dump()
+            db.commit()
     else:
         row.data = body.model_dump()
-    db.commit()
+        db.commit()
     return body
 
 
