@@ -58,14 +58,14 @@ def _assert_public_http_url(url: str) -> None:
     # app's threat model, not something worth a custom transport for.
     for _family, _type, _proto, _canon, sockaddr in addrinfo:
         ip = ipaddress.ip_address(sockaddr[0])
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        ):
+        # not is_global (rather than enumerating is_private/is_loopback/etc)
+        # so this doesn't miss a range the enumerated list forgot -- it
+        # already had: is_private/is_loopback/is_link_local/is_multicast/
+        # is_reserved/is_unspecified were all True for every RFC1918 range,
+        # but every one of them is False for 100.64.0.0/10 (RFC 6598,
+        # carrier-grade NAT -- real internal cloud/k8s networks use it),
+        # which is_global correctly still rejects.
+        if not ip.is_global:
             raise JdUrlBlockedError(f"URL resolves to a non-public address: {ip}")
 
 # Without a browser-like User-Agent, httpx's default ("python-httpx/...")
