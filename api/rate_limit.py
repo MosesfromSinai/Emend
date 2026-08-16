@@ -39,6 +39,13 @@ def _prune(key: tuple[str, str], window_seconds: float) -> deque[float]:
     bucket = _calls[key]
     while bucket and now - bucket[0] > window_seconds:
         bucket.popleft()
+    if not bucket:
+        # An empty deque left behind in _calls forever is a slow leak: every
+        # distinct session/IP this process has ever seen gets one entry that
+        # never goes away, even long after its window has fully expired.
+        # `_record` (via the same defaultdict) transparently recreates a
+        # fresh one if this key gets used again.
+        del _calls[key]
     return bucket
 
 

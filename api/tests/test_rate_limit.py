@@ -1,7 +1,9 @@
+import time
+
 import pytest
 
 from api.errors import ApiError
-from api.rate_limit import check_ip_rate_limit, rate_limit
+from api.rate_limit import _allowed, _calls, check_ip_rate_limit, rate_limit
 
 
 class FakeSession:
@@ -88,3 +90,17 @@ def test_check_ip_rate_limit_tracks_each_ip_independently():
     check_ip_rate_limit("test_ip_direct_iso", "203.0.113.22", max_calls=1, window_seconds=60)
     # a different IP is unaffected by the first IP's cap
     check_ip_rate_limit("test_ip_direct_iso", "203.0.113.23", max_calls=1, window_seconds=60)
+
+
+def test_expired_bucket_is_evicted_not_left_empty_forever():
+    # a stale entry sitting in _calls forever, long after its own window
+    # expired, is a slow memory leak -- one per distinct session/IP this
+    # process has ever seen, never freed
+    key = ("test_eviction", "ip:203.0.113.30")
+    check_ip_rate_limit("test_eviction", "203.0.113.30", max_calls=5, window_seconds=0.01)
+    assert key in _calls
+    time.sleep(0.02)
+    # _allowed only prunes+checks (no _record afterward), so it observes the
+    # eviction itself instead of immediately re-populating the same key
+    assert _allowed(key, window_seconds=0.01, cap=5) is True
+    assert key not in _calls
