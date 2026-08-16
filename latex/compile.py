@@ -64,6 +64,13 @@ def compile_tex(
             return "", f"compile timed out after {timeout_s}s"
 
         log = f"{proc.stdout}\n{proc.stderr}".strip()
+        # Tectonic echoes the file paths it processed (--outdir, the .tex
+        # source) into its own output -- this log is returned verbatim to
+        # the client on a compile failure (api/routers/applications.py's
+        # finalize_application), so the server's real temp-directory layout
+        # shouldn't ship in an error message just because the compiler
+        # happened to print it.
+        log = log.replace(workdir, "<workdir>")
         if proc.returncode != 0:
             return "", log or f"tectonic exited with code {proc.returncode}"
 
