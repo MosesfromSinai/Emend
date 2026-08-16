@@ -41,6 +41,15 @@ def _validate_fact_prefix(section_id: str, facts: list["Fact"]) -> None:
     bad_ids = [fact.id for fact in facts if not fact.id.startswith(f"{section_id}-")]
     if bad_ids:
         raise ValueError(f"fact ids must start with section id: {bad_ids}")
+    # MasterResume.fact_lookup() also catches a duplicate, but only lazily,
+    # whenever something downstream happens to call it -- a raw ValueError
+    # far from the actual input boundary instead of a clean validation
+    # error right here at construction time.
+    seen: set[str] = set()
+    for fact in facts:
+        if fact.id in seen:
+            raise ValueError(f"duplicate fact id within section {section_id!r}: {fact.id}")
+        seen.add(fact.id)
 
 
 class Fact(BaseModel):

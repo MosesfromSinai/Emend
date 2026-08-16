@@ -258,6 +258,17 @@ def test_master_resume_rejects_fact_id_outside_section_prefix():
         MasterResume(**data)
 
 
+def test_master_resume_rejects_duplicate_fact_id_within_one_section():
+    # fact_lookup() already catches a duplicate across the whole resume, but
+    # only lazily, whenever something downstream calls it -- construction
+    # itself should reject it immediately with a clean validation error.
+    data = json.loads((FIXTURES / "sample_master.json").read_text())
+    data["experiences"][0]["facts"][1]["id"] = data["experiences"][0]["facts"][0]["id"]
+
+    with pytest.raises(ValidationError, match="duplicate fact id within section"):
+        MasterResume(**data)
+
+
 def test_build_grounding_report_marks_valid_bullets_supported(sample_tailored):
     tailored = sample_tailored
 
