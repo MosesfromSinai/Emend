@@ -29,6 +29,20 @@ FAKE_TEX = """\\documentclass{article}
 """
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """api.rate_limit._calls is a module-level dict, not request-scoped, so
+    it otherwise persists for the whole pytest run -- and TestClient reports
+    the same client host for every test, so an IP-keyed bucket (e.g.
+    new-session creation) would silently accumulate hits across unrelated
+    tests instead of resetting per test the way the DB (db_engine) does."""
+    from api.rate_limit import _calls
+
+    _calls.clear()
+    yield
+    _calls.clear()
+
+
 @pytest.fixture()
 def db_engine(tmp_path, monkeypatch):
     """File-backed SQLite per test; api.db.SessionLocal is swapped in place
