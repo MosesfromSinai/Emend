@@ -55,6 +55,23 @@ def test_links_get_scheme_and_display(master):
     assert r"\href{mailto:ada@example.com}" in tex
 
 
+def test_email_with_special_characters_keeps_a_working_mailto_link(master):
+    # The href target must not be prose-escaped -- "_" -> "\_" bakes a
+    # backslash into the actual mailto: target and breaks the link, even
+    # though the same escaping is exactly right for the *display* text.
+    tex = render_tex(master, None, text_overrides={"email": "john_doe+resume@example.com"})
+    assert r"\href{mailto:john_doe+resume@example.com}" in tex
+    assert r"\_" not in tex.split(r"\href{mailto:")[1].split("}")[0]
+    # display copy is still properly escaped prose
+    assert r"john\_doe+resume@example.com" in tex
+
+
+def test_link_with_special_characters_keeps_a_working_href_target(master):
+    tricky = "github.com/user?tab=repos&sort=stars"
+    tex = render_tex(master, None, text_overrides={"link:0": tricky})
+    assert r"\href{https://github.com/user?tab=repos&sort=stars}" in tex
+
+
 def test_empty_sections_are_omitted(master):
     master.projects = []
     master.skills = {}

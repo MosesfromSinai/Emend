@@ -14,7 +14,7 @@ from core.schemas import (
     TailoredSection,
 )
 
-from .escaping import escape_latex
+from .escaping import escape_latex, escape_latex_url
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -368,15 +368,20 @@ def render_tex(
     if phone:
         header_pieces.append({"kind": "text", "text": phone})
     if email:
-        header_pieces.append({"kind": "email", "text": email})
+        # `mailto` is escaped for \href's own argument (see escape_latex_url);
+        # `text` is the same address but stays plain, since the *display*
+        # copy inside \underline{...} is ordinary prose and still needs the
+        # normal prose escaping every other \VAR{} substitution gets.
+        header_pieces.append({"kind": "email", "text": email, "mailto": escape_latex_url(email)})
     for i, raw_link in enumerate(master.links):
         link = _ov(text_overrides, f"link:{i}", raw_link)
         if not link:
             continue
+        url = link if link.startswith(("http://", "https://")) else f"https://{link}"
         header_pieces.append(
             {
                 "kind": "link",
-                "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
+                "url": escape_latex_url(url),
                 "text": link.removeprefix("https://").removeprefix("http://"),
             }
         )
