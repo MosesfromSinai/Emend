@@ -92,6 +92,21 @@ def test_strips_related_jobs_carousel_and_nav_controls():
         assert noise not in text
 
 
+def test_survives_deeply_nested_json_ld_instead_of_crashing():
+    # json.loads recurses per nesting level -- deep-but-small nesting blows
+    # Python's recursion limit and raises RecursionError, not a normal
+    # ValueError/TypeError parse error, which used to crash the whole call
+    nested = "[" * 20_000 + "]" * 20_000
+    html = f"""
+    <body>
+    <script type="application/ld+json">{nested}</script>
+    <p>Backend Engineer role. Python and SQL required for this position here.</p>
+    </body>
+    """
+    text = html_to_jd_text(html)
+    assert "Backend Engineer role." in text
+
+
 def test_ignores_json_ld_when_dom_text_is_already_longer():
     html = """
     <body>

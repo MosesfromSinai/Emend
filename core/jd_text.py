@@ -58,7 +58,12 @@ def _job_posting_from_json_ld(tree: HTMLParser) -> str | None:
     for node in tree.css('script[type="application/ld+json"]'):
         try:
             data = json.loads(node.text())
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RecursionError):
+            # RecursionError isn't a ValueError/TypeError -- Python's json
+            # module recurses per nesting level, so deeply nested (however
+            # small) JSON-LD from a hostile or malformed posting page can
+            # blow the recursion limit instead of raising a normal parse
+            # error, crashing the whole JD-extraction call on one script tag.
             continue
         for candidate in data if isinstance(data, list) else [data]:
             if not isinstance(candidate, dict) or candidate.get("@type") != "JobPosting":
