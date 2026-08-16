@@ -6,6 +6,7 @@ shapes reuse the team contract models from core.schemas verbatim.
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -13,6 +14,10 @@ from api.config import settings
 from core.schemas import Report, TailoredResume
 
 TextField = Field(min_length=1, max_length=settings.max_text_chars)
+# Same cap, no min_length -- unlike TextField's inputs (a whole pasted
+# resume/JD), an empty override or custom bullet edit is a normal, valid
+# value (e.g. clearing a field back to its default).
+OverrideText = Annotated[str, Field(max_length=settings.max_text_chars)]
 
 
 class ImportRequest(BaseModel):
@@ -71,7 +76,7 @@ class BulletSelection(BaseModel):
     request. Neither field set: the first variant renders."""
 
     variant_idx: int | None = Field(default=None, ge=0, le=2)
-    custom_text: str | None = None
+    custom_text: OverrideText | None = None
 
 
 class RenderRequest(BaseModel):
@@ -101,7 +106,7 @@ class RenderRequest(BaseModel):
     # string ("name", "email", "phone", "link:<i>", "education:<i>:<field>",
     # "experience:<id>:<field>", "project:<id>:<field>", "skills:<category>").
     # Separate from `selections`, which stays scoped to confirmed facts.
-    text_overrides: dict[str, str] = {}
+    text_overrides: dict[str, OverrideText] = {}
 
 
 class RenderPreviewResponse(BaseModel):

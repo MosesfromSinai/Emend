@@ -720,3 +720,29 @@ def test_jd_text_capped(client, master, pipeline):
         "/applications", json={"jd_text": "x" * (settings.max_text_chars + 1)}
     )
     assert r.status_code == 422
+
+
+def test_preview_text_override_value_is_capped(client, master, pipeline):
+    from api.config import settings
+
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(
+        f"/applications/{app_id}/preview",
+        json={"text_overrides": {"name": "x" * (settings.max_text_chars + 1)}},
+    )
+    assert r.status_code == 422
+
+
+def test_preview_custom_bullet_text_is_capped(client, master, pipeline):
+    from api.config import settings
+
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(
+        f"/applications/{app_id}/preview",
+        json={"selections": {"ACME-01": {"custom_text": "x" * (settings.max_text_chars + 1)}}},
+    )
+    assert r.status_code == 422
