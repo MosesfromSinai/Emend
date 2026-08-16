@@ -1,14 +1,22 @@
 """Small Anthropic client helpers for real pipeline mode."""
 
 import copy
+import logging
 import os
 from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+logger = logging.getLogger("emend.core.llm")
+
 STRUCTURED_TOOL_NAME = "emit_schema"
 DEFAULT_MAX_TOKENS = 16000
+# Explicit rather than relying on the SDK's own (unstated-here) default --
+# a background job stuck on one indefinitely-hanging call is a job stuck in
+# "running" forever, and every route that touches this is already a
+# multi-minute background task, not a request a browser is blocked on.
+DEFAULT_TIMEOUT_SECONDS = 120.0
 
 # Per 00-project-brief.md: Sonnet tailors, Haiku structures/extracts/judges.
 TAILOR_MODEL = "claude-sonnet-5"
@@ -50,7 +58,7 @@ def anthropic_client(api_key: str | None = None) -> Any:
             from anthropic import Anthropic
         except ImportError as exc:
             raise LLMUnavailableError("anthropic package is required when MOCK=0") from exc
-        _client_cache[key] = Anthropic(api_key=key)
+        _client_cache[key] = Anthropic(api_key=key, timeout=DEFAULT_TIMEOUT_SECONDS)
     return _client_cache[key]
 
 
@@ -155,14 +163,28 @@ def structured_call_with_usage[SchemaT: BaseModel](
     last_error: ValidationError | None = None
 
     for _attempt in range(retries + 1):
-        response = llm.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-            tools=tools,
-            tool_choice={"type": "tool", "name": STRUCTURED_TOOL_NAME},
-        )
+        try:
+            response = llm.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": prompt}],
+                tools=tools,
+                tool_choice={"type": "tool", "name": STRUCTURED_TOOL_NAME},
+            )
+        except Exception:
+            # The SDK already retries a transient error (rate limit,
+            # connection drop, 5xx) internally with its own backoff before
+            # ever raising here -- this is only reached once that's fully
+            # exhausted, which was previously invisible: a bare stack trace
+            # with no indication of which model/schema was mid-call when it
+            # gave up.
+            logger.exception(
+                "Anthropic call failed for model=%s schema=%s after SDK retries",
+                model,
+                schema.__name__,
+            )
+            raise
         try:
             value = schema.model_validate(_tool_input(response))
         except ValidationError as exc:
