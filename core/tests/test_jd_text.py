@@ -1,4 +1,4 @@
-from core.jd_text import MAX_JD_CHARS, html_to_jd_text
+from core.jd_text import MAX_JD_CHARS, MAX_JD_HTML_CHARS, html_to_jd_text
 
 
 def test_strips_script_style_nav_header_footer_aside():
@@ -46,6 +46,17 @@ def test_caps_at_max_length():
     html = f"<body><main>{'word ' * 10_000}</main></body>"
 
     assert len(html_to_jd_text(html)) <= MAX_JD_CHARS
+
+
+def test_truncates_huge_raw_html_before_parsing():
+    # A hostile or just enormous careers page shouldn't cost an unbounded
+    # parse -- MAX_JD_CHARS alone only truncates the *output*, after every
+    # HTMLParser/tree.css() walk already paid for the full input.
+    huge = "<body><main>" + ("padding " * 1_000_000) + "real content</main></body>"
+    assert len(huge) > MAX_JD_HTML_CHARS
+
+    text = html_to_jd_text(huge)  # must return promptly, not hang parsing 8MB+
+    assert len(text) <= MAX_JD_CHARS
 
 
 def test_prefers_json_ld_job_posting_over_js_only_shell():

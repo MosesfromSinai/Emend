@@ -14,6 +14,11 @@ from selectolax.parser import HTMLParser
 STRIP_TAGS = ("script", "style", "nav", "header", "footer", "aside", "a", "button")
 MAIN_SELECTORS = ("main", "article", "[role=main]")
 MAX_JD_CHARS = 20_000
+# A hostile or just enormous careers page shouldn't cost an unbounded parse
+# -- MAX_JD_CHARS only truncates the *output*, well after HTMLParser and
+# every tree.css() walk below have already paid for the full input. 2MB of
+# HTML is generous for any real job posting page.
+MAX_JD_HTML_CHARS = 2_000_000
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -76,7 +81,7 @@ def _job_posting_from_json_ld(tree: HTMLParser) -> str | None:
 
 def html_to_jd_text(html: str) -> str:
     """Extract the densest readable block of a job-posting page as plain text."""
-    tree = HTMLParser(html)
+    tree = HTMLParser(html[:MAX_JD_HTML_CHARS])
     json_ld_text = _job_posting_from_json_ld(tree)
     _strip_chrome_sections(tree)
 
