@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type KeyboardEvent, type ReactNode } from "react";
 
 import { reorderByKey } from "@/lib/order";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,26 @@ export const DEFAULT_SECTION_ORDER = ["EDUCATION", "EXPERIENCE", "PROJECTS", "SK
 // so hovering previews the same "this is editable" signal every clickable
 // line in Export shares, before you've clicked anything.
 const EDITABLE_HOVER = "cursor-pointer rounded px-1 -mx-1 hover:bg-red-50 hover:text-red-900";
+
+// Every "click this line to edit it" target below used to be a plain
+// div/span with only onClick -- no role, no tabIndex, no keyboard handler,
+// so a keyboard-only user couldn't open a single editor anywhere in the
+// app (this is the entire editing mechanism on both Confirm and Export).
+// Spread onto an element alongside its onClick; returns {} (no a11y props
+// added) when there's no handler, matching each call site's existing
+// "only interactive when this specific thing is actually editable" logic.
+function editableProps(onActivate?: () => void) {
+  if (!onActivate) return {};
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onActivate();
+    },
+  };
+}
 
 // One row on the paper. `factId` is a real <ENTITY>-<NN> id for an
 // Experience/Project fact; coursework and skill-category rows have no real
@@ -255,6 +275,7 @@ export function ResumePaper({
           onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("name")}
+        {...editableProps(onClickHeaderField && (() => onClickHeaderField("name")))}
       >
         {name}
       </div>
@@ -265,6 +286,7 @@ export function ResumePaper({
           onClickHeaderField && EDITABLE_HOVER
         )}
         onClick={() => onClickHeaderField?.("contact")}
+        {...editableProps(onClickHeaderField && (() => onClickHeaderField("contact")))}
       >
         {contact}
       </div>
@@ -279,6 +301,7 @@ export function ResumePaper({
                 onClickSectionHeading && EDITABLE_HOVER
               )}
               onClick={() => onClickSectionHeading?.(section)}
+              {...editableProps(onClickSectionHeading && (() => onClickSectionHeading(section)))}
             >
               {section.heading}
             </span>
@@ -305,6 +328,11 @@ export function ResumePaper({
                     onClick={() =>
                       block.titleOverrideKeys.length > 0 && onClickBlockField?.(block, "title")
                     }
+                    {...editableProps(
+                      block.titleOverrideKeys.length > 0 && onClickBlockField
+                        ? () => onClickBlockField(block, "title")
+                        : undefined
+                    )}
                   >
                     {block.title}
                   </span>
@@ -320,6 +348,11 @@ export function ResumePaper({
                         onClick={() =>
                           block.datesOverrideKeys.length > 0 && onClickBlockField?.(block, "dates")
                         }
+                        {...editableProps(
+                          block.datesOverrideKeys.length > 0 && onClickBlockField
+                            ? () => onClickBlockField(block, "dates")
+                            : undefined
+                        )}
                       >
                         {block.dates}
                       </span>
@@ -343,6 +376,11 @@ export function ResumePaper({
                   onClick={() =>
                     block.subOverrideKeys.length > 0 && onClickBlockField?.(block, "sub")
                   }
+                  {...editableProps(
+                    block.subOverrideKeys.length > 0 && onClickBlockField
+                      ? () => onClickBlockField(block, "sub")
+                      : undefined
+                  )}
                 >
                   {block.sub}
                 </div>
@@ -355,6 +393,7 @@ export function ResumePaper({
                     onMouseEnter={() => onHoverRow?.(row.key)}
                     onMouseLeave={() => onHoverRow?.(null)}
                     onClick={() => onClickRow?.(row)}
+                    {...editableProps(onClickRow && (() => onClickRow(row)))}
                     className={cn(
                       "-mx-1.75 flex items-baseline gap-1.75 rounded-md px-1.75 py-0.5 transition-colors",
                       onClickRow && "cursor-pointer",
