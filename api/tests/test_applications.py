@@ -495,6 +495,28 @@ def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     assert r.json()["tex"] == FAKE_TEX
 
 
+def test_finalize_is_rate_limited(client, master, pipeline):
+    # finalize triggers a real LaTeX compile -- it must be capped like
+    # create/polish are, not left wide open
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    for _ in range(30):
+        assert client.post(f"/applications/{app_id}/finalize", json={}).status_code == 200
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 429
+
+
+def test_preview_is_rate_limited(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    for _ in range(300):
+        assert client.post(f"/applications/{app_id}/preview", json={}).status_code == 200
+    r = client.post(f"/applications/{app_id}/preview", json={})
+    assert r.status_code == 429
+
+
 def test_preview_fails_cleanly_when_master_no_longer_matches(
     client, master, pipeline, monkeypatch
 ):

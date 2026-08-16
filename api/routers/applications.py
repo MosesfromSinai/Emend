@@ -171,7 +171,11 @@ def _tailored_from(version: ResumeVersion) -> TailoredResume | None:
     return TailoredResume.model_validate(version.tailored) if version.tailored else None
 
 
-@router.post("/{application_id}/preview", response_model=RenderPreviewResponse)
+@router.post(
+    "/{application_id}/preview",
+    response_model=RenderPreviewResponse,
+    dependencies=[Depends(rate_limit("applications_preview", max_calls=300, window_seconds=3600))],
+)
 def preview_application(
     application_id: uuid.UUID, body: RenderRequest, session: CurrentSession, db: DB
 ) -> RenderPreviewResponse:
@@ -201,7 +205,11 @@ def preview_application(
     return RenderPreviewResponse(tex=tex)
 
 
-@router.post("/{application_id}/finalize", response_model=VersionOut)
+@router.post(
+    "/{application_id}/finalize",
+    response_model=VersionOut,
+    dependencies=[Depends(rate_limit("applications_finalize", max_calls=30, window_seconds=3600))],
+)
 def finalize_application(
     application_id: uuid.UUID, body: RenderRequest, session: CurrentSession, db: DB
 ) -> VersionOut:
