@@ -1,7 +1,7 @@
 import pytest
 
 from api.errors import ApiError
-from api.rate_limit import rate_limit
+from api.rate_limit import check_ip_rate_limit, rate_limit
 
 
 class FakeSession:
@@ -69,3 +69,22 @@ def test_rate_limit_ip_cap_does_not_affect_a_different_ip():
     dependency(FakeSession("session-g1"), FakeRequest("203.0.113.10"))
     # a fresh session from a different IP is unaffected by the first IP's cap
     dependency(FakeSession("session-g2"), FakeRequest("203.0.113.11"))
+
+
+def test_check_ip_rate_limit_allows_calls_under_the_cap():
+    for _ in range(3):
+        check_ip_rate_limit("test_ip_direct", "203.0.113.20", max_calls=3, window_seconds=60)
+
+
+def test_check_ip_rate_limit_blocks_once_the_cap_is_hit():
+    for _ in range(2):
+        check_ip_rate_limit("test_ip_direct_blocks", "203.0.113.21", max_calls=2, window_seconds=60)
+    with pytest.raises(ApiError) as exc_info:
+        check_ip_rate_limit("test_ip_direct_blocks", "203.0.113.21", max_calls=2, window_seconds=60)
+    assert exc_info.value.status_code == 429
+
+
+def test_check_ip_rate_limit_tracks_each_ip_independently():
+    check_ip_rate_limit("test_ip_direct_iso", "203.0.113.22", max_calls=1, window_seconds=60)
+    # a different IP is unaffected by the first IP's cap
+    check_ip_rate_limit("test_ip_direct_iso", "203.0.113.23", max_calls=1, window_seconds=60)
