@@ -6,6 +6,11 @@ on:
     types: [completed]
     branches: [main]
 
+# Deploy auth is RAILWAY_TOKEN (a repo secret), not GITHUB_TOKEN -- this
+# workflow never touches the GitHub API beyond checking out code.
+permissions:
+  contents: read
+
 jobs:
   deploy-api:
     runs-on: ubuntu-latest
