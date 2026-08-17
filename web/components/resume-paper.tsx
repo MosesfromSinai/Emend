@@ -142,12 +142,17 @@ export function masterToSections(
     })),
   };
 
-  const skillCategories = Object.entries(master.skills);
+  // An override clearing a category to "" means "delete this category" --
+  // previously the empty category stayed in the list and rendered as a
+  // dangling "Category: " label with nothing after it.
+  const nonEmptySkillCategories = Object.entries(master.skills).filter(
+    ([, items]) => items.length
+  );
   const skills: PaperSection = {
     key: "SKILLS",
     heading: sectionHeadings.SKILLS ?? "TECHNICAL SKILLS",
     headingOverrideKey: "section:SKILLS:heading",
-    blocks: skillCategories.length
+    blocks: nonEmptySkillCategories.length
       ? [
           {
             key: "skills",
@@ -157,7 +162,7 @@ export function masterToSections(
             titleOverrideKeys: [],
             subOverrideKeys: [],
             datesOverrideKeys: [],
-            rows: skillCategories.map(([category, items]) => ({
+            rows: nonEmptySkillCategories.map(([category, items]) => ({
               key: `skills-${category}`,
               text: `${category}: ${items.join(", ")}.`,
               overrideKey: `skills:${category}`,
@@ -182,12 +187,17 @@ export function masterToSections(
       titleOverrideKeys: [`custom:${entry.id}:title`],
       subOverrideKeys: [`custom:${entry.id}:subtitle`, `custom:${entry.id}:location`],
       datesOverrideKeys: [`custom:${entry.id}:start`, `custom:${entry.id}:end`],
-      rows: entry.facts.map((f) => ({
-        key: f.id,
-        text: f.text,
-        factId: f.id,
-        overrideKey: `custom:${entry.id}:fact:${f.id}`,
-      })),
+      // An override clearing a fact to "" means "delete this bullet" (same
+      // convention as skills above) -- previously it stayed in the list
+      // and rendered as a bare, textless bullet point.
+      rows: entry.facts
+        .filter((f) => f.text)
+        .map((f) => ({
+          key: f.id,
+          text: f.text,
+          factId: f.id,
+          overrideKey: `custom:${entry.id}:fact:${f.id}`,
+        })),
     })),
   }));
 
