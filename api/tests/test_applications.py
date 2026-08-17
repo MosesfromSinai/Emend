@@ -347,6 +347,55 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
     assert len(other_client.get("/applications").json()) == 1
 
 
+def test_applications_list_is_capped(client, master, db_engine):
+    # A session accumulates applications indefinitely (no retention path
+    # but the user's own account deletion) -- this must cap the response
+    # instead of a long-lived session returning every row it's ever
+    # created. Inserted directly (not via POST /applications), which is
+    # itself rate-limited far below the cap this test needs to exceed.
+    import uuid
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api.models import Application
+    from api.routers.applications import MAX_APPLICATIONS_LISTED
+
+    confirm_master(client, master)
+    session_id = uuid.UUID(client.cookies["emend_session"])
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    base = datetime.now(UTC)
+    total = MAX_APPLICATIONS_LISTED + 5
+    for i in range(total):
+        setup.add(
+            Application(
+                session_id=session_id,
+                mode="refactor",
+                status="done",
+                created_at=base - timedelta(seconds=i),
+            )
+        )
+    setup.commit()
+    setup.close()
+
+    items = client.get("/applications").json()
+    assert len(items) == MAX_APPLICATIONS_LISTED
+    # most-recent-first: the oldest 5 (highest i, earliest created_at) are
+    # the ones left out, not an arbitrary subset
+    check = Session()
+    newest_created_first = [
+        r.id
+        for r in check.query(Application)
+        .filter_by(session_id=session_id)
+        .order_by(Application.created_at.desc())
+        .limit(MAX_APPLICATIONS_LISTED)
+        .all()
+    ]
+    assert [i["id"] for i in items] == [str(rid) for rid in newest_created_first]
+
+
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
     monkeypatch.setattr(
         core_bridge.httpx,
