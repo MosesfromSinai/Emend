@@ -24,6 +24,7 @@ Ratified decisions (integration-guide.md §8):
 """
 
 import re
+from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -31,6 +32,14 @@ from core.config import max_input_chars
 
 FACT_ID_PATTERN = re.compile(r"^[A-Z0-9]+-\d{2}$")
 SECTION_ID_PATTERN = re.compile(r"^[A-Z0-9]+$")
+
+# PUT /resumes/master accepts a MasterResume straight from the client, same
+# as Fact.text -- every other free-text field here had no upstream cap of
+# its own either, so a client could submit e.g. a multi-megabyte section
+# heading (bounded only by the API's overall ~5MB body-size cap), which is
+# exactly the kind of oversized argument that can make Tectonic pathologically
+# slow instead of just timing out cleanly.
+BoundedText = Annotated[str, Field(max_length=max_input_chars())]
 
 
 def _validate_section_id(value: str) -> str:
@@ -56,11 +65,7 @@ def _validate_fact_prefix(section_id: str, facts: list["Fact"]) -> None:
 
 class Fact(BaseModel):
     id: str
-    # PUT /resumes/master accepts a MasterResume straight from the client --
-    # this field has no upstream cap of its own the way LLM/parsed text does,
-    # so without one here a client could submit an arbitrarily long bullet
-    # (bounded only by the API's overall ~5MB body-size cap).
-    text: str = Field(max_length=max_input_chars())
+    text: BoundedText
 
     @field_validator("id")
     @classmethod
@@ -72,11 +77,11 @@ class Fact(BaseModel):
 
 class Experience(BaseModel):
     id: str
-    company: str
-    title: str
-    location: str
-    start: str
-    end: str
+    company: BoundedText
+    title: BoundedText
+    location: BoundedText
+    start: BoundedText
+    end: BoundedText
     facts: list[Fact]
 
     @field_validator("id")
@@ -92,7 +97,7 @@ class Experience(BaseModel):
 
 class Project(BaseModel):
     id: str
-    name: str
+    name: BoundedText
     tech: list[str]
     facts: list[Fact]
 
@@ -108,10 +113,10 @@ class Project(BaseModel):
 
 
 class Education(BaseModel):
-    school: str
-    degree: str
-    location: str
-    grad_date: str
+    school: BoundedText
+    degree: BoundedText
+    location: BoundedText
+    grad_date: BoundedText
     coursework: list[str]
 
 
@@ -124,11 +129,11 @@ class Education(BaseModel):
 # fact-editing UI and JD keyword matching (`fact_lookup`) work unchanged.
 class CustomEntry(BaseModel):
     id: str
-    title: str
-    subtitle: str = ""
-    location: str = ""
-    start: str = ""
-    end: str = ""
+    title: BoundedText
+    subtitle: BoundedText = ""
+    location: BoundedText = ""
+    start: BoundedText = ""
+    end: BoundedText = ""
     facts: list[Fact] = []
 
     @field_validator("id")
@@ -147,14 +152,14 @@ _RESERVED_SECTION_KEYS = {"EDUCATION", "EXPERIENCE", "PROJECTS", "SKILLS"}
 
 class CustomSection(BaseModel):
     key: str  # internal id for section_order/text_overrides -- never shown to the user
-    heading: str  # the user's own label, e.g. "Research Experience"
+    heading: BoundedText  # the user's own label, e.g. "Research Experience"
     entries: list[CustomEntry] = []
 
 
 class MasterResume(BaseModel):
-    name: str
-    email: str
-    phone: str
+    name: BoundedText
+    email: BoundedText
+    phone: BoundedText
     links: list[str]
     education: list[Education]
     experiences: list[Experience]
