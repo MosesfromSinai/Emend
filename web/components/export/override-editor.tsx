@@ -9,6 +9,13 @@ export interface OverrideField {
   // per-field, not per-editor: a composite line like "email | phone | a
   // link" must let someone delete just the phone number, not the whole line
   onDelete?: () => void;
+  // Present only when this field is both deletable *and* has a single
+  // well-known original to snap back to (the header Name -- unlike a
+  // deleted fact/entry, which needs its own restore-chip list since there's
+  // no single field for "the" original text). Clicking Delete on a field
+  // like this used to blank it with no way back short of retyping it from
+  // memory.
+  onRestore?: () => void;
 }
 
 // The click-to-edit control for non-fact-backed text (coursework, skills,
@@ -37,6 +44,15 @@ export function OverrideEditor({
           />
           {field.onDelete && (
             <DeleteButton onClick={field.onDelete} label={`Delete ${field.label ?? "this field"}`} />
+          )}
+          {field.onRestore && (
+            <button
+              type="button"
+              onClick={field.onRestore}
+              className="shrink-0 text-xs font-medium text-em-accent hover:underline"
+            >
+              Restore
+            </button>
           )}
         </div>
       ))}
