@@ -29,6 +29,13 @@ from core.schemas import JDExtract, MasterResume, Report, TailoredResume
 
 JD_FETCH_TIMEOUT_SECONDS = 10
 JD_FETCH_MAX_REDIRECTS = 5
+# SSRF-safe (_assert_public_http_url) doesn't bound response size -- Emend
+# runs as a single API instance (see api/rate_limit.py), so one huge or
+# slow-drip job-posting response fully buffered into memory can OOM the
+# whole process for every user, not just the requester. Mirrors
+# core.extract.MAX_PDF_BYTES: a single fetched document, capped the same
+# regardless of source.
+JD_FETCH_MAX_BYTES = 5 * 1024 * 1024
 
 
 class JdUrlBlockedError(ValueError):
@@ -103,20 +110,32 @@ def fetch_jd_text(url: str) -> str:
     current = url
     for _ in range(JD_FETCH_MAX_REDIRECTS + 1):
         _assert_public_http_url(current)
-        response = httpx.get(
+        # Streamed, not httpx.get(), so an oversized response can be
+        # aborted mid-download instead of already sitting fully in memory
+        # by the time its size is checked.
+        with httpx.stream(
+            "GET",
             current,
             timeout=JD_FETCH_TIMEOUT_SECONDS,
             follow_redirects=False,
             headers=JD_FETCH_HEADERS,
-        )
-        if response.is_redirect:
-            location = response.headers.get("location")
-            if not location:
-                break
-            current = urljoin(current, location)
-            continue
-        response.raise_for_status()
-        return html_to_jd_text(response.text)
+        ) as response:
+            if response.is_redirect:
+                location = response.headers.get("location")
+                if not location:
+                    break
+                current = urljoin(current, location)
+                continue
+            response.raise_for_status()
+            body = bytearray()
+            for chunk in response.iter_bytes():
+                body += chunk
+                if len(body) > JD_FETCH_MAX_BYTES:
+                    raise JdUrlBlockedError(
+                        f"job posting response exceeds {JD_FETCH_MAX_BYTES} bytes"
+                    )
+            html = body.decode(response.encoding or "utf-8", errors="replace")
+            return html_to_jd_text(html)
     raise JdUrlBlockedError(f"too many redirects fetching {url}")
 
 
