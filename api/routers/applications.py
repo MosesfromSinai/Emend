@@ -278,12 +278,21 @@ def finalize_application(
     return _version_out(version)
 
 
+#  A session accumulates applications indefinitely (no retention/deletion
+# path but the user's own explicit DELETE /account) -- this caps the
+# response instead of returning every row a long-lived session has ever
+# created. Most-recent-first ordering means a session past the cap simply
+# stops seeing its oldest history, not an arbitrary subset.
+MAX_APPLICATIONS_LISTED = 200
+
+
 @router.get("", response_model=list[ApplicationListItem])
 def list_applications(session: CurrentSession, db: DB) -> list[ApplicationListItem]:
     rows = db.scalars(
         select(Application)
         .where(Application.session_id == session.id)
         .order_by(Application.created_at.desc(), Application.id)
+        .limit(MAX_APPLICATIONS_LISTED)
     ).all()
     return [
         ApplicationListItem(
