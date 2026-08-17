@@ -98,7 +98,7 @@ class Experience(BaseModel):
 class Project(BaseModel):
     id: str
     name: BoundedText
-    tech: list[str]
+    tech: list[BoundedText]
     facts: list[Fact]
 
     @field_validator("id")
@@ -117,7 +117,7 @@ class Education(BaseModel):
     degree: BoundedText
     location: BoundedText
     grad_date: BoundedText
-    coursework: list[str]
+    coursework: list[BoundedText]
 
 
 # A user-named section for content that doesn't fit Education/Experience/
@@ -160,11 +160,11 @@ class MasterResume(BaseModel):
     name: BoundedText
     email: BoundedText
     phone: BoundedText
-    links: list[str]
+    links: list[BoundedText]
     education: list[Education]
     experiences: list[Experience]
     projects: list[Project]
-    skills: dict[str, list[str]]
+    skills: dict[str, list[BoundedText]]
     custom_sections: list[CustomSection] = []
 
     def _custom_entries(self) -> list[CustomEntry]:
