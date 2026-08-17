@@ -427,6 +427,52 @@ def test_override_replaces_skills_category_text(master):
     assert "Assembly" not in tex
 
 
+def test_override_clearing_a_skills_category_removes_it_entirely(master):
+    # Clearing a category's override to "" means "delete this category" --
+    # it used to stay in the list and render as a dangling "Languages: "
+    # label with nothing after it.
+    tex = render_tex(master, None, text_overrides={"skills:Languages": ""})
+    assert "Languages" not in tex
+    assert r"\textbf{Tools}" in tex  # the other category is untouched
+
+
+def test_override_clearing_every_skills_category_omits_the_section(master):
+    tex = render_tex(
+        master,
+        None,
+        text_overrides={"skills:Languages": "", "skills:Tools": ""},
+    )
+    assert r"\section{Technical Skills}" not in tex
+
+
+def test_override_clearing_a_custom_fact_removes_the_bullet(master):
+    custom = master.model_copy(
+        update={
+            "custom_sections": [
+                CustomSection(
+                    key="RESEARCH",
+                    heading="Research Experience",
+                    entries=[
+                        CustomEntry(
+                            id="RES",
+                            title="Research Assistant",
+                            facts=[Fact(id="RES-01", text="Ran assays weekly.")],
+                        )
+                    ],
+                )
+            ]
+        }
+    )
+    # Clearing a fact's override to "" means "delete this bullet" -- it
+    # used to stay in the list and render as a bare, textless bullet point.
+    tex = render_tex(custom, None, text_overrides={"custom:RES:fact:RES-01": ""})
+    assert "Ran assays weekly." not in tex
+    assert "Research Assistant" in tex  # the entry header stays
+    research_start = tex.index(r"\section{Research Experience}")
+    research_body = tex[research_start : tex.index(r"\end{document}")]
+    assert r"\resumeItemListStart" not in research_body
+
+
 def test_override_renames_a_section_heading(master):
     tex = render_tex(master, None, text_overrides={"section:EXPERIENCE:heading": "Leadership"})
     assert r"\section{Leadership}" in tex
