@@ -3,6 +3,8 @@
 import os
 from dataclasses import dataclass, field
 
+from core.extract import MAX_PDF_BYTES
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.environ.get(name)
@@ -56,9 +58,29 @@ class Settings:
     max_text_chars: int = field(
         default_factory=lambda: int(os.environ.get("MAX_TEXT_CHARS", "50000"))
     )
+    # Derived from core's own PDF limit (plus headroom for multipart
+    # boundary/header overhead) rather than a second hardcoded number --
+    # the two drifting apart is exactly what silently capped every PDF
+    # upload at 2MB despite core/extract.py documenting 5MB as the real limit.
     max_body_bytes: int = field(
-        default_factory=lambda: int(os.environ.get("MAX_BODY_BYTES", "2000000"))
+        default_factory=lambda: int(
+            os.environ.get("MAX_BODY_BYTES", str(MAX_PDF_BYTES + 100_000))
+        )
     )
+
+    def __post_init__(self) -> None:
+        # SameSite=None without Secure is not a weaker version of the
+        # cookie -- modern browsers reject it outright, silently breaking
+        # every session (and everything gated behind one) with no error
+        # anywhere in this app's own logs. The two env vars are independent
+        # knobs with no cross-check between them, so this is exactly the
+        # kind of misconfiguration that ships quietly: fail loudly at
+        # startup instead.
+        if self.session_cookie_samesite.lower() == "none" and not self.session_cookie_secure:
+            raise RuntimeError(
+                "SESSION_COOKIE_SAMESITE=none requires SESSION_COOKIE_SECURE=1 -- "
+                "browsers reject a SameSite=None cookie that isn't also Secure"
+            )
 
 
 settings = Settings()

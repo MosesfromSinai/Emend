@@ -14,6 +14,11 @@ from selectolax.parser import HTMLParser
 STRIP_TAGS = ("script", "style", "nav", "header", "footer", "aside", "a", "button")
 MAIN_SELECTORS = ("main", "article", "[role=main]")
 MAX_JD_CHARS = 20_000
+# A hostile or just enormous careers page shouldn't cost an unbounded parse
+# -- MAX_JD_CHARS only truncates the *output*, well after HTMLParser and
+# every tree.css() walk below have already paid for the full input. 2MB of
+# HTML is generous for any real job posting page.
+MAX_JD_HTML_CHARS = 2_000_000
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -58,7 +63,12 @@ def _job_posting_from_json_ld(tree: HTMLParser) -> str | None:
     for node in tree.css('script[type="application/ld+json"]'):
         try:
             data = json.loads(node.text())
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RecursionError):
+            # RecursionError isn't a ValueError/TypeError -- Python's json
+            # module recurses per nesting level, so deeply nested (however
+            # small) JSON-LD from a hostile or malformed posting page can
+            # blow the recursion limit instead of raising a normal parse
+            # error, crashing the whole JD-extraction call on one script tag.
             continue
         for candidate in data if isinstance(data, list) else [data]:
             if not isinstance(candidate, dict) or candidate.get("@type") != "JobPosting":
@@ -71,7 +81,7 @@ def _job_posting_from_json_ld(tree: HTMLParser) -> str | None:
 
 def html_to_jd_text(html: str) -> str:
     """Extract the densest readable block of a job-posting page as plain text."""
-    tree = HTMLParser(html)
+    tree = HTMLParser(html[:MAX_JD_HTML_CHARS])
     json_ld_text = _job_posting_from_json_ld(tree)
     _strip_chrome_sections(tree)
 

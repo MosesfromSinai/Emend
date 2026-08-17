@@ -1,4 +1,4 @@
-from core.jd_text import MAX_JD_CHARS, html_to_jd_text
+from core.jd_text import MAX_JD_CHARS, MAX_JD_HTML_CHARS, html_to_jd_text
 
 
 def test_strips_script_style_nav_header_footer_aside():
@@ -48,6 +48,17 @@ def test_caps_at_max_length():
     assert len(html_to_jd_text(html)) <= MAX_JD_CHARS
 
 
+def test_truncates_huge_raw_html_before_parsing():
+    # A hostile or just enormous careers page shouldn't cost an unbounded
+    # parse -- MAX_JD_CHARS alone only truncates the *output*, after every
+    # HTMLParser/tree.css() walk already paid for the full input.
+    huge = "<body><main>" + ("padding " * 1_000_000) + "real content</main></body>"
+    assert len(huge) > MAX_JD_HTML_CHARS
+
+    text = html_to_jd_text(huge)  # must return promptly, not hang parsing 8MB+
+    assert len(text) <= MAX_JD_CHARS
+
+
 def test_prefers_json_ld_job_posting_over_js_only_shell():
     # a React/SPA shell: the only visible DOM text is a noscript notice, but
     # the real posting is embedded as schema.org JobPosting for SEO
@@ -90,6 +101,21 @@ def test_strips_related_jobs_carousel_and_nav_controls():
     assert "Backend Engineer role." in text
     for noise in ("Back to search results", "Apply Now", "Related Jobs", "Data Engineering"):
         assert noise not in text
+
+
+def test_survives_deeply_nested_json_ld_instead_of_crashing():
+    # json.loads recurses per nesting level -- deep-but-small nesting blows
+    # Python's recursion limit and raises RecursionError, not a normal
+    # ValueError/TypeError parse error, which used to crash the whole call
+    nested = "[" * 20_000 + "]" * 20_000
+    html = f"""
+    <body>
+    <script type="application/ld+json">{nested}</script>
+    <p>Backend Engineer role. Python and SQL required for this position here.</p>
+    </body>
+    """
+    text = html_to_jd_text(html)
+    assert "Backend Engineer role." in text
 
 
 def test_ignores_json_ld_when_dom_text_is_already_longer():

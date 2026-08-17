@@ -29,6 +29,50 @@ FAKE_TEX = """\\documentclass{article}
 """
 
 
+class _FakeStreamResponse:
+    """Minimal stand-in for httpx.stream()'s context-managed Response --
+    core_bridge.fetch_jd_text streams (not httpx.get) so an oversized
+    response can be capped mid-download rather than only after it's
+    already fully buffered."""
+
+    is_redirect = False
+    encoding = "utf-8"
+
+    def __init__(self, text, headers=None):
+        self._text = text
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+    def raise_for_status(self):
+        pass
+
+    def iter_bytes(self):
+        yield self._text.encode("utf-8")
+
+
+def _fake_stream(text, headers=None):
+    return lambda method, url, **kwargs: _FakeStreamResponse(text, headers)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """api.rate_limit._calls is a module-level dict, not request-scoped, so
+    it otherwise persists for the whole pytest run -- and TestClient reports
+    the same client host for every test, so an IP-keyed bucket (e.g.
+    new-session creation) would silently accumulate hits across unrelated
+    tests instead of resetting per test the way the DB (db_engine) does."""
+    from api.rate_limit import _calls
+
+    _calls.clear()
+    yield
+    _calls.clear()
+
+
 @pytest.fixture()
 def db_engine(tmp_path, monkeypatch):
     """File-backed SQLite per test; api.db.SessionLocal is swapped in place
@@ -166,7 +210,13 @@ def pipeline(monkeypatch, tmp_path):
 
     def render_and_compile(master, tailored, *_args, **_kwargs):
         calls.append("render_and_compile")
-        pdf = tmp_path / "out.pdf"
+        # Nested in its own subdir, not tmp_path itself -- mirrors the real
+        # compile_tex(), which hands back a path inside a dedicated temp dir
+        # (not the caller's directory), so callers that clean up that dir
+        # after copying the PDF out exercise the same shape here.
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir(exist_ok=True)
+        pdf = artifact_dir / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
         return FAKE_TEX, str(pdf), "compile ok"
 

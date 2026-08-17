@@ -77,7 +77,15 @@ export function importResume(text: string): Promise<MasterResume> {
 export function importResumeFromFile(file: File): Promise<MasterResume> {
   const form = new FormData();
   form.append("file", file);
-  return apiFetch("/resumes/import", { method: "POST", body: form });
+  // multipart/form-data is a CORS "simple" content type -- this header,
+  // outside the CORS-safelisted set, forces the browser to preflight the
+  // request, so the API's CORS policy can reject any origin but our own
+  // before the upload (and the session cookie riding with it) ever sends.
+  return apiFetch("/resumes/import", {
+    method: "POST",
+    body: form,
+    headers: { "X-Requested-With": "emend-web" },
+  });
 }
 
 export function saveMaster(master: MasterResume): Promise<MasterResume> {

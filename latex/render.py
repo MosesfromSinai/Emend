@@ -14,7 +14,7 @@ from core.schemas import (
     TailoredSection,
 )
 
-from .escaping import escape_latex
+from .escaping import escape_latex, escape_latex_url
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -99,9 +99,13 @@ def _custom_entry_row(entry: CustomEntry, overrides: dict[str, str] | None = Non
     `custom:<id>:fact:<fact id>` override, same as any other field here."""
     start = _ov(overrides, f"custom:{entry.id}:start", entry.start)
     end = _ov(overrides, f"custom:{entry.id}:end", entry.end)
+    # An override clearing a fact to "" means "delete this bullet" (same
+    # convention as coursework/skills below) -- previously it stayed in the
+    # list and rendered as a bare, textless bullet point on the actual PDF.
     bullets = [
-        _bullet_row(_ov(overrides, f"custom:{entry.id}:fact:{f.id}", f.text), [f.id])
+        _bullet_row(text, [f.id])
         for f in entry.facts
+        if (text := _ov(overrides, f"custom:{entry.id}:fact:{f.id}", f.text))
     ]
     return {
         "title": _ov(overrides, f"custom:{entry.id}:title", entry.title),
@@ -131,6 +135,22 @@ def _education_row(
     }
 
 
+def _primary_fact_id(bullet) -> str:
+    """The key used to select/exclude/reorder a bullet by.
+
+    A bullet always cites at least one fact by construction upstream
+    (validate_grounding rejects an empty source_fact_ids before anything
+    reaches render) -- but source_fact_ids has no schema-level min length,
+    so render must not crash on stored or client-supplied data that
+    violates that. A sourceless bullet gets its own object identity
+    instead: never equal to a real fact id, so a client's excluded_facts/
+    fact_order can't accidentally match it, and unique per bullet within
+    this render call, so two sourceless bullets never collide onto the
+    same dict key in _reorder_by_key.
+    """
+    return bullet.source_fact_ids[0] if bullet.source_fact_ids else f"_unsourced_{id(bullet)}"
+
+
 def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     """Which of a bullet's 3 variants (or a user edit) actually renders.
 
@@ -138,7 +158,7 @@ def _resolve_variant(bullet, selections: dict[str, dict] | None) -> str:
     always cites exactly one, and Export's per-line picker treats a bullet
     as one unit regardless. No selection for it: the first variant.
     """
-    sel = selections.get(bullet.source_fact_ids[0]) if selections else None
+    sel = selections.get(_primary_fact_id(bullet)) if selections else None
     if not sel:
         return bullet.variants[0]
     custom = sel.get("custom_text")
@@ -196,12 +216,12 @@ def _tailored_rows(
                 f"tailored {kind} section references unknown id {section.ref_id!r}"
             )
         remaining_bullets = _exclude_by_key(
-            section.bullets, excluded_facts, lambda b: b.source_fact_ids[0]
+            section.bullets, excluded_facts, _primary_fact_id
         )
         ordered_bullets = _reorder_by_key(
             remaining_bullets,
             (fact_order or {}).get(section.ref_id),
-            lambda b: b.source_fact_ids[0],
+            _primary_fact_id,
         )
         bullets = [
             _bullet_row(_resolve_variant(b, selections), b.source_fact_ids)
@@ -352,15 +372,20 @@ def render_tex(
     if phone:
         header_pieces.append({"kind": "text", "text": phone})
     if email:
-        header_pieces.append({"kind": "email", "text": email})
+        # `mailto` is escaped for \href's own argument (see escape_latex_url);
+        # `text` is the same address but stays plain, since the *display*
+        # copy inside \underline{...} is ordinary prose and still needs the
+        # normal prose escaping every other \VAR{} substitution gets.
+        header_pieces.append({"kind": "email", "text": email, "mailto": escape_latex_url(email)})
     for i, raw_link in enumerate(master.links):
         link = _ov(text_overrides, f"link:{i}", raw_link)
         if not link:
             continue
+        url = link if link.startswith(("http://", "https://")) else f"https://{link}"
         header_pieces.append(
             {
                 "kind": "link",
-                "url": link if link.startswith(("http://", "https://")) else f"https://{link}",
+                "url": escape_latex_url(url),
                 "text": link.removeprefix("https://").removeprefix("http://"),
             }
         )
@@ -369,12 +394,13 @@ def render_tex(
         _education_row(edu, i, text_overrides) for i, edu in enumerate(master.education)
     ]
 
+    # An override clearing a category to "" means "delete this category" --
+    # previously it stayed in the list and rendered as a dangling
+    # "Category: " label with nothing after it.
     skills_rows = [
-        {
-            "category": category,
-            "items_text": _ov(text_overrides, f"skills:{category}", ", ".join(items)),
-        }
+        {"category": category, "items_text": text}
         for category, items in skills.items()
+        if (text := _ov(text_overrides, f"skills:{category}", ", ".join(items)))
     ]
 
     default_headings = {

@@ -145,17 +145,19 @@ If any of these differ, the fix belongs in `infra/` — ping Workflow C.
   `00-project-brief.md`'s "Deployment — as built". `api/` and `web/` both
   exist and build; the paragraph above about them not existing is history,
   not current state.
-- **CI→Railway auto-deploy is broken**: `.github/workflows/deploy.yml` fails
-  every run with `Invalid RAILWAY_TOKEN` — the secret was never set. The live
-  site was deployed some other way and may not match the latest `main`. Set
-  `RAILWAY_TOKEN` in repo secrets and confirm the next merge redeploys.
+- **CI→Railway auto-deploy**: fixed 2026-08-03 (`RAILWAY_TOKEN` set, service
+  name corrected to match Railway's actual service name `Emend`) — see
+  `00-project-brief.md`'s "Auto-deploy" note. The paragraph above about it
+  being broken is history, not current state.
 - Branch protection on `main` is not configured on GitHub, despite the brief
   calling for it.
 - Pixel-fidelity check against a real resume is pending — verification so far
   uses synthetic fixtures in `latex/tests/fixtures/`.
 - The ~1–2s warm-compile target must be measured in the Linux image (macOS dev
   machines show ~3s of fontconfig/IO overhead not present in the container).
-- PDF upload and job-URL ingestion are contract-decided (brief reconciliation
-  #1) but not implemented anywhere in `api`/`web` — `core.extract.pdf_to_text`
-  and `core.jd_text.html_to_jd_text` exist but nothing calls them outside
-  `core`'s own tests.
+- PDF upload and job-URL ingestion are shipped, not just contract-decided:
+  `api/routers/resumes.py` calls `core.extract.pdf_to_text` for multipart
+  uploads and `api/core_bridge.py` calls `core.jd_text.html_to_jd_text` for
+  `jd_url` — see `00-project-brief.md` reconciliation #1 for the full
+  mechanism. The paragraph above about neither being wired in is history,
+  not current state.

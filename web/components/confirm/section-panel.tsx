@@ -239,9 +239,11 @@ function EducationPanel({
       {master.education.map((edu, index) => {
         const key = `edu-${index}-coursework`;
         const courseText = edu.coursework.join(", ");
-        if (edu.coursework.length && !passesFilter(filter, courseText, confirmed.has(key))) {
-          return null;
-        }
+        // Unlike Experience/Project/CustomSection (which filter their fact
+        // list but always keep the entry's header visible), this used to
+        // hide the whole entry -- school/degree/location/date included --
+        // whenever its coursework didn't match the active filter.
+        const showMetricRow = passesFilter(filter, courseText, confirmed.has(key));
         return (
           <div key={index} className="rounded-lg border border-em-softb p-4">
             <div className="mb-2 grid grid-cols-2 gap-2">
@@ -293,7 +295,7 @@ function EducationPanel({
                 placeholder="Course"
                 addLabel="Add course"
               />
-              {edu.coursework.length > 0 && (
+              {edu.coursework.length > 0 && showMetricRow && (
                 <div className="mt-2 flex items-center justify-between">
                   <MetricLine text={courseText} />
                   <ConfirmPill confirmed={confirmed.has(key)} onToggle={() => onToggleConfirm(key)} />
@@ -761,6 +763,7 @@ function SkillsPanel({
   onChange,
   confirmed,
   onToggleConfirm,
+  onConfirmMany,
   hoveredKey,
   onHoverRow,
   filter,
@@ -778,13 +781,26 @@ function SkillsPanel({
     // merging the two lists (deduped) keeps both instead of the previous
     // behavior, which silently overwrote and permanently lost whichever
     // category's skills weren't kept.
+    const isMerge = newName in rest;
     const existing = rest[newName] ?? [];
     const merged = [...existing, ...(movedSkills ?? []).filter((s) => !existing.includes(s))];
     onChange({ ...master, skills: { ...rest, [newName]: merged } });
+    if (isMerge) {
+      // Merging into an existing category folds in content nobody has
+      // reviewed under the target name yet -- always require
+      // re-confirmation, regardless of either category's previous state.
+      onConfirmMany([`skills-${oldName}`, `skills-${newName}`], false);
+    } else if (confirmed.has(`skills-${oldName}`)) {
+      // Simple rename (the target name didn't already exist), e.g. fixing
+      // a typo -- carries the confirmed flag over since no skill changed.
+      onConfirmMany([`skills-${oldName}`], false);
+      onConfirmMany([`skills-${newName}`], true);
+    }
   };
   const removeCategory = (category: string) => {
     const { [category]: _removed, ...rest } = master.skills;
     onChange({ ...master, skills: rest });
+    onConfirmMany([`skills-${category}`], false);
   };
 
   return (
@@ -792,7 +808,9 @@ function SkillsPanel({
       {categories.map(([category, skills]) => {
         const key = `skills-${category}`;
         const text = skills.join(", ");
-        if (skills.length && !passesFilter(filter, text, confirmed.has(key))) return null;
+        // Same fix as EducationPanel: filter only the confirm/metric row,
+        // never the category name + skill list themselves.
+        const showMetricRow = passesFilter(filter, text, confirmed.has(key));
         return (
           <RowChrome key={category} rowKey={key} hovered={hoveredKey === key} onHover={onHoverRow}>
             <div className="flex flex-wrap items-center gap-2">
@@ -815,7 +833,7 @@ function SkillsPanel({
                 Remove category
               </button>
             </div>
-            {skills.length > 0 && (
+            {skills.length > 0 && showMetricRow && (
               <div className="mt-1 flex items-center justify-between">
                 <MetricLine text={text} />
                 <ConfirmPill confirmed={confirmed.has(key)} onToggle={() => onToggleConfirm(key)} />

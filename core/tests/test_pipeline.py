@@ -2,10 +2,15 @@ import pytest
 
 from core.llm import LLMUnavailableError
 from core.pipeline import (
+    MAX_FACTS_PER_SECTION,
+    _assign_ids,
     _entity_prefix,
     _fact_violations,
     _fix_name_casing,
     _parse_education_entry,
+    _RawExperience,
+    _RawFact,
+    _RawMasterResume,
     _split_entries,
     _split_location,
     mock_polish_result,
@@ -71,6 +76,35 @@ def test_entity_prefix_adds_numeric_suffix_on_collision():
     used: set[str] = set()
     assert _entity_prefix("General Atomics", used) == "GA"
     assert _entity_prefix("General Atomics", used) == "GA2"
+
+
+def test_assign_ids_truncates_a_section_over_the_fact_cap():
+    # Fact ids end in a two-digit suffix -- a section with more than
+    # MAX_FACTS_PER_SECTION facts would mint a 3-digit one and fail
+    # validation. Mock mode already truncates for the same reason; this
+    # path (real/LLM structuring) previously had no cap at all.
+    raw = _RawMasterResume(
+        name="Sam Reyes",
+        email="sam@example.com",
+        phone="555-0100",
+        links=[],
+        education=[],
+        experiences=[
+            _RawExperience(
+                company="Helix Dynamics",
+                title="Engineer",
+                location="",
+                start="",
+                end="",
+                facts=[_RawFact(text=f"did thing {i}") for i in range(MAX_FACTS_PER_SECTION + 10)],
+            )
+        ],
+        projects=[],
+        skills={},
+    )
+    master = _assign_ids(raw)
+    assert len(master.experiences[0].facts) == MAX_FACTS_PER_SECTION
+    assert master.experiences[0].facts[-1].id == f"HD-{MAX_FACTS_PER_SECTION:02d}"
 
 
 def test_split_entries_breaks_at_each_dated_header():

@@ -55,6 +55,23 @@ def test_links_get_scheme_and_display(master):
     assert r"\href{mailto:ada@example.com}" in tex
 
 
+def test_email_with_special_characters_keeps_a_working_mailto_link(master):
+    # The href target must not be prose-escaped -- "_" -> "\_" bakes a
+    # backslash into the actual mailto: target and breaks the link, even
+    # though the same escaping is exactly right for the *display* text.
+    tex = render_tex(master, None, text_overrides={"email": "john_doe+resume@example.com"})
+    assert r"\href{mailto:john_doe+resume@example.com}" in tex
+    assert r"\_" not in tex.split(r"\href{mailto:")[1].split("}")[0]
+    # display copy is still properly escaped prose
+    assert r"john\_doe+resume@example.com" in tex
+
+
+def test_link_with_special_characters_keeps_a_working_href_target(master):
+    tricky = "github.com/user?tab=repos&sort=stars"
+    tex = render_tex(master, None, text_overrides={"link:0": tricky})
+    assert r"\href{https://github.com/user?tab=repos&sort=stars}" in tex
+
+
 def test_empty_sections_are_omitted(master):
     master.projects = []
     master.skills = {}
@@ -112,6 +129,39 @@ def test_empty_source_fact_ids_still_renders_receipt(master, tailored):
     tailored.experiences[0].bullets[0].source_fact_ids = []
     tex = render_tex(master, tailored)
     assert "% grounded:" in [line.strip() for line in tex.splitlines()]
+
+
+def test_empty_source_fact_ids_survives_excludes_and_reorder(master, tailored):
+    # Reproduces a real crash: _exclude_by_key/_reorder_by_key both keyed
+    # bullets by source_fact_ids[0] unconditionally, so a sourceless bullet
+    # raised an uncaught IndexError the moment excluded_facts or fact_order
+    # was non-empty -- exactly what a normal Export edit sends.
+    section = tailored.experiences[0]
+    section.bullets[0].source_fact_ids = []
+    other_fact_id = tailored.projects[0].bullets[0].source_fact_ids[0]
+    tex = render_tex(
+        master,
+        tailored,
+        excluded_facts=[other_fact_id],
+        fact_order={section.ref_id: [other_fact_id]},
+    )
+    assert "% grounded:" in [line.strip() for line in tex.splitlines()]
+
+
+def test_two_sourceless_bullets_both_still_render(master, tailored):
+    # each sourceless bullet must get its own key -- if _reorder_by_key's
+    # by_key dict ever collided two of them onto the same key again, one
+    # would silently vanish from the render instead of erroring loudly
+    tailored.experiences[0].bullets[0].source_fact_ids = []
+    tailored.projects[0].bullets[0].source_fact_ids = []
+    n_bullets = sum(len(s.bullets) for s in (*tailored.experiences, *tailored.projects))
+    tex = render_tex(
+        master,
+        tailored,
+        excluded_facts=["SOMETHING-ELSE"],
+        fact_order={tailored.experiences[0].ref_id: ["SOMETHING-ELSE"]},
+    )
+    assert tex.count("% grounded:") == n_bullets
 
 
 def test_fact_order_reorders_tailored_bullets(master, tailored):
@@ -375,6 +425,52 @@ def test_override_replaces_skills_category_text(master):
     tex = render_tex(master, None, text_overrides={"skills:Languages": "Ada, Python, Rust"})
     assert r"\textbf{Languages}{: Ada, Python, Rust}" in tex
     assert "Assembly" not in tex
+
+
+def test_override_clearing_a_skills_category_removes_it_entirely(master):
+    # Clearing a category's override to "" means "delete this category" --
+    # it used to stay in the list and render as a dangling "Languages: "
+    # label with nothing after it.
+    tex = render_tex(master, None, text_overrides={"skills:Languages": ""})
+    assert "Languages" not in tex
+    assert r"\textbf{Tools}" in tex  # the other category is untouched
+
+
+def test_override_clearing_every_skills_category_omits_the_section(master):
+    tex = render_tex(
+        master,
+        None,
+        text_overrides={"skills:Languages": "", "skills:Tools": ""},
+    )
+    assert r"\section{Technical Skills}" not in tex
+
+
+def test_override_clearing_a_custom_fact_removes_the_bullet(master):
+    custom = master.model_copy(
+        update={
+            "custom_sections": [
+                CustomSection(
+                    key="RESEARCH",
+                    heading="Research Experience",
+                    entries=[
+                        CustomEntry(
+                            id="RES",
+                            title="Research Assistant",
+                            facts=[Fact(id="RES-01", text="Ran assays weekly.")],
+                        )
+                    ],
+                )
+            ]
+        }
+    )
+    # Clearing a fact's override to "" means "delete this bullet" -- it
+    # used to stay in the list and render as a bare, textless bullet point.
+    tex = render_tex(custom, None, text_overrides={"custom:RES:fact:RES-01": ""})
+    assert "Ran assays weekly." not in tex
+    assert "Research Assistant" in tex  # the entry header stays
+    research_start = tex.index(r"\section{Research Experience}")
+    research_body = tex[research_start : tex.index(r"\end{document}")]
+    assert r"\resumeItemListStart" not in research_body
 
 
 def test_override_renames_a_section_heading(master):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from api import core_bridge
 from api.core_bridge import CoreUnavailableError
-from api.tests.conftest import FAKE_TEX
+from api.tests.conftest import FAKE_TEX, _fake_stream
 from core.schemas import Fact, TailoredBullet, TailoredResume, TailoredSection
 from core.validation import GroundingError
 
@@ -52,6 +52,17 @@ def test_refactor_mode_end_to_end(client, master, pipeline):
     assert bullet["variants"][0] == bullet["variants"][1] == bullet["variants"][2]
 
 
+def test_run_application_cleans_up_source_render_directory(client, master, pipeline, tmp_path):
+    # compile_tex() hands back a freshly minted temp dir holding just the
+    # PDF; the background job copies it into artifacts_dir and must remove
+    # that source dir, or every application leaks one forever.
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+    got = client.get(f"/applications/{app_id}").json()
+    assert got["status"] == "done"
+    assert not (tmp_path / "artifact").exists()
+
+
 def test_polish_upgrades_a_formatted_application_end_to_end(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={}).json()["id"]
@@ -90,6 +101,53 @@ def test_polish_rejects_someone_elses_application(client, other_client, master, 
     app_id = client.post("/applications", json={}).json()["id"]
 
     assert other_client.post(f"/applications/{app_id}/polish").status_code == 404
+
+
+def test_polish_rejects_a_concurrently_claimed_application(db_engine, monkeypatch):
+    """Two near-simultaneous polish requests both read status="done" before
+    either commits -- simulated here by having a second, independent DB
+    session flip status to "queued" (as if it already claimed the job)
+    right before this request's own atomic UPDATE runs, so that UPDATE's
+    WHERE clause really does see the raced state and affects zero rows."""
+    import pytest
+    from fastapi import BackgroundTasks
+    from sqlalchemy import update
+    from sqlalchemy.orm import sessionmaker
+
+    from api.errors import ApiError
+    from api.models import Application, SessionRow
+    from api.routers.applications import polish_application
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    session_row = SessionRow()
+    setup.add(session_row)
+    setup.flush()
+    app_row = Application(session_id=session_row.id, mode="refactor", status="done")
+    setup.add(app_row)
+    setup.commit()
+    app_id = app_row.id
+    setup.close()
+
+    db = Session()
+    real_execute = db.execute
+
+    def execute_then_race(statement, *args, **kwargs):
+        if getattr(statement, "is_update", False):
+            other = Session()
+            claim = update(Application).where(Application.id == app_id).values(status="queued")
+            other.execute(claim)
+            other.commit()
+            other.close()
+        return real_execute(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db, "execute", execute_then_race)
+
+    fresh_session_row = db.get(SessionRow, session_row.id)
+    with pytest.raises(ApiError) as exc_info:
+        polish_application(app_id, fresh_session_row, db, BackgroundTasks())
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.code == "already_running"
 
 
 def test_tailor_mode_end_to_end(client, master, pipeline):
@@ -157,6 +215,23 @@ def test_grounding_error_surfaces_a_friendly_message(client, master, pipeline, m
     assert "try tailoring again" in got["error"]
 
 
+def test_unscoreable_jd_surfaces_a_friendly_message(client, master, pipeline, monkeypatch):
+    # parse_jd legitimately raises ValueError for ordinary bad input (a
+    # bare URL pasted into the text field, text too short to score) --
+    # same friendly wording as /jd/preview, not a raw "ValueError: ..."
+    # dumped into the user-facing error field.
+    def raising_parse(text):
+        raise ValueError("job posting text is too short to score")
+
+    monkeypatch.setattr(core_bridge, "parse_jd", raising_parse)
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_text": "a posting"})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+    assert got["status"] == "failed"
+    assert "ValueError" not in got["error"]
+    assert got["error"] == "job posting text is too short to score"
+
+
 def test_unexpected_error_never_leaves_running(client, master, pipeline, monkeypatch):
     def exploding_parse(text):
         raise RuntimeError("anthropic API melted")
@@ -178,7 +253,9 @@ def test_tailor_mode_runs_real_core_pipeline_under_mock(
     actual background job, not the `pipeline` fixture's hardcoded fakes."""
 
     def fake_render(master_, tailored):
-        pdf = tmp_path / "out.pdf"
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir(exist_ok=True)
+        pdf = artifact_dir / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
         return "\\documentclass{article}\n% grounded: ACME-01\n", str(pdf), "compile ok"
 
@@ -270,18 +347,64 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
     assert len(other_client.get("/applications").json()) == 1
 
 
+def test_applications_list_is_capped(client, master, db_engine):
+    # A session accumulates applications indefinitely (no retention path
+    # but the user's own account deletion) -- this must cap the response
+    # instead of a long-lived session returning every row it's ever
+    # created. Inserted directly (not via POST /applications), which is
+    # itself rate-limited far below the cap this test needs to exceed.
+    import uuid
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api.models import Application
+    from api.routers.applications import MAX_APPLICATIONS_LISTED
+
+    confirm_master(client, master)
+    session_id = uuid.UUID(client.cookies["emend_session"])
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    base = datetime.now(UTC)
+    total = MAX_APPLICATIONS_LISTED + 5
+    for i in range(total):
+        setup.add(
+            Application(
+                session_id=session_id,
+                mode="refactor",
+                status="done",
+                created_at=base - timedelta(seconds=i),
+            )
+        )
+    setup.commit()
+    setup.close()
+
+    items = client.get("/applications").json()
+    assert len(items) == MAX_APPLICATIONS_LISTED
+    # most-recent-first: the oldest 5 (highest i, earliest created_at) are
+    # the ones left out, not an arbitrary subset
+    check = Session()
+    newest_created_first = [
+        r.id
+        for r in check.query(Application)
+        .filter_by(session_id=session_id)
+        .order_by(Application.created_at.desc())
+        .limit(MAX_APPLICATIONS_LISTED)
+        .all()
+    ]
+    assert [i["id"] for i in items] == [str(rid) for rid in newest_created_first]
+
+
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
-    class FakeResponse:
-        is_redirect = False
-        text = (
+    monkeypatch.setattr(
+        core_bridge.httpx,
+        "stream",
+        _fake_stream(
             "<html><body><nav>skip me</nav>"
             "<main>We need a backend engineer with Python.</main></body></html>"
-        )
-
-        def raise_for_status(self):
-            pass
-
-    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
+        ),
+    )
 
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
@@ -297,10 +420,10 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
 def test_jd_url_fetch_failure_fails_the_job(client, master, pipeline, monkeypatch):
     import httpx
 
-    def failing_get(*a, **k):
+    def failing_stream(*a, **k):
         raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(core_bridge.httpx, "get", failing_get)
+    monkeypatch.setattr(core_bridge.httpx, "stream", failing_stream)
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
     got = client.get(f"/applications/{r.json()['id']}").json()
@@ -486,6 +609,87 @@ def test_preview_applies_text_overrides(client, master, pipeline):
     assert "Acme Corp" not in tex
 
 
+def test_finalize_is_race_free_under_concurrent_calls(db_engine, master, tmp_path, monkeypatch):
+    """Two near-simultaneous finalize calls for the same application must not
+    interleave one request's PDF write with another's DB commit -- otherwise
+    the stored version.tex and the PDF actually on disk can come from two
+    different compiles, and a user downloads a PDF that silently doesn't
+    match the .tex shown for that version."""
+    import threading
+    import time as time_module
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api import core_bridge
+    from api.models import Application, MasterResumeRow, ResumeVersion, SessionRow
+    from api.routers.applications import finalize_application
+    from api.schemas import RenderRequest
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    session_row = SessionRow()
+    setup.add(session_row)
+    setup.flush()
+    setup.add(MasterResumeRow(session_id=session_row.id, data=master.model_dump()))
+    app_row = Application(session_id=session_row.id, mode="refactor", status="done")
+    setup.add(app_row)
+    setup.flush()
+    setup.add(ResumeVersion(application_id=app_row.id, tex="orig", pdf_path=""))
+    setup.commit()
+    app_id = app_row.id
+    setup.close()
+
+    calls = {"n": 0}
+    calls_lock = threading.Lock()
+
+    def fake_render_and_compile(master_, tailored, **kwargs):
+        with calls_lock:
+            n = calls["n"]
+            calls["n"] += 1
+        # widen the window between compile and this call's own file
+        # write+commit, so an unlocked handler reliably interleaves with a
+        # concurrent call instead of rarely colliding.
+        time_module.sleep(0.02)
+        artifact_dir = tmp_path / f"artifact-{n}"
+        artifact_dir.mkdir()
+        pdf = artifact_dir / "out.pdf"
+        pdf.write_bytes(f"%PDF marker-{n}".encode())
+        return f"tex-marker-{n}", str(pdf), "compile ok"
+
+    monkeypatch.setattr(core_bridge, "render_and_compile", fake_render_and_compile)
+
+    results = []
+    results_lock = threading.Lock()
+
+    def attempt():
+        db = Session()
+        try:
+            session_local = db.get(SessionRow, session_row.id)
+            out = finalize_application(app_id, RenderRequest(), session_local, db)
+            with results_lock:
+                results.append(out)
+        finally:
+            db.close()
+
+    threads = [threading.Thread(target=attempt) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    check = Session()
+    final_version = check.get(ResumeVersion, results[0].id)
+    tex_marker = final_version.tex.removeprefix("tex-marker-")
+    pdf_bytes = pathlib_read(final_version.pdf_path)
+    assert pdf_bytes == f"%PDF marker-{tex_marker}".encode()
+
+
+def pathlib_read(path: str) -> bytes:
+    from pathlib import Path
+
+    return Path(path).read_bytes()
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
@@ -493,6 +697,37 @@ def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     r = client.post(f"/applications/{app_id}/finalize", json={})
     assert r.status_code == 200
     assert r.json()["tex"] == FAKE_TEX
+
+
+def test_finalize_cleans_up_source_render_directory(client, master, pipeline, tmp_path):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 200
+    assert not (tmp_path / "artifact").exists()
+
+
+def test_finalize_is_rate_limited(client, master, pipeline):
+    # finalize triggers a real LaTeX compile -- it must be capped like
+    # create/polish are, not left wide open
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    for _ in range(30):
+        assert client.post(f"/applications/{app_id}/finalize", json={}).status_code == 200
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 429
+
+
+def test_preview_is_rate_limited(client, master, pipeline):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    for _ in range(300):
+        assert client.post(f"/applications/{app_id}/preview", json={}).status_code == 200
+    r = client.post(f"/applications/{app_id}/preview", json={})
+    assert r.status_code == 429
 
 
 def test_preview_fails_cleanly_when_master_no_longer_matches(
@@ -696,5 +931,31 @@ def test_jd_text_capped(client, master, pipeline):
     confirm_master(client, master)
     r = client.post(
         "/applications", json={"jd_text": "x" * (settings.max_text_chars + 1)}
+    )
+    assert r.status_code == 422
+
+
+def test_preview_text_override_value_is_capped(client, master, pipeline):
+    from api.config import settings
+
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(
+        f"/applications/{app_id}/preview",
+        json={"text_overrides": {"name": "x" * (settings.max_text_chars + 1)}},
+    )
+    assert r.status_code == 422
+
+
+def test_preview_custom_bullet_text_is_capped(client, master, pipeline):
+    from api.config import settings
+
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(
+        f"/applications/{app_id}/preview",
+        json={"selections": {"ACME-01": {"custom_text": "x" * (settings.max_text_chars + 1)}}},
     )
     assert r.status_code == 422

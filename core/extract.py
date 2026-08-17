@@ -23,16 +23,21 @@ def pdf_to_text(data: bytes) -> str:
     """Extract and unwrap the text layer of a resume PDF."""
     if len(data) > MAX_PDF_BYTES:
         raise PdfExtractionError(f"PDF exceeds {MAX_PDF_BYTES} bytes")
+    # pypdf can raise well past construction -- a crafted-but-parseable PDF
+    # can fail during page-tree traversal or content-stream decoding, which
+    # used to surface as an unhandled exception (a raw 500) instead of the
+    # clean PdfExtractionError -> 422 every other bad-PDF case gets.
     try:
         reader = PdfReader(io.BytesIO(data))
+        if reader.is_encrypted:
+            raise PdfExtractionError("PDF is encrypted")
+        if len(reader.pages) > MAX_PDF_PAGES:
+            raise PdfExtractionError(f"PDF exceeds {MAX_PDF_PAGES} pages")
+        pages = [(page.extract_text() or "").strip() for page in reader.pages]
+    except PdfExtractionError:
+        raise
     except Exception as exc:
         raise PdfExtractionError("could not read PDF") from exc
-    if reader.is_encrypted:
-        raise PdfExtractionError("PDF is encrypted")
-    if len(reader.pages) > MAX_PDF_PAGES:
-        raise PdfExtractionError(f"PDF exceeds {MAX_PDF_PAGES} pages")
-
-    pages = [(page.extract_text() or "").strip() for page in reader.pages]
     text = "\n\n".join(page for page in pages if page)
     if len(text) < MIN_TEXT_LAYER_CHARS:
         raise PdfExtractionError(

@@ -1,10 +1,11 @@
 import shutil
+import threading
 import uuid
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from api import core_bridge, jobs
@@ -28,6 +29,24 @@ from core.schemas import MasterResume, TailoredResume
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 DB = Annotated[Session, Depends(get_db)]
+
+_finalize_locks: dict[uuid.UUID, threading.Lock] = {}
+_finalize_locks_guard = threading.Lock()
+
+
+def _finalize_lock(application_id: uuid.UUID) -> threading.Lock:
+    # Serializes concurrent finalize calls for one application so a
+    # double-click/duplicate tab can't interleave one request's PDF write
+    # with another's DB commit, leaving a downloaded PDF that silently
+    # doesn't match the .tex shown for that version. Unlike polish, there's
+    # no status field to claim atomically here -- finalize legitimately
+    # re-runs on every call, so it serializes instead of rejecting.
+    with _finalize_locks_guard:
+        lock = _finalize_locks.get(application_id)
+        if lock is None:
+            lock = threading.Lock()
+            _finalize_locks[application_id] = lock
+        return lock
 
 
 def _owned_application(application_id: uuid.UUID, session: CurrentSession, db: DB) -> Application:
@@ -157,12 +176,21 @@ def polish_application(
         raise ApiError(
             409, "not_polishable", "A posting-tailored resume is already an AI rewrite"
         )
-    if app_row.status in ("queued", "running"):
-        raise ApiError(409, "already_running", "This application is still generating")
-    app_row.mode = "polish"
-    app_row.status = "queued"
-    app_row.error = None
+    # A plain read-then-write here would let two near-simultaneous requests
+    # (double-click, duplicate tab) both pass this check before either
+    # commits, queuing two concurrent jobs against the same row -- same
+    # race class as the master-resume save race, on a different endpoint.
+    # The UPDATE's WHERE re-checks status atomically at the database, so
+    # only one request's claim can ever win.
+    result = db.execute(
+        update(Application)
+        .where(Application.id == app_row.id, Application.status.notin_(["queued", "running"]))
+        .values(mode="polish", status="queued", error=None)
+    )
     db.commit()
+    if result.rowcount == 0:
+        raise ApiError(409, "already_running", "This application is still generating")
+    db.refresh(app_row)
     background.add_task(jobs.run_application, app_row.id)
     return _application_out(app_row)
 
@@ -171,7 +199,11 @@ def _tailored_from(version: ResumeVersion) -> TailoredResume | None:
     return TailoredResume.model_validate(version.tailored) if version.tailored else None
 
 
-@router.post("/{application_id}/preview", response_model=RenderPreviewResponse)
+@router.post(
+    "/{application_id}/preview",
+    response_model=RenderPreviewResponse,
+    dependencies=[Depends(rate_limit("applications_preview", max_calls=300, window_seconds=3600))],
+)
 def preview_application(
     application_id: uuid.UUID, body: RenderRequest, session: CurrentSession, db: DB
 ) -> RenderPreviewResponse:
@@ -201,7 +233,11 @@ def preview_application(
     return RenderPreviewResponse(tex=tex)
 
 
-@router.post("/{application_id}/finalize", response_model=VersionOut)
+@router.post(
+    "/{application_id}/finalize",
+    response_model=VersionOut,
+    dependencies=[Depends(rate_limit("applications_finalize", max_calls=30, window_seconds=3600))],
+)
 def finalize_application(
     application_id: uuid.UUID, body: RenderRequest, session: CurrentSession, db: DB
 ) -> VersionOut:
@@ -210,32 +246,44 @@ def finalize_application(
     version = _latest_version(app_row)
     master = _load_master(session, db)
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
-    try:
-        tex, pdf_path, log = core_bridge.render_and_compile(
-            master,
-            _tailored_from(version),
-            selections=selections,
-            fact_order=body.fact_order,
-            experience_order=body.experience_order,
-            project_order=body.project_order,
-            section_order=body.section_order,
-            excluded_facts=body.excluded_facts,
-            excluded_experiences=body.excluded_experiences,
-            excluded_projects=body.excluded_projects,
-            text_overrides=body.text_overrides,
-        )
-    except ValueError as e:
-        raise ApiError(409, "stale_tailored_resume", str(e)) from e
-    if not pdf_path:
-        raise ApiError(422, "compile_failed", log)
-    version.tex = tex
-    artifacts = Path(settings.artifacts_dir)
-    artifacts.mkdir(parents=True, exist_ok=True)
-    dest = artifacts / f"{version.id}.pdf"
-    shutil.copyfile(pdf_path, dest)
-    version.pdf_path = str(dest)
-    db.commit()
+    with _finalize_lock(app_row.id):
+        try:
+            tex, pdf_path, log = core_bridge.render_and_compile(
+                master,
+                _tailored_from(version),
+                selections=selections,
+                fact_order=body.fact_order,
+                experience_order=body.experience_order,
+                project_order=body.project_order,
+                section_order=body.section_order,
+                excluded_facts=body.excluded_facts,
+                excluded_experiences=body.excluded_experiences,
+                excluded_projects=body.excluded_projects,
+                text_overrides=body.text_overrides,
+            )
+        except ValueError as e:
+            raise ApiError(409, "stale_tailored_resume", str(e)) from e
+        if not pdf_path:
+            raise ApiError(422, "compile_failed", log)
+        version.tex = tex
+        artifacts = Path(settings.artifacts_dir)
+        artifacts.mkdir(parents=True, exist_ok=True)
+        dest = artifacts / f"{version.id}.pdf"
+        shutil.copyfile(pdf_path, dest)
+        # See api/jobs.py's identical cleanup for why: compile_tex()'s
+        # returned temp dir is never removed on its own.
+        shutil.rmtree(Path(pdf_path).parent, ignore_errors=True)
+        version.pdf_path = str(dest)
+        db.commit()
     return _version_out(version)
+
+
+#  A session accumulates applications indefinitely (no retention/deletion
+# path but the user's own explicit DELETE /account) -- this caps the
+# response instead of returning every row a long-lived session has ever
+# created. Most-recent-first ordering means a session past the cap simply
+# stops seeing its oldest history, not an arbitrary subset.
+MAX_APPLICATIONS_LISTED = 200
 
 
 @router.get("", response_model=list[ApplicationListItem])
@@ -244,6 +292,7 @@ def list_applications(session: CurrentSession, db: DB) -> list[ApplicationListIt
         select(Application)
         .where(Application.session_id == session.id)
         .order_by(Application.created_at.desc(), Application.id)
+        .limit(MAX_APPLICATIONS_LISTED)
     ).all()
     return [
         ApplicationListItem(

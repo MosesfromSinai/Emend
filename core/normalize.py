@@ -110,7 +110,16 @@ def reattach_orphan_dates(text: str) -> str:
                 # searching further back for the real one
                 continue
             out[i] = f"{out[i]} {stripped}"
-            logger.info("reattached orphan date %r to header %r", stripped, candidate)
+            # Never the actual text: `stripped`/`candidate` are fragments of
+            # the user's real resume (a date, a company/school header line),
+            # and INFO-level logs commonly flow into a log aggregator with
+            # no PII-retention policy of its own. Lengths are enough to
+            # confirm the heuristic fired and tune how often it does.
+            logger.debug(
+                "reattached an orphan date (%d chars) to a header line (%d chars)",
+                len(stripped),
+                len(candidate),
+            )
             break
         else:
             out.append(line)

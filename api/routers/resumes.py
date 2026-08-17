@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api import core_bridge
@@ -29,6 +30,17 @@ async def _resume_text_from_request(request: Request) -> str:
     """
     content_type = request.headers.get("content-type", "")
     if content_type.startswith("multipart/form-data"):
+        # multipart/form-data is a CORS "simple" content type -- unlike the
+        # JSON path below (application/json already forces a preflight), a
+        # cross-site page can POST this with credentials and no preflight,
+        # riding a victim's session cookie to burn their import quota and
+        # trigger a real PDF parse. A header outside the CORS-safelisted
+        # set forces a preflight, which the CORS policy above then blocks
+        # for any origin not in cors_origins.
+        if "x-requested-with" not in request.headers:
+            raise ApiError(
+                400, "missing_csrf_header", "multipart import requires X-Requested-With"
+            )
         form = await request.form()
         upload = form.get("file")
         if upload is None or not hasattr(upload, "read"):
@@ -71,9 +83,23 @@ def save_master(body: MasterResume, session: CurrentSession, db: DB) -> MasterRe
     if row is None:
         row = MasterResumeRow(session_id=session.id, data=body.model_dump())
         db.add(row)
+        try:
+            db.commit()
+        except IntegrityError:
+            # Two near-simultaneous first-saves for the same brand-new
+            # session both passed the check above; the loser's insert hits
+            # session_id's unique constraint. Recover as an update instead
+            # of a raw 500 -- whichever request's data lands is exactly as
+            # correct as if this one had simply run second.
+            db.rollback()
+            row = db.scalars(
+                select(MasterResumeRow).where(MasterResumeRow.session_id == session.id)
+            ).first()
+            row.data = body.model_dump()
+            db.commit()
     else:
         row.data = body.model_dump()
-    db.commit()
+        db.commit()
     return body
 
 

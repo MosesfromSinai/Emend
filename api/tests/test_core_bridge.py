@@ -22,6 +22,13 @@ def test_assert_public_http_url_blocks_private_ranges():
         _assert_public_http_url("http://192.168.1.1/jobs")
 
 
+def test_assert_public_http_url_blocks_carrier_grade_nat():
+    # 100.64.0.0/10 (RFC 6598) -- real internal cloud/k8s networks use this
+    # range, and it's not covered by is_private/is_loopback/etc individually
+    with pytest.raises(JdUrlBlockedError):
+        _assert_public_http_url("http://100.64.0.1/jobs")
+
+
 def test_assert_public_http_url_blocks_non_http_scheme():
     with pytest.raises(JdUrlBlockedError):
         _assert_public_http_url("file:///etc/passwd")

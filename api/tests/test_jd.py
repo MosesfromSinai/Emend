@@ -1,4 +1,8 @@
+import pytest
+
 from api import core_bridge
+from api.core_bridge import JD_FETCH_MAX_BYTES, JdUrlBlockedError
+from api.tests.conftest import _fake_stream, _FakeStreamResponse
 from core.schemas import JDExtract
 
 
@@ -42,14 +46,11 @@ def test_preview_scores_a_url(client, master, monkeypatch):
     confirm_master(client, master)
     _stub_parse_and_match(monkeypatch)
 
-    class FakeResponse:
-        is_redirect = False
-        text = "<html><body><main>Python backend role.</main></body></html>"
-
-        def raise_for_status(self):
-            pass
-
-    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
+    monkeypatch.setattr(
+        core_bridge.httpx,
+        "stream",
+        _fake_stream("<html><body><main>Python backend role.</main></body></html>"),
+    )
 
     r = client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
 
@@ -64,18 +65,11 @@ def test_url_fetch_sends_a_browser_user_agent(client, master, monkeypatch):
     _stub_parse_and_match(monkeypatch)
     seen_headers = {}
 
-    class FakeResponse:
-        is_redirect = False
-        text = "<html><body><main>Role.</main></body></html>"
-
-        def raise_for_status(self):
-            pass
-
-    def fake_get(url, **kwargs):
+    def fake_stream(method, url, **kwargs):
         seen_headers.update(kwargs.get("headers") or {})
-        return FakeResponse()
+        return _FakeStreamResponse("<html><body><main>Role.</main></body></html>")
 
-    monkeypatch.setattr(core_bridge.httpx, "get", fake_get)
+    monkeypatch.setattr(core_bridge.httpx, "stream", fake_stream)
 
     client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
 
@@ -110,16 +104,53 @@ def test_preview_fails_clearly_on_unreadable_url(client, master, monkeypatch):
     # silently score as a fake 0% match
     confirm_master(client, master)
 
-    class FakeResponse:
-        is_redirect = False
-        text = "<html><body><noscript>Enable JavaScript to view this page.</noscript></body></html>"
-
-        def raise_for_status(self):
-            pass
-
-    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
+    monkeypatch.setattr(
+        core_bridge.httpx,
+        "stream",
+        _fake_stream(
+            "<html><body><noscript>Enable JavaScript to view this page.</noscript></body></html>"
+        ),
+    )
 
     r = client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
 
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "jd_unscoreable"
+
+
+def test_fetch_jd_text_aborts_when_response_exceeds_max_bytes(monkeypatch):
+    # SSRF-safe doesn't bound response size -- Emend runs as a single API
+    # instance, so one huge response fully buffered into memory can OOM the
+    # whole process. This must abort mid-stream, not just reject a response
+    # it already finished downloading.
+    chunks_yielded = {"n": 0}
+
+    class OversizedResponse:
+        is_redirect = False
+        encoding = "utf-8"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return False
+
+        def raise_for_status(self):
+            pass
+
+        def iter_bytes(self):
+            chunk = b"x" * 1024
+            for _ in range(1_000_000):  # far more than fits under the cap
+                chunks_yielded["n"] += 1
+                yield chunk
+
+    monkeypatch.setattr(
+        core_bridge.httpx, "stream", lambda method, url, **kwargs: OversizedResponse()
+    )
+
+    with pytest.raises(JdUrlBlockedError, match="exceeds"):
+        core_bridge.fetch_jd_text("https://example.com/job")
+
+    # aborted well short of consuming all 1,000,000 chunks -- proves the
+    # cap stops the download, not just the final result
+    assert chunks_yielded["n"] < (JD_FETCH_MAX_BYTES // 1024) + 10

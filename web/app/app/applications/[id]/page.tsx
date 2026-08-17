@@ -82,6 +82,18 @@ export default function ApplicationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  // Every piece of edit state below (selections, exclusions, overrides...)
+  // is seeded once via a lazy useState initializer keyed on `id` -- that
+  // only runs on this component's first mount. Nothing in this app's
+  // current navigation graph goes directly from one application's Export
+  // page to a different one without passing through another route first
+  // (which already forces a remount), so this isn't reachable today -- but
+  // `key={id}` costs nothing and removes the landmine outright rather than
+  // relying on that staying true as the app grows new navigation paths.
+  return <ApplicationPageContent key={id} id={id} />;
+}
+
+function ApplicationPageContent({ id }: { id: string }) {
   const { application, error, restartPolling } = usePollApplication(id);
   const [polishBusy, setPolishBusy] = useState(false);
   const [polishError, setPolishError] = useState<string | null>(null);
@@ -664,6 +676,12 @@ export default function ApplicationPage({
       restartPolling();
     } catch (e) {
       setPolishError(e instanceof ApiError ? e.message : "Couldn't start that.");
+    } finally {
+      // Not just in the catch branch: on success this button's whole
+      // section unmounts once a report exists, but the busy flag must
+      // still reset in case a future change makes it reachable again
+      // (e.g. re-polishing) -- a flag that never clears on its one success
+      // path is a bug regardless of whether anything currently renders it.
       setPolishBusy(false);
     }
   }
@@ -1013,14 +1031,23 @@ export default function ApplicationPage({
                   }}
                   renderHeaderFieldControl={(field) => {
                     if (field === "name") {
+                      const nameValue = currentOverrideValue("name");
                       return (
                         <OverrideEditor
                           fields={[
                             {
                               key: "name",
                               label: "Name",
-                              value: currentOverrideValue("name"),
+                              value: nameValue,
                               onDelete: () => clearOverrides(["name"]),
+                              // unlike a deleted fact/entry (its own
+                              // restore-chip list), there's a single known
+                              // original here -- master.name -- so a
+                              // cleared name can snap straight back to it
+                              onRestore:
+                                !nameValue && master?.name
+                                  ? () => updateTextOverride("name", master.name)
+                                  : undefined,
                             },
                           ]}
                           onChange={updateTextOverride}

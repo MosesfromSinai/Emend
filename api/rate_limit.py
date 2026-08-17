@@ -23,6 +23,7 @@ see the real client IP behind Railway's edge, rather than the edge's own
 address for every request.
 """
 
+import threading
 import time
 from collections import defaultdict, deque
 
@@ -32,6 +33,11 @@ from api.errors import ApiError
 from api.sessions import CurrentSession
 
 _calls: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+# FastAPI runs sync dependencies/routes in a threadpool, so concurrent
+# requests genuinely interleave -- without this, check-then-record is a
+# real TOCTOU: N requests can all pass `_allowed()` before any of them
+# calls `_record()`, clearing a cap of e.g. 15 with 40 concurrent calls.
+_lock = threading.Lock()
 
 
 def _prune(key: tuple[str, str], window_seconds: float) -> deque[float]:
@@ -39,7 +45,30 @@ def _prune(key: tuple[str, str], window_seconds: float) -> deque[float]:
     bucket = _calls[key]
     while bucket and now - bucket[0] > window_seconds:
         bucket.popleft()
+    if not bucket:
+        # An empty deque left behind in _calls forever is a slow leak: every
+        # distinct session/IP this process has ever seen gets one entry that
+        # never goes away, even long after its window has fully expired.
+        # `_record` (via the same defaultdict) transparently recreates a
+        # fresh one if this key gets used again.
+        del _calls[key]
     return bucket
+
+
+def _allowed(key: tuple[str, str], window_seconds: float, cap: int) -> bool:
+    return len(_prune(key, window_seconds)) < cap
+
+
+def _record(key: tuple[str, str]) -> None:
+    _calls[key].append(time.monotonic())
+
+
+def _rate_limited_error(window_seconds: float) -> ApiError:
+    return ApiError(
+        429,
+        "rate_limited",
+        f"Too many requests -- try again in about {int(window_seconds // 60) or 1} minute(s).",
+    )
 
 
 def rate_limit(name: str, max_calls: int, window_seconds: float, ip_max_calls: int | None = None):
@@ -55,17 +84,24 @@ def rate_limit(name: str, max_calls: int, window_seconds: float, ip_max_calls: i
         client_ip = request.client.host if request.client else "unknown"
         session_key = (name, f"session:{session.id}")
         ip_key = (name, f"ip:{client_ip}")
-        session_bucket = _prune(session_key, window_seconds)
-        ip_bucket = _prune(ip_key, window_seconds)
-        if len(session_bucket) >= max_calls or len(ip_bucket) >= ip_cap:
-            raise ApiError(
-                429,
-                "rate_limited",
-                f"Too many requests -- try again in about "
-                f"{int(window_seconds // 60) or 1} minute(s).",
-            )
-        now = time.monotonic()
-        session_bucket.append(now)
-        ip_bucket.append(now)
+        with _lock:
+            if not _allowed(session_key, window_seconds, max_calls) or not _allowed(
+                ip_key, window_seconds, ip_cap
+            ):
+                raise _rate_limited_error(window_seconds)
+            _record(session_key)
+            _record(ip_key)
 
     return dependency
+
+
+def check_ip_rate_limit(name: str, client_ip: str, max_calls: int, window_seconds: float) -> None:
+    """Direct (non-dependency) IP-only check, for a call site that can't use
+    the `rate_limit()` FastAPI dependency above -- namely gating new-session
+    creation itself (api/sessions.py), which happens before a session (and
+    so the per-session bucket key `rate_limit` needs) exists at all."""
+    ip_key = (name, f"ip:{client_ip}")
+    with _lock:
+        if not _allowed(ip_key, window_seconds, max_calls):
+            raise _rate_limited_error(window_seconds)
+        _record(ip_key)
