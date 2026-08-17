@@ -78,6 +78,7 @@ def test_import_accepts_multipart_pdf_upload(client, monkeypatch):
     r = client.post(
         "/resumes/import",
         files={"file": ("resume.pdf", pdf_bytes, "application/pdf")},
+        headers={"X-Requested-With": "emend-web"},
     )
     assert r.status_code == 200
     assert r.json()["name"] == "Sam Sample"
@@ -87,7 +88,9 @@ def test_import_accepts_multipart_pdf_upload(client, monkeypatch):
 
 def test_import_multipart_without_file_field_is_422(client, stub_structure):
     r = client.post(
-        "/resumes/import", files={"not_file": ("x.txt", b"hello", "text/plain")}
+        "/resumes/import",
+        files={"not_file": ("x.txt", b"hello", "text/plain")},
+        headers={"X-Requested-With": "emend-web"},
     )
     assert r.status_code == 422
 
@@ -96,9 +99,24 @@ def test_import_rejects_unparseable_pdf_upload(client, stub_structure):
     r = client.post(
         "/resumes/import",
         files={"file": ("resume.pdf", b"not a pdf at all", "application/pdf")},
+        headers={"X-Requested-With": "emend-web"},
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "unstructurable_resume"
+
+
+def test_import_multipart_without_csrf_header_is_rejected(client, stub_structure):
+    # multipart/form-data is a CORS "simple" content type -- a cross-site
+    # page could POST it with the session cookie and no preflight. The
+    # required header forces a preflight, which blocks any origin outside
+    # the CORS allowlist before this handler ever runs.
+    pdf_bytes = (PDF_FIXTURES / "sample_resume.pdf").read_bytes()
+    r = client.post(
+        "/resumes/import",
+        files={"file": ("resume.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "missing_csrf_header"
 
 
 def test_master_round_trip_and_upsert(client, master):

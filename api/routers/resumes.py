@@ -30,6 +30,17 @@ async def _resume_text_from_request(request: Request) -> str:
     """
     content_type = request.headers.get("content-type", "")
     if content_type.startswith("multipart/form-data"):
+        # multipart/form-data is a CORS "simple" content type -- unlike the
+        # JSON path below (application/json already forces a preflight), a
+        # cross-site page can POST this with credentials and no preflight,
+        # riding a victim's session cookie to burn their import quota and
+        # trigger a real PDF parse. A header outside the CORS-safelisted
+        # set forces a preflight, which the CORS policy above then blocks
+        # for any origin not in cors_origins.
+        if "x-requested-with" not in request.headers:
+            raise ApiError(
+                400, "missing_csrf_header", "multipart import requires X-Requested-With"
+            )
         form = await request.form()
         upload = form.get("file")
         if upload is None or not hasattr(upload, "read"):
