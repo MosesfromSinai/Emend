@@ -29,6 +29,11 @@ jobs:
   test-latex:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # A fixed, cacheable path -- Tectonic otherwise resolves its own
+      # per-OS default (e.g. ~/.cache/Tectonic), which works fine but isn't
+      # a stable key for actions/cache below.
+      TECTONIC_CACHE_DIR: ${{ github.workspace }}/.tectonic-cache
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
@@ -37,6 +42,16 @@ jobs:
           curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.16.9/tectonic-0.16.9-x86_64-unknown-linux-musl.tar.gz" \
             | sudo tar -xz -C /usr/local/bin tectonic
           tectonic --version
+      # Every latex test compiles for real; with no cache each run re-fetches
+      # the full package bundle from Tectonic's public relay, which rate
+      # -limits under shared GitHub-runner IP traffic (seen twice in one day:
+      # 429 Too Many Requests). Caching it here means only a cold cache ever
+      # touches that network path.
+      - name: Cache Tectonic bundle
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TECTONIC_CACHE_DIR }}
+          key: tectonic-bundle-v33-0.16.9
       - name: Run latex tests
         run: |
           uv venv --python 3.12
@@ -106,8 +121,22 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # The plain `docker build` CLI this replaced re-ran the image's
+      # network-fetching RUN steps (warm-tectonic-cache.py) from scratch on
+      # every CI run -- the GHA cache backend here reuses that layer across
+      # runs instead, since the underlying relay rate-limits under shared
+      # GitHub-runner traffic (seen twice in one day: 429 Too Many Requests).
       - name: Build sandbox image
-        run: docker build -f infra/docker/api.Dockerfile --target latex-sandbox -t emend-latex-sandbox .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          target: latex-sandbox
+          tags: emend-latex-sandbox
+          load: true
+          cache-from: type=gha,scope=latex-sandbox
+          cache-to: type=gha,mode=max,scope=latex-sandbox
       - name: Verify offline compile inside the sandbox
         run: |
           docker run --rm --network=none emend-latex-sandbox \
@@ -118,10 +147,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Same scope as docker-latex-sandbox's cache -- this build starts from
+      # that same latex-sandbox stage, so a warm cache here skips its network
+      # fetch too instead of paying for it a second time in the same run.
       - name: Build full api image (if api/ present)
-        run: |
-          if [ -d api ]; then
-            docker build -f infra/docker/api.Dockerfile -t emend-api .
-          else
-            echo "api/ not present yet — skipping"
-          fi
+        if: hashFiles('api/**') != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          tags: emend-api
+          cache-from: type=gha,scope=latex-sandbox
+          cache-to: type=gha,mode=max,scope=full-api
