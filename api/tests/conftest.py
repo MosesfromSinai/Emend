@@ -29,6 +29,36 @@ FAKE_TEX = """\\documentclass{article}
 """
 
 
+class _FakeStreamResponse:
+    """Minimal stand-in for httpx.stream()'s context-managed Response --
+    core_bridge.fetch_jd_text streams (not httpx.get) so an oversized
+    response can be capped mid-download rather than only after it's
+    already fully buffered."""
+
+    is_redirect = False
+    encoding = "utf-8"
+
+    def __init__(self, text, headers=None):
+        self._text = text
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+    def raise_for_status(self):
+        pass
+
+    def iter_bytes(self):
+        yield self._text.encode("utf-8")
+
+
+def _fake_stream(text, headers=None):
+    return lambda method, url, **kwargs: _FakeStreamResponse(text, headers)
+
+
 @pytest.fixture(autouse=True)
 def _reset_rate_limits():
     """api.rate_limit._calls is a module-level dict, not request-scoped, so
