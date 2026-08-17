@@ -1,4 +1,5 @@
 import shutil
+import threading
 import uuid
 from pathlib import Path
 from typing import Annotated
@@ -28,6 +29,24 @@ from core.schemas import MasterResume, TailoredResume
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 DB = Annotated[Session, Depends(get_db)]
+
+_finalize_locks: dict[uuid.UUID, threading.Lock] = {}
+_finalize_locks_guard = threading.Lock()
+
+
+def _finalize_lock(application_id: uuid.UUID) -> threading.Lock:
+    # Serializes concurrent finalize calls for one application so a
+    # double-click/duplicate tab can't interleave one request's PDF write
+    # with another's DB commit, leaving a downloaded PDF that silently
+    # doesn't match the .tex shown for that version. Unlike polish, there's
+    # no status field to claim atomically here -- finalize legitimately
+    # re-runs on every call, so it serializes instead of rejecting.
+    with _finalize_locks_guard:
+        lock = _finalize_locks.get(application_id)
+        if lock is None:
+            lock = threading.Lock()
+            _finalize_locks[application_id] = lock
+        return lock
 
 
 def _owned_application(application_id: uuid.UUID, session: CurrentSession, db: DB) -> Application:
