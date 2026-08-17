@@ -215,6 +215,23 @@ def test_grounding_error_surfaces_a_friendly_message(client, master, pipeline, m
     assert "try tailoring again" in got["error"]
 
 
+def test_unscoreable_jd_surfaces_a_friendly_message(client, master, pipeline, monkeypatch):
+    # parse_jd legitimately raises ValueError for ordinary bad input (a
+    # bare URL pasted into the text field, text too short to score) --
+    # same friendly wording as /jd/preview, not a raw "ValueError: ..."
+    # dumped into the user-facing error field.
+    def raising_parse(text):
+        raise ValueError("job posting text is too short to score")
+
+    monkeypatch.setattr(core_bridge, "parse_jd", raising_parse)
+    confirm_master(client, master)
+    r = client.post("/applications", json={"jd_text": "a posting"})
+    got = client.get(f"/applications/{r.json()['id']}").json()
+    assert got["status"] == "failed"
+    assert "ValueError" not in got["error"]
+    assert got["error"] == "job posting text is too short to score"
+
+
 def test_unexpected_error_never_leaves_running(client, master, pipeline, monkeypatch):
     def exploding_parse(text):
         raise RuntimeError("anthropic API melted")
