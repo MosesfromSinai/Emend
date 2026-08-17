@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from api import core_bridge, jobs
@@ -157,12 +157,21 @@ def polish_application(
         raise ApiError(
             409, "not_polishable", "A posting-tailored resume is already an AI rewrite"
         )
-    if app_row.status in ("queued", "running"):
-        raise ApiError(409, "already_running", "This application is still generating")
-    app_row.mode = "polish"
-    app_row.status = "queued"
-    app_row.error = None
+    # A plain read-then-write here would let two near-simultaneous requests
+    # (double-click, duplicate tab) both pass this check before either
+    # commits, queuing two concurrent jobs against the same row -- same
+    # race class as the master-resume save race, on a different endpoint.
+    # The UPDATE's WHERE re-checks status atomically at the database, so
+    # only one request's claim can ever win.
+    result = db.execute(
+        update(Application)
+        .where(Application.id == app_row.id, Application.status.notin_(["queued", "running"]))
+        .values(mode="polish", status="queued", error=None)
+    )
     db.commit()
+    if result.rowcount == 0:
+        raise ApiError(409, "already_running", "This application is still generating")
+    db.refresh(app_row)
     background.add_task(jobs.run_application, app_row.id)
     return _application_out(app_row)
 

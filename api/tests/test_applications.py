@@ -103,6 +103,53 @@ def test_polish_rejects_someone_elses_application(client, other_client, master, 
     assert other_client.post(f"/applications/{app_id}/polish").status_code == 404
 
 
+def test_polish_rejects_a_concurrently_claimed_application(db_engine, monkeypatch):
+    """Two near-simultaneous polish requests both read status="done" before
+    either commits -- simulated here by having a second, independent DB
+    session flip status to "queued" (as if it already claimed the job)
+    right before this request's own atomic UPDATE runs, so that UPDATE's
+    WHERE clause really does see the raced state and affects zero rows."""
+    import pytest
+    from fastapi import BackgroundTasks
+    from sqlalchemy import update
+    from sqlalchemy.orm import sessionmaker
+
+    from api.errors import ApiError
+    from api.models import Application, SessionRow
+    from api.routers.applications import polish_application
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    session_row = SessionRow()
+    setup.add(session_row)
+    setup.flush()
+    app_row = Application(session_id=session_row.id, mode="refactor", status="done")
+    setup.add(app_row)
+    setup.commit()
+    app_id = app_row.id
+    setup.close()
+
+    db = Session()
+    real_execute = db.execute
+
+    def execute_then_race(statement, *args, **kwargs):
+        if getattr(statement, "is_update", False):
+            other = Session()
+            claim = update(Application).where(Application.id == app_id).values(status="queued")
+            other.execute(claim)
+            other.commit()
+            other.close()
+        return real_execute(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db, "execute", execute_then_race)
+
+    fresh_session_row = db.get(SessionRow, session_row.id)
+    with pytest.raises(ApiError) as exc_info:
+        polish_application(app_id, fresh_session_row, db, BackgroundTasks())
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.code == "already_running"
+
+
 def test_tailor_mode_end_to_end(client, master, pipeline):
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_text": "We need a backend engineer..."})
