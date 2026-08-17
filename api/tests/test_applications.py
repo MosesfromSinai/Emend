@@ -546,6 +546,87 @@ def test_preview_applies_text_overrides(client, master, pipeline):
     assert "Acme Corp" not in tex
 
 
+def test_finalize_is_race_free_under_concurrent_calls(db_engine, master, tmp_path, monkeypatch):
+    """Two near-simultaneous finalize calls for the same application must not
+    interleave one request's PDF write with another's DB commit -- otherwise
+    the stored version.tex and the PDF actually on disk can come from two
+    different compiles, and a user downloads a PDF that silently doesn't
+    match the .tex shown for that version."""
+    import threading
+    import time as time_module
+
+    from sqlalchemy.orm import sessionmaker
+
+    from api import core_bridge
+    from api.models import Application, MasterResumeRow, ResumeVersion, SessionRow
+    from api.routers.applications import finalize_application
+    from api.schemas import RenderRequest
+
+    Session = sessionmaker(bind=db_engine, expire_on_commit=False)
+    setup = Session()
+    session_row = SessionRow()
+    setup.add(session_row)
+    setup.flush()
+    setup.add(MasterResumeRow(session_id=session_row.id, data=master.model_dump()))
+    app_row = Application(session_id=session_row.id, mode="refactor", status="done")
+    setup.add(app_row)
+    setup.flush()
+    setup.add(ResumeVersion(application_id=app_row.id, tex="orig", pdf_path=""))
+    setup.commit()
+    app_id = app_row.id
+    setup.close()
+
+    calls = {"n": 0}
+    calls_lock = threading.Lock()
+
+    def fake_render_and_compile(master_, tailored, **kwargs):
+        with calls_lock:
+            n = calls["n"]
+            calls["n"] += 1
+        # widen the window between compile and this call's own file
+        # write+commit, so an unlocked handler reliably interleaves with a
+        # concurrent call instead of rarely colliding.
+        time_module.sleep(0.02)
+        artifact_dir = tmp_path / f"artifact-{n}"
+        artifact_dir.mkdir()
+        pdf = artifact_dir / "out.pdf"
+        pdf.write_bytes(f"%PDF marker-{n}".encode())
+        return f"tex-marker-{n}", str(pdf), "compile ok"
+
+    monkeypatch.setattr(core_bridge, "render_and_compile", fake_render_and_compile)
+
+    results = []
+    results_lock = threading.Lock()
+
+    def attempt():
+        db = Session()
+        try:
+            session_local = db.get(SessionRow, session_row.id)
+            out = finalize_application(app_id, RenderRequest(), session_local, db)
+            with results_lock:
+                results.append(out)
+        finally:
+            db.close()
+
+    threads = [threading.Thread(target=attempt) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    check = Session()
+    final_version = check.get(ResumeVersion, results[0].id)
+    tex_marker = final_version.tex.removeprefix("tex-marker-")
+    pdf_bytes = pathlib_read(final_version.pdf_path)
+    assert pdf_bytes == f"%PDF marker-{tex_marker}".encode()
+
+
+def pathlib_read(path: str) -> bytes:
+    from pathlib import Path
+
+    return Path(path).read_bytes()
+
+
 def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
