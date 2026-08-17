@@ -34,6 +34,13 @@ def escape_latex(value: Any) -> str:
     if value is None:
         return ""
     text = value if isinstance(value, str) else str(value)
+    # A blank line (two+ newlines) becomes a literal LaTeX \par when this
+    # text lands inside a \textbf/tabular* argument (e.g. resumeSubheading's
+    # title/dates/company/location) -- "Paragraph ended before \textbf was
+    # complete," a real compile break from an ordinary pasted resume, not
+    # an adversarial one. No field here is meant to carry multi-line
+    # structure, so any run of newlines collapses to a single space.
+    text = re.sub(r"\s*\n\s*", " ", text)
     return _PATTERN.sub(lambda m: _ESCAPES[m.group()], text)
 
 
