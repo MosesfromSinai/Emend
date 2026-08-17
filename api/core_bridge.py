@@ -88,6 +88,16 @@ JD_FETCH_HEADERS = {
     ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
+    # JD_FETCH_MAX_BYTES below caps response.iter_bytes() output, which is
+    # *decompressed* content -- httpx's gzip/deflate decoder has no bound on
+    # how much a single incoming chunk can expand to, so a small
+    # compression-bomb response could balloon in memory before that cap is
+    # ever checked. Requesting uncompressed content closes this for any
+    # well-behaved server; a fully malicious one could still send
+    # Content-Encoding: gzip regardless -- accepted as a residual risk here,
+    # same as the DNS-rebinding gap _assert_public_http_url's own docstring
+    # already accepts, rather than hand-rolling a bounded decompressor.
+    "Accept-Encoding": "identity",
 }
 
 
