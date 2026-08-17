@@ -508,6 +508,15 @@ def test_finalize_recompiles_and_updates_the_version(client, master, pipeline):
     assert r.json()["tex"] == FAKE_TEX
 
 
+def test_finalize_cleans_up_source_render_directory(client, master, pipeline, tmp_path):
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={"jd_text": "a posting"}).json()["id"]
+
+    r = client.post(f"/applications/{app_id}/finalize", json={})
+    assert r.status_code == 200
+    assert not (tmp_path / "artifact").exists()
+
+
 def test_finalize_is_rate_limited(client, master, pipeline):
     # finalize triggers a real LaTeX compile -- it must be capped like
     # create/polish are, not left wide open
