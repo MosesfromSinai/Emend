@@ -94,7 +94,17 @@ def _run(session, app_row: Application) -> None:
     tailored = None
     report: Report | None = None
     if jd_text is not None:
-        jd = core_bridge.parse_jd(jd_text)
+        try:
+            jd = core_bridge.parse_jd(jd_text)
+        except ValueError as e:
+            # Same friendly wording as /jd/preview (api/routers/jd.py) --
+            # left unguarded here, this fell through to run_application's
+            # generic `except Exception` below and landed in app_row.error
+            # as a raw "ValueError: ..." string instead.
+            app_row.status = "failed"
+            app_row.error = str(e)
+            session.commit()
+            return
         score, matched, missing = core_bridge.keyword_match(jd, master)
         app_row.match_score = score
         app_row.matched_keywords = matched
