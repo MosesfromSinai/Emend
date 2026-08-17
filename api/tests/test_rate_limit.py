@@ -28,6 +28,54 @@ def test_rate_limit_allows_calls_under_the_cap():
         dependency(session, FakeRequest())  # no raise
 
 
+def test_rate_limit_is_race_free_under_concurrent_calls(monkeypatch):
+    # FastAPI runs sync routes/dependencies in a threadpool -- a plain
+    # check-then-record here is a real TOCTOU: without a lock, many threads
+    # can all pass the check before any of them records, letting far more
+    # than `cap` through in one concurrent burst. The critical section is
+    # normally too fast for the GIL to reliably preempt mid-way on its own,
+    # so `_record` is slowed down here to widen that window deterministically
+    # -- the fix must serialize the whole check+record, not just be fast.
+    import threading
+
+    from api import rate_limit as rate_limit_module
+
+    real_record = rate_limit_module._record
+
+    def slow_record(key):
+        time.sleep(0.01)
+        real_record(key)
+
+    monkeypatch.setattr(rate_limit_module, "_record", slow_record)
+
+    cap = 15
+    dependency = rate_limit("test_race", max_calls=cap, window_seconds=60)
+    session = FakeSession("session-race")
+    request = FakeRequest()
+
+    threads_n = 40
+    barrier = threading.Barrier(threads_n)
+    allowed = []
+    allowed_lock = threading.Lock()
+
+    def attempt():
+        barrier.wait()
+        try:
+            dependency(session, request)
+            with allowed_lock:
+                allowed.append(True)
+        except ApiError:
+            pass
+
+    threads = [threading.Thread(target=attempt) for _ in range(threads_n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(allowed) == cap
+
+
 def test_rate_limit_blocks_once_the_cap_is_hit():
     dependency = rate_limit("test_blocks", max_calls=2, window_seconds=60)
     session = FakeSession("session-b")
