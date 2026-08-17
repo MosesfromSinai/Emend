@@ -243,6 +243,23 @@ def test_fact_rejects_text_over_the_input_char_cap():
         Fact(id="ACME-01", text="x" * (max_input_chars() + 1))
 
 
+def test_experience_title_rejects_text_over_the_input_char_cap():
+    # Same gap as Fact.text, but on a sibling free-text field -- the fix
+    # applies a shared BoundedText type, so this must catch it too.
+    from core.config import max_input_chars
+
+    with pytest.raises(ValidationError, match="at most"):
+        Experience(
+            id="ACME",
+            company="Acme",
+            title="x" * (max_input_chars() + 1),
+            location="",
+            start="",
+            end="",
+            facts=[],
+        )
+
+
 def test_master_resume_rejects_invalid_section_id():
     data = json.loads((FIXTURES / "sample_master.json").read_text())
     data["experiences"][0]["id"] = "bad-id"
