@@ -19,6 +19,22 @@ _ESCAPES: dict[str, str] = {
 # Single-pass substitution so replacement text is never itself re-escaped.
 _PATTERN = re.compile(r"[\\&%$#_{}~^]")
 
+# XeTeX/Tectonic is Unicode-native, so these render as directed rather than
+# being inert: bidi overrides (U+202A-U+202E LRE/RLE/PDF/LRO/RLO, U+2066-
+# U+2069 LRI/RLI/FSI/PDI, U+061C ALM, U+200E/F LRM/RLM) can make digits/
+# words display reordered from how the stored string reads, and zero-width
+# characters (U+200B/C/D ZWSP/ZWNJ/ZWJ, U+2060 word joiner, U+FEFF BOM) can
+# hide invisible content in the PDF's extracted text -- a real integrity
+# gap for a pipeline whose whole model is "what you confirmed is what
+# renders." None of these are meaningful in resume content, so they're
+# stripped rather than escaped/displayed. Spelled as explicit \u escapes,
+# not literal characters, so the pattern stays reviewable in a diff.
+_INVISIBLE_UNICODE_PATTERN = re.compile(
+    "[\u061c\u200b\u200c\u200d\u200e\u200f\u2060"
+    "\u202a\u202b\u202c\u202d\u202e"
+    "\u2066\u2067\u2068\u2069\ufeff]"
+)
+
 
 class RawLatex(str):
     """A value already prepared for LaTeX output -- passed through as-is by
@@ -41,6 +57,7 @@ def escape_latex(value: Any) -> str:
     # an adversarial one. No field here is meant to carry multi-line
     # structure, so any run of newlines collapses to a single space.
     text = re.sub(r"\s*\n\s*", " ", text)
+    text = _INVISIBLE_UNICODE_PATTERN.sub("", text)
     return _PATTERN.sub(lambda m: _ESCAPES[m.group()], text)
 
 
