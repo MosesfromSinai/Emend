@@ -23,6 +23,7 @@ see the real client IP behind Railway's edge, rather than the edge's own
 address for every request.
 """
 
+import threading
 import time
 from collections import defaultdict, deque
 
@@ -32,6 +33,11 @@ from api.errors import ApiError
 from api.sessions import CurrentSession
 
 _calls: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+# FastAPI runs sync dependencies/routes in a threadpool, so concurrent
+# requests genuinely interleave -- without this, check-then-record is a
+# real TOCTOU: N requests can all pass `_allowed()` before any of them
+# calls `_record()`, clearing a cap of e.g. 15 with 40 concurrent calls.
+_lock = threading.Lock()
 
 
 def _prune(key: tuple[str, str], window_seconds: float) -> deque[float]:
@@ -78,12 +84,13 @@ def rate_limit(name: str, max_calls: int, window_seconds: float, ip_max_calls: i
         client_ip = request.client.host if request.client else "unknown"
         session_key = (name, f"session:{session.id}")
         ip_key = (name, f"ip:{client_ip}")
-        if not _allowed(session_key, window_seconds, max_calls) or not _allowed(
-            ip_key, window_seconds, ip_cap
-        ):
-            raise _rate_limited_error(window_seconds)
-        _record(session_key)
-        _record(ip_key)
+        with _lock:
+            if not _allowed(session_key, window_seconds, max_calls) or not _allowed(
+                ip_key, window_seconds, ip_cap
+            ):
+                raise _rate_limited_error(window_seconds)
+            _record(session_key)
+            _record(ip_key)
 
     return dependency
 
@@ -94,6 +101,7 @@ def check_ip_rate_limit(name: str, client_ip: str, max_calls: int, window_second
     creation itself (api/sessions.py), which happens before a session (and
     so the per-session bucket key `rate_limit` needs) exists at all."""
     ip_key = (name, f"ip:{client_ip}")
-    if not _allowed(ip_key, window_seconds, max_calls):
-        raise _rate_limited_error(window_seconds)
-    _record(ip_key)
+    with _lock:
+        if not _allowed(ip_key, window_seconds, max_calls):
+            raise _rate_limited_error(window_seconds)
+        _record(ip_key)
