@@ -76,6 +76,25 @@ def test_url_fetch_sends_a_browser_user_agent(client, master, monkeypatch):
     assert "Mozilla" in seen_headers.get("User-Agent", "")
 
 
+def test_url_fetch_requests_uncompressed_content(client, master, monkeypatch):
+    # response.iter_bytes() yields *decompressed* content with no bound on
+    # how much a single chunk can expand to -- requesting uncompressed
+    # content closes the compression-bomb risk for any well-behaved server.
+    confirm_master(client, master)
+    _stub_parse_and_match(monkeypatch)
+    seen_headers = {}
+
+    def fake_stream(method, url, **kwargs):
+        seen_headers.update(kwargs.get("headers") or {})
+        return _FakeStreamResponse("<html><body><main>Role.</main></body></html>")
+
+    monkeypatch.setattr(core_bridge.httpx, "stream", fake_stream)
+
+    client.post("/jd/preview", json={"jd_url": "https://example.com/job"})
+
+    assert seen_headers.get("Accept-Encoding") == "identity"
+
+
 def test_preview_rejects_a_link_pasted_into_the_text_field(client, master):
     # the Tailor screen's link field fetches a URL; pasting the same URL
     # into the text field instead must fail clearly, not silently score 0%

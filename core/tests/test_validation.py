@@ -8,6 +8,7 @@ from core.schemas import (
     Experience,
     Fact,
     MasterResume,
+    Project,
     TailoredBullet,
     TailoredResume,
     TailoredSection,
@@ -258,6 +259,16 @@ def test_experience_title_rejects_text_over_the_input_char_cap():
             end="",
             facts=[],
         )
+
+
+def test_project_tech_item_rejects_text_over_the_input_char_cap():
+    # Same gap as Fact.text/Experience.title, but on a list-of-strings
+    # field -- a single oversized item inside the list, not the list
+    # itself, is what BoundedText must catch here.
+    from core.config import max_input_chars
+
+    with pytest.raises(ValidationError, match="at most"):
+        Project(id="ACME", name="Acme", tech=["x" * (max_input_chars() + 1)], facts=[])
 
 
 def test_master_resume_rejects_invalid_section_id():
