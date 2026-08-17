@@ -27,9 +27,13 @@ def delete_my_data(session: CurrentSession, db: DB, response: Response) -> None:
     there is no confirmation step here; the frontend owns that before ever
     calling this.
     """
+    # .all(), not a lazy ScalarResult -- iterating this loop's own deletes
+    # and lazy-loaded application.versions accesses against a still-open
+    # streaming query is fragile (autoflush mid-iteration), even though the
+    # driver's default client-side buffering happens to make it safe today.
     applications = db.scalars(
         select(Application).where(Application.session_id == session.id)
-    )
+    ).all()
     for application in applications:
         for version in application.versions:
             if version.pdf_path:
