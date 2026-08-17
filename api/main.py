@@ -1,5 +1,6 @@
 """Emend API. Docker/compose run `uvicorn api.main:app`."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -11,6 +12,8 @@ from api.config import settings
 from api.errors import ApiError, error_response, register_error_handlers
 from api.models import Application
 from api.routers import account, applications, artifacts, health, jd, resumes
+
+logger = logging.getLogger("emend.api")
 
 
 def _reap_stuck_applications() -> None:
@@ -34,7 +37,14 @@ def _reap_stuck_applications() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _reap_stuck_applications()
+    # Best-effort cleanup, not a required config check (unlike, say,
+    # api/config.py's DATABASE_URL validation) -- a transient DB hiccup at
+    # the exact moment of a restart shouldn't turn an optional maintenance
+    # task into a new reason the whole app fails to start.
+    try:
+        _reap_stuck_applications()
+    except Exception:
+        logger.exception("failed to reap stuck applications at startup")
     yield
 
 
