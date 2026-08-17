@@ -99,9 +99,13 @@ def _custom_entry_row(entry: CustomEntry, overrides: dict[str, str] | None = Non
     `custom:<id>:fact:<fact id>` override, same as any other field here."""
     start = _ov(overrides, f"custom:{entry.id}:start", entry.start)
     end = _ov(overrides, f"custom:{entry.id}:end", entry.end)
+    # An override clearing a fact to "" means "delete this bullet" (same
+    # convention as coursework/skills below) -- previously it stayed in the
+    # list and rendered as a bare, textless bullet point on the actual PDF.
     bullets = [
-        _bullet_row(_ov(overrides, f"custom:{entry.id}:fact:{f.id}", f.text), [f.id])
+        _bullet_row(text, [f.id])
         for f in entry.facts
+        if (text := _ov(overrides, f"custom:{entry.id}:fact:{f.id}", f.text))
     ]
     return {
         "title": _ov(overrides, f"custom:{entry.id}:title", entry.title),
@@ -390,12 +394,13 @@ def render_tex(
         _education_row(edu, i, text_overrides) for i, edu in enumerate(master.education)
     ]
 
+    # An override clearing a category to "" means "delete this category" --
+    # previously it stayed in the list and rendered as a dangling
+    # "Category: " label with nothing after it.
     skills_rows = [
-        {
-            "category": category,
-            "items_text": _ov(text_overrides, f"skills:{category}", ", ".join(items)),
-        }
+        {"category": category, "items_text": text}
         for category, items in skills.items()
+        if (text := _ov(text_overrides, f"skills:{category}", ", ".join(items)))
     ]
 
     default_headings = {
