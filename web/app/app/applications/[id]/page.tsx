@@ -1031,14 +1031,23 @@ function ApplicationPageContent({ id }: { id: string }) {
                   }}
                   renderHeaderFieldControl={(field) => {
                     if (field === "name") {
+                      const nameValue = currentOverrideValue("name");
                       return (
                         <OverrideEditor
                           fields={[
                             {
                               key: "name",
                               label: "Name",
-                              value: currentOverrideValue("name"),
+                              value: nameValue,
                               onDelete: () => clearOverrides(["name"]),
+                              // unlike a deleted fact/entry (its own
+                              // restore-chip list), there's a single known
+                              // original here -- master.name -- so a
+                              // cleared name can snap straight back to it
+                              onRestore:
+                                !nameValue && master?.name
+                                  ? () => updateTextOverride("name", master.name)
+                                  : undefined,
                             },
                           ]}
                           onChange={updateTextOverride}
