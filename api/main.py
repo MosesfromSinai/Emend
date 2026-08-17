@@ -1,11 +1,41 @@
 """Emend API. Docker/compose run `uvicorn api.main:app`."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import update
 
+from api import db as db_module
 from api.config import settings
 from api.errors import ApiError, error_response, register_error_handlers
+from api.models import Application
 from api.routers import account, applications, artifacts, health, jd, resumes
+
+
+def _reap_stuck_applications() -> None:
+    """BackgroundTasks run in-process -- a redeploy or crash mid-job leaves
+    an Application permanently stuck at status="running"/"queued" forever,
+    since nothing else ever revisits it. The only way a *fresh* process
+    finds a row already in that state is a previous process dying mid-job,
+    so it's safe to mark them all failed at startup rather than leave the
+    user stuck with no recovery but starting a brand-new application."""
+    db = db_module.SessionLocal()
+    try:
+        db.execute(
+            update(Application)
+            .where(Application.status.in_(["queued", "running"]))
+            .values(status="failed", error="Interrupted by a server restart. Please try again.")
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _reap_stuck_applications()
+    yield
 
 
 class BodySizeLimitMiddleware:
@@ -75,6 +105,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if is_dev else None,
         redoc_url="/redoc" if is_dev else None,
         openapi_url="/openapi.json" if is_dev else None,
+        lifespan=lifespan,
     )
 
     app.add_middleware(
