@@ -60,7 +60,11 @@ def test_infinite_loop_hits_timeout(tmp_path):
 
 
 def test_absurdly_long_fact(master, tmp_path):
-    master.experiences[0].facts[0] = Fact(id="BAB-01", text="A" * 200_000)
+    # Fact.text now has a schema-level cap (core/schemas.py), so a normally
+    # *constructed* Fact can't be this long -- model_construct bypasses that
+    # to keep exercising the render/compile layer's own defense in depth,
+    # independent of whatever validates upstream of it.
+    master.experiences[0].facts[0] = Fact.model_construct(id="BAB-01", text="A" * 200_000)
     tex = render_tex(master, None)
     pdf_path, log = compile_tex(tex, output_dir=tmp_path, timeout_s=30)
     # must terminate cleanly either way: a PDF or a surfaced error

@@ -25,7 +25,9 @@ Ratified decisions (integration-guide.md §8):
 
 import re
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from core.config import max_input_chars
 
 FACT_ID_PATTERN = re.compile(r"^[A-Z0-9]+-\d{2}$")
 SECTION_ID_PATTERN = re.compile(r"^[A-Z0-9]+$")
@@ -54,7 +56,11 @@ def _validate_fact_prefix(section_id: str, facts: list["Fact"]) -> None:
 
 class Fact(BaseModel):
     id: str
-    text: str
+    # PUT /resumes/master accepts a MasterResume straight from the client --
+    # this field has no upstream cap of its own the way LLM/parsed text does,
+    # so without one here a client could submit an arbitrarily long bullet
+    # (bounded only by the API's overall ~5MB body-size cap).
+    text: str = Field(max_length=max_input_chars())
 
     @field_validator("id")
     @classmethod

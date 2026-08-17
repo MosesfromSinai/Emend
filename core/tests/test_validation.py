@@ -232,6 +232,17 @@ def test_fact_rejects_invalid_id_format():
         Fact(id="bad-id", text="Not a valid grounded fact id")
 
 
+def test_fact_rejects_text_over_the_input_char_cap():
+    # PUT /resumes/master takes a MasterResume straight from the client --
+    # unlike LLM/parsed text, this field had no upstream length limit of its
+    # own before this cap, so a client could submit an arbitrarily long
+    # bullet bounded only by the API's overall body-size middleware.
+    from core.config import max_input_chars
+
+    with pytest.raises(ValidationError, match="at most"):
+        Fact(id="ACME-01", text="x" * (max_input_chars() + 1))
+
+
 def test_master_resume_rejects_invalid_section_id():
     data = json.loads((FIXTURES / "sample_master.json").read_text())
     data["experiences"][0]["id"] = "bad-id"
