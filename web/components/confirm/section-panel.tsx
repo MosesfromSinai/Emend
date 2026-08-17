@@ -781,13 +781,18 @@ function SkillsPanel({
     // merging the two lists (deduped) keeps both instead of the previous
     // behavior, which silently overwrote and permanently lost whichever
     // category's skills weren't kept.
+    const isMerge = newName in rest;
     const existing = rest[newName] ?? [];
     const merged = [...existing, ...(movedSkills ?? []).filter((s) => !existing.includes(s))];
     onChange({ ...master, skills: { ...rest, [newName]: merged } });
-    // the confirm key is derived from the category name, so a rename (e.g.
-    // fixing a typo) otherwise silently un-confirms it even though no
-    // skill actually changed.
-    if (confirmed.has(`skills-${oldName}`)) {
+    if (isMerge) {
+      // Merging into an existing category folds in content nobody has
+      // reviewed under the target name yet -- always require
+      // re-confirmation, regardless of either category's previous state.
+      onConfirmMany([`skills-${oldName}`, `skills-${newName}`], false);
+    } else if (confirmed.has(`skills-${oldName}`)) {
+      // Simple rename (the target name didn't already exist), e.g. fixing
+      // a typo -- carries the confirmed flag over since no skill changed.
       onConfirmMany([`skills-${oldName}`], false);
       onConfirmMany([`skills-${newName}`], true);
     }
