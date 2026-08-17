@@ -246,34 +246,35 @@ def finalize_application(
     version = _latest_version(app_row)
     master = _load_master(session, db)
     selections = {k: v.model_dump(exclude_none=True) for k, v in body.selections.items()}
-    try:
-        tex, pdf_path, log = core_bridge.render_and_compile(
-            master,
-            _tailored_from(version),
-            selections=selections,
-            fact_order=body.fact_order,
-            experience_order=body.experience_order,
-            project_order=body.project_order,
-            section_order=body.section_order,
-            excluded_facts=body.excluded_facts,
-            excluded_experiences=body.excluded_experiences,
-            excluded_projects=body.excluded_projects,
-            text_overrides=body.text_overrides,
-        )
-    except ValueError as e:
-        raise ApiError(409, "stale_tailored_resume", str(e)) from e
-    if not pdf_path:
-        raise ApiError(422, "compile_failed", log)
-    version.tex = tex
-    artifacts = Path(settings.artifacts_dir)
-    artifacts.mkdir(parents=True, exist_ok=True)
-    dest = artifacts / f"{version.id}.pdf"
-    shutil.copyfile(pdf_path, dest)
-    # See api/jobs.py's identical cleanup for why: compile_tex()'s returned
-    # temp dir is never removed on its own.
-    shutil.rmtree(Path(pdf_path).parent, ignore_errors=True)
-    version.pdf_path = str(dest)
-    db.commit()
+    with _finalize_lock(app_row.id):
+        try:
+            tex, pdf_path, log = core_bridge.render_and_compile(
+                master,
+                _tailored_from(version),
+                selections=selections,
+                fact_order=body.fact_order,
+                experience_order=body.experience_order,
+                project_order=body.project_order,
+                section_order=body.section_order,
+                excluded_facts=body.excluded_facts,
+                excluded_experiences=body.excluded_experiences,
+                excluded_projects=body.excluded_projects,
+                text_overrides=body.text_overrides,
+            )
+        except ValueError as e:
+            raise ApiError(409, "stale_tailored_resume", str(e)) from e
+        if not pdf_path:
+            raise ApiError(422, "compile_failed", log)
+        version.tex = tex
+        artifacts = Path(settings.artifacts_dir)
+        artifacts.mkdir(parents=True, exist_ok=True)
+        dest = artifacts / f"{version.id}.pdf"
+        shutil.copyfile(pdf_path, dest)
+        # See api/jobs.py's identical cleanup for why: compile_tex()'s
+        # returned temp dir is never removed on its own.
+        shutil.rmtree(Path(pdf_path).parent, ignore_errors=True)
+        version.pdf_path = str(dest)
+        db.commit()
     return _version_out(version)
 
 
