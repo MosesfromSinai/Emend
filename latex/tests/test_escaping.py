@@ -31,6 +31,18 @@ def test_plain_string_untouched():
     assert escape_latex("Software Engineer, 2024") == "Software Engineer, 2024"
 
 
+def test_blank_line_collapses_to_a_space():
+    # A blank line inside a \tabular*/\textbf argument (e.g. a
+    # resumeSubheading title/dates/company/location) becomes a literal
+    # LaTeX \par and breaks compilation -- plausible from pasting a
+    # Word/PDF resume, not even adversarial.
+    assert escape_latex("Eng\n\nBAD") == "Eng BAD"
+
+
+def test_single_newline_collapses_to_a_space():
+    assert escape_latex("Eng\nBAD") == "Eng BAD"
+
+
 def test_non_strings():
     assert escape_latex(None) == ""
     assert escape_latex(42) == "42"
