@@ -165,6 +165,11 @@ def _run(session, app_row: Application) -> None:
     artifacts.mkdir(parents=True, exist_ok=True)
     dest = artifacts / f"{version.id}.pdf"
     shutil.copyfile(pdf_path, dest)  # source lives in latex's temp dir
+    # compile_tex() hands back a freshly minted temp dir it never cleans up
+    # itself (only the compile *scratch* dir is a context manager) -- every
+    # application run leaks one unless the caller who copied the PDF out
+    # removes it.
+    shutil.rmtree(Path(pdf_path).parent, ignore_errors=True)
     version.pdf_path = str(dest)
 
     app_row.status = "done"

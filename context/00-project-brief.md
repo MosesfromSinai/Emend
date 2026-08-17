@@ -25,9 +25,9 @@ Anonymous sessions (httpOnly cookie; no accounts) · paste-first resume import w
 
 ## Explicitly deferred — do NOT build
 
-Application autofill / browser extension · accounts & auth · chat refinement · diff views · rate limiting · Redis/queues · additional templates · object storage.
+Application autofill / browser extension · accounts & auth · chat refinement · diff views · Redis/queues · additional templates · object storage.
 
-**No longer deferred, now shipped (see "Full customization" below):** live per-sentence rewrite cycling/editing in the actual workspace (not just the scripted landing demo) and in-browser `.tex` editing — both are real on Export as of 2026-08-06/07, driven by a `text_overrides` mechanism, not the landing page's client-side-only simulation.
+**No longer deferred, now shipped:** live per-sentence rewrite cycling/editing in the actual workspace (not just the scripted landing demo) and in-browser `.tex` editing (see "Full customization" below) — both are real on Export as of 2026-08-06/07, driven by a `text_overrides` mechanism, not the landing page's client-side-only simulation. Also shipped: an in-memory per-session + per-IP **rate limiter** (`api/rate_limit.py`), covering resume import, application create/preview/finalize/polish, JD preview, and new-session creation — see "Still open" below for its known limitations (per-process, not proxy-header-aware).
 
 ## Design system ("Ink & Paper")
 

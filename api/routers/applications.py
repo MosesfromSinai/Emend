@@ -241,6 +241,9 @@ def finalize_application(
     artifacts.mkdir(parents=True, exist_ok=True)
     dest = artifacts / f"{version.id}.pdf"
     shutil.copyfile(pdf_path, dest)
+    # See api/jobs.py's identical cleanup for why: compile_tex()'s returned
+    # temp dir is never removed on its own.
+    shutil.rmtree(Path(pdf_path).parent, ignore_errors=True)
     version.pdf_path = str(dest)
     db.commit()
     return _version_out(version)

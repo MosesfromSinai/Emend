@@ -180,7 +180,13 @@ def pipeline(monkeypatch, tmp_path):
 
     def render_and_compile(master, tailored, *_args, **_kwargs):
         calls.append("render_and_compile")
-        pdf = tmp_path / "out.pdf"
+        # Nested in its own subdir, not tmp_path itself -- mirrors the real
+        # compile_tex(), which hands back a path inside a dedicated temp dir
+        # (not the caller's directory), so callers that clean up that dir
+        # after copying the PDF out exercise the same shape here.
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir(exist_ok=True)
+        pdf = artifact_dir / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
         return FAKE_TEX, str(pdf), "compile ok"
 

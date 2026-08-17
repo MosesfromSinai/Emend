@@ -52,6 +52,17 @@ def test_refactor_mode_end_to_end(client, master, pipeline):
     assert bullet["variants"][0] == bullet["variants"][1] == bullet["variants"][2]
 
 
+def test_run_application_cleans_up_source_render_directory(client, master, pipeline, tmp_path):
+    # compile_tex() hands back a freshly minted temp dir holding just the
+    # PDF; the background job copies it into artifacts_dir and must remove
+    # that source dir, or every application leaks one forever.
+    confirm_master(client, master)
+    app_id = client.post("/applications", json={}).json()["id"]
+    got = client.get(f"/applications/{app_id}").json()
+    assert got["status"] == "done"
+    assert not (tmp_path / "artifact").exists()
+
+
 def test_polish_upgrades_a_formatted_application_end_to_end(client, master, pipeline):
     confirm_master(client, master)
     app_id = client.post("/applications", json={}).json()["id"]
@@ -178,7 +189,9 @@ def test_tailor_mode_runs_real_core_pipeline_under_mock(
     actual background job, not the `pipeline` fixture's hardcoded fakes."""
 
     def fake_render(master_, tailored):
-        pdf = tmp_path / "out.pdf"
+        artifact_dir = tmp_path / "artifact"
+        artifact_dir.mkdir(exist_ok=True)
+        pdf = artifact_dir / "out.pdf"
         pdf.write_bytes(b"%PDF-1.4 fake")
         return "\\documentclass{article}\n% grounded: ACME-01\n", str(pdf), "compile ok"
 
