@@ -52,11 +52,22 @@ jobs:
         with:
           path: ${{ env.TECTONIC_CACHE_DIR }}
           key: tectonic-bundle-v33-0.16.9
-      - name: Run latex tests
+      - name: Set up test venv
         run: |
           uv venv --python 3.12
           uv pip install jinja2 pydantic pytest
-          .venv/bin/python -m pytest latex/tests -q
+      # The relay above rate-limits independently of anything in this repo --
+      # a cold cache (first run, or a run that raced another CI run for the
+      # same relay) needs a real network fetch, and that fetch is what 429s.
+      # Retrying gives the rate limit's window time to clear, same as the
+      # manual re-run that fixed this exact failure earlier today.
+      - name: Run latex tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: .venv/bin/python -m pytest latex/tests -q
 
   test-core:
     runs-on: ubuntu-latest
