@@ -3,7 +3,7 @@ from pathlib import Path
 
 from api import core_bridge
 from api.core_bridge import CoreUnavailableError
-from api.tests.conftest import FAKE_TEX
+from api.tests.conftest import FAKE_TEX, _fake_stream
 from core.schemas import Fact, TailoredBullet, TailoredResume, TailoredSection
 from core.validation import GroundingError
 
@@ -331,17 +331,14 @@ def test_history_lists_own_applications_only(client, other_client, master, pipel
 
 
 def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch):
-    class FakeResponse:
-        is_redirect = False
-        text = (
+    monkeypatch.setattr(
+        core_bridge.httpx,
+        "stream",
+        _fake_stream(
             "<html><body><nav>skip me</nav>"
             "<main>We need a backend engineer with Python.</main></body></html>"
-        )
-
-        def raise_for_status(self):
-            pass
-
-    monkeypatch.setattr(core_bridge.httpx, "get", lambda *a, **k: FakeResponse())
+        ),
+    )
 
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
@@ -357,10 +354,10 @@ def test_jd_url_mode_fetches_and_extracts(client, master, pipeline, monkeypatch)
 def test_jd_url_fetch_failure_fails_the_job(client, master, pipeline, monkeypatch):
     import httpx
 
-    def failing_get(*a, **k):
+    def failing_stream(*a, **k):
         raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(core_bridge.httpx, "get", failing_get)
+    monkeypatch.setattr(core_bridge.httpx, "stream", failing_stream)
     confirm_master(client, master)
     r = client.post("/applications", json={"jd_url": "https://example.com/job"})
     got = client.get(f"/applications/{r.json()['id']}").json()
