@@ -896,6 +896,19 @@ _MULTIWORD_TECH_PATTERNS = [
     if " " in name or "-" in name
 ]
 
+# _known_technical_span (below) used to re-sort this same ~700-entry set on
+# every call -- cheap in isolation, but a JD with many short candidate
+# phrases (a not-uncommon real formatting style: colon/comma-delimited
+# segments) calls it tens of thousands of times per request, turning a
+# per-call sort into a genuine algorithmic DoS (confirmed: a 50,000-char
+# adversarial-but-within-limits input took ~93s). Sorted once here instead,
+# same fix already applied to _MULTIWORD_TECH_PATTERNS above -- and
+# name.split() is precomputed alongside it, since that was also being
+# redone on every outer-loop iteration of every call.
+_TECH_NAMES_BY_WORD_COUNT = [
+    name.split() for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n.split()), n))
+]
+
 
 def _phrases_from_direct_scan(text: str) -> list[str]:
     found = []
@@ -1037,8 +1050,7 @@ def _known_technical_span(phrase: str) -> str | None:
     words = phrase.split()
     lower_words = [w.lower() for w in words]
     matched = [False] * len(words)
-    for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n.split()), n)):
-        name_words = name.split()
+    for name_words in _TECH_NAMES_BY_WORD_COUNT:
         span_len = len(name_words)
         if span_len > len(lower_words):
             continue
