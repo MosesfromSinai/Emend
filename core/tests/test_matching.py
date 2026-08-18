@@ -163,6 +163,33 @@ def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):
     assert keyword_match(jd, sample_master) == (1.0, ["Python"], [])
 
 
+def test_known_technical_span_does_not_resort_on_every_call(monkeypatch):
+    # _known_technical_span used to re-sort the ~700-entry tech-names set
+    # from scratch on every call -- cheap in isolation, but a JD with many
+    # short candidate phrases (a real formatting style: colon/comma
+    # -delimited segments) calls it thousands of times per request, turning
+    # a per-call sort into real, avoidable cost on every /jd/preview
+    # keystroke and every tailor job. It must reuse a precomputed,
+    # module-level sorted list instead -- checked directly (call count, not
+    # wall-clock time) since the actual timing difference is too close to
+    # assert on reliably across different machines.
+    import builtins
+
+    from core.matching import _known_technical_span
+
+    calls = {"n": 0}
+    real_sorted = builtins.sorted
+
+    def counting_sorted(*args, **kwargs):
+        calls["n"] += 1
+        return real_sorted(*args, **kwargs)
+
+    monkeypatch.setattr(builtins, "sorted", counting_sorted)
+    for _ in range(50):
+        _known_technical_span("distributed systems engineer")
+    assert calls["n"] == 0
+
+
 def test_extract_keywords_is_deterministic_across_calls():
     text = "We need a backend engineer with Python and PostgreSQL experience."
     assert extract_keywords(text) == extract_keywords(text)
@@ -181,6 +208,25 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     # outranks "machine learning" (a field, tier 2), even though the
     # phrase was discovered second; see _keyword_tier.
     assert keywords == ["k8s", "machine learning"]
+
+
+def test_acronym_definition_regex_does_not_catastrophically_backtrack():
+    # A long unbroken run of letters with no closing "(...)" (a garbled
+    # paste, a stuck-together token) made the old plain-* pattern backtrack
+    # character-by-character across every position in the run, compounded
+    # by the {0,5} repetition around it -- confirmed directly at ~5.6s for
+    # a 20,000-char run before the fix (possessive quantifiers). Reachable
+    # through parse_jd's real code path since JD text is never normalized
+    # before extract_keywords runs. Must stay fast, not just "not crash".
+    import time
+
+    from core.matching import extract_keywords
+
+    text = "Requirements " + "X" * 20000
+    start = time.monotonic()
+    extract_keywords(text)
+    elapsed = time.monotonic() - start
+    assert elapsed < 2.0, f"extract_keywords took {elapsed:.2f}s on a ReDoS-shaped JD"
 
 
 def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():

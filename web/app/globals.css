@@ -23,7 +23,10 @@
   --color-em-ink-2: #3a372f;
   --color-em-muted: #6b6558;
   --color-em-muted-2: #7d7666;
-  --color-em-faint: #9a927f;
+  /* #9a927f measured at 2.9:1 against --color-paper -- under WCAG AA's
+     4.5:1 floor for normal text. This darker shade (same hue) clears it
+     at ~5.2:1 while staying visually secondary/faint relative to ink. */
+  --color-em-faint: #6f6858;
   --color-em-line: #e7dcd4;
   --color-em-line-2: #eee5de;
   --color-em-panel: #f6efe9;

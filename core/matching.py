@@ -510,8 +510,18 @@ def _proper_noun_phrases(text: str) -> list[str]:
 # place matching.py resolves which literal form to use when a JD gives
 # both -- not by preferring one shape over the other, but by requiring
 # the posting's own acronym to actually match the phrase's own initials.
+# Possessive quantifiers (*+), not plain *, on the word-character runs --
+# with a plain *, a long unbroken run of letters and no closing "(...)"
+# (a garbled paste, a stuck-together token) makes the engine backtrack
+# character-by-character across every position in that run, compounded by
+# the {0,5} repetition around it: catastrophic backtracking, confirmed
+# directly (~5.6s for a 20,000-char run of one repeated letter). A letter
+# either belongs to the current word-run or it doesn't -- nothing here
+# needs to backtrack into an already-matched run for a correct match, so
+# possessive quantifiers cut the pathological case to milliseconds with
+# identical results on every legitimate input tested.
 _ACRONYM_DEFINITION = re.compile(
-    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6}s?)\)"
+    r"([A-Za-z][A-Za-z-]*+(?:\s+[A-Za-z][A-Za-z-]*+){0,5})\s*\(([A-Z]{2,6}s?)\)"
 )
 
 
@@ -896,6 +906,19 @@ _MULTIWORD_TECH_PATTERNS = [
     if " " in name or "-" in name
 ]
 
+# _known_technical_span (below) used to re-sort this same ~700-entry set on
+# every call -- cheap in isolation, but a JD with many short candidate
+# phrases (a not-uncommon real formatting style: colon/comma-delimited
+# segments) calls it tens of thousands of times per request, turning a
+# per-call sort into a genuine algorithmic DoS (confirmed: a 50,000-char
+# adversarial-but-within-limits input took ~93s). Sorted once here instead,
+# same fix already applied to _MULTIWORD_TECH_PATTERNS above -- and
+# name.split() is precomputed alongside it, since that was also being
+# redone on every outer-loop iteration of every call.
+_TECH_NAMES_BY_WORD_COUNT = [
+    name.split() for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n.split()), n))
+]
+
 
 def _phrases_from_direct_scan(text: str) -> list[str]:
     found = []
@@ -1037,8 +1060,7 @@ def _known_technical_span(phrase: str) -> str | None:
     words = phrase.split()
     lower_words = [w.lower() for w in words]
     matched = [False] * len(words)
-    for name in sorted(ALL_TECH_NAMES, key=lambda n: (-len(n.split()), n)):
-        name_words = name.split()
+    for name_words in _TECH_NAMES_BY_WORD_COUNT:
         span_len = len(name_words)
         if span_len > len(lower_words):
             continue

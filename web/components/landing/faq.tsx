@@ -19,6 +19,7 @@ export function Faq() {
         <Reveal className="flex flex-col gap-2.5">
           {DEMO_FAQS.map((faq, i) => {
             const isOpen = open === i;
+            const panelId = `faq-panel-${i}`;
             return (
               <div
                 key={faq.q}
@@ -26,15 +27,22 @@ export function Faq() {
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
                   className="flex w-full items-center justify-between gap-3.5 px-5 py-4 text-left font-serif text-[15px] font-semibold text-ink hover:bg-[#f4f0e6]"
                 >
                   {faq.q}
-                  <span className="shrink-0 text-lg text-em-accent">
+                  <span className="shrink-0 text-lg text-em-accent" aria-hidden="true">
                     {isOpen ? "−" : "+"}
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-4 text-sm leading-relaxed text-ink/70">{faq.a}</div>
+                  <div
+                    id={panelId}
+                    className="px-5 pb-4 text-sm leading-relaxed text-ink/70"
+                  >
+                    {faq.a}
+                  </div>
                 )}
               </div>
             );

@@ -36,6 +36,12 @@ export function Reveal({
       className={cn(
         "transition-all duration-[850ms] ease-[cubic-bezier(.2,.7,.3,1)]",
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-[30px]",
+        // every landing section uses this for its scroll-in animation --
+        // unconditional for a vestibular-disorder user with the OS-level
+        // reduced-motion preference set. Content still appears (just
+        // without the fade/translate), purely via CSS, so it can't get
+        // stuck invisible even if the visibility state above never fires.
+        "motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:transition-none",
         className
       )}
     >

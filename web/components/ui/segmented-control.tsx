@@ -13,11 +13,13 @@ export function SegmentedControl<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="inline-flex w-fit rounded-full bg-em-soft p-1">
+    <div role="radiogroup" className="inline-flex w-fit rounded-full bg-em-soft p-1">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
+          role="radio"
+          aria-checked={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
             "rounded-full px-4 py-2 text-sm font-semibold transition-colors",

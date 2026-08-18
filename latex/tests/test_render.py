@@ -242,6 +242,38 @@ def test_section_order_with_unknown_key_never_drops_a_section(master):
     assert r"\section{Technical Skills}" in tex
 
 
+def test_experience_with_zero_bullets_never_emits_an_empty_itemize(master, tmp_path):
+    # Deleting every bullet from an experience via Export's own per-line
+    # delete (excluded_facts) used to leave a bare \resumeItemListStart
+    # ... \resumeItemListEnd with nothing inside -- render_tex() itself
+    # never raised, but a real compile crashes: "LaTeX Error: Something's
+    # wrong--perhaps a missing \item." Confirmed against a real tectonic
+    # compile, not just that render_tex() doesn't raise.
+    from latex.compile import compile_tex
+
+    # only the first experience's bullets are cleared, so exactly one
+    # fewer \resumeItemListStart than the unmodified baseline should
+    # remain -- not the same count (bug: emits an empty one) and not two
+    # fewer (bug: swallowed a sibling entry's real bullets too).
+    baseline_count = render_tex(master, None).count(r"\resumeItemListStart")
+    excluded = [f.id for f in master.experiences[0].facts]
+    tex = render_tex(master, None, excluded_facts=excluded)
+    assert tex.count(r"\resumeItemListStart") == baseline_count - 1
+    pdf_path, log = compile_tex(tex, output_dir=tmp_path, timeout_s=60)
+    assert pdf_path, f"compile failed:\n{log}"
+
+
+def test_project_with_zero_bullets_never_emits_an_empty_itemize(master, tmp_path):
+    from latex.compile import compile_tex
+
+    baseline_count = render_tex(master, None).count(r"\resumeItemListStart")
+    excluded = [f.id for f in master.projects[0].facts]
+    tex = render_tex(master, None, excluded_facts=excluded)
+    assert tex.count(r"\resumeItemListStart") == baseline_count - 1
+    pdf_path, log = compile_tex(tex, output_dir=tmp_path, timeout_s=60)
+    assert pdf_path, f"compile failed:\n{log}"
+
+
 def test_custom_section_renders_bullets_and_bare_entry(master):
     custom = master.model_copy(
         update={

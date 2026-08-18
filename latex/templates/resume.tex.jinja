@@ -136,12 +136,14 @@
     \resumeSubheading
       {\VAR{exp.title}}{\VAR{exp.dates}}
       {\VAR{exp.company}}{\VAR{exp.location}}
+      \BLOCK{if exp.bullets}
       \resumeItemListStart
         \BLOCK{for bullet in exp.bullets}
         % grounded: \VAR{bullet.grounded}
         \resumeItem{\VAR{bullet.text}}
         \BLOCK{endfor}
       \resumeItemListEnd
+      \BLOCK{endif}
     \BLOCK{endfor}
   \resumeSubHeadingListEnd
 \BLOCK{elif section_key == "PROJECTS" and projects}
@@ -151,12 +153,14 @@
       \BLOCK{for proj in projects}
       \resumeProjectHeading
           {\textbf{\VAR{proj.name}}\BLOCK{if proj.tech} $|$ \emph{\VAR{proj.tech}}\BLOCK{endif}}{}
+          \BLOCK{if proj.bullets}
           \resumeItemListStart
             \BLOCK{for bullet in proj.bullets}
             % grounded: \VAR{bullet.grounded}
             \resumeItem{\VAR{bullet.text}}
             \BLOCK{endfor}
           \resumeItemListEnd
+          \BLOCK{endif}
       \BLOCK{endfor}
     \resumeSubHeadingListEnd
 \BLOCK{elif section_key == "SKILLS" and skills}

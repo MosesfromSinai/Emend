@@ -2,5 +2,8 @@
 # are needed — core/llm.py imports anthropic lazily so mock runs stay key-free.
 anthropic>=0.69
 pydantic>=2.7
-pypdf>=5.0
+# >=6.15.0: CVE-2026-71870 (unbounded memory allocation parsing a crafted
+# /ToUnicode CMap stream) -- reachable directly via user-uploaded resume
+# PDFs (core/extract.py), fixed at this version.
+pypdf>=6.15.0
 selectolax>=0.4
