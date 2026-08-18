@@ -510,8 +510,18 @@ def _proper_noun_phrases(text: str) -> list[str]:
 # place matching.py resolves which literal form to use when a JD gives
 # both -- not by preferring one shape over the other, but by requiring
 # the posting's own acronym to actually match the phrase's own initials.
+# Possessive quantifiers (*+), not plain *, on the word-character runs --
+# with a plain *, a long unbroken run of letters and no closing "(...)"
+# (a garbled paste, a stuck-together token) makes the engine backtrack
+# character-by-character across every position in that run, compounded by
+# the {0,5} repetition around it: catastrophic backtracking, confirmed
+# directly (~5.6s for a 20,000-char run of one repeated letter). A letter
+# either belongs to the current word-run or it doesn't -- nothing here
+# needs to backtrack into an already-matched run for a correct match, so
+# possessive quantifiers cut the pathological case to milliseconds with
+# identical results on every legitimate input tested.
 _ACRONYM_DEFINITION = re.compile(
-    r"([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,5})\s*\(([A-Z]{2,6}s?)\)"
+    r"([A-Za-z][A-Za-z-]*+(?:\s+[A-Za-z][A-Za-z-]*+){0,5})\s*\(([A-Z]{2,6}s?)\)"
 )
 
 
