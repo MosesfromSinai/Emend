@@ -1,8 +1,26 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
+
 import type { BulletState } from "@/lib/use-sentence-demo";
 import type { DemoBullet } from "@/lib/demo-persona";
 import { cn } from "@/lib/utils";
+
+// Mirrors resume-paper.tsx's editableProps -- this is the landing page's
+// own click-to-select row, previously reachable only by mouse (a bare div
+// with onClick, no role/tabIndex/onKeyDown) despite this being the
+// flagship "TRY IT" interactive demo.
+function selectableRowProps(onActivate: () => void) {
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onActivate();
+    },
+  };
+}
 
 export function DemoBulletRow({
   bulletKey,
@@ -34,6 +52,8 @@ export function DemoBulletRow({
           e.stopPropagation();
           if (!selected) onSelect();
         }}
+        {...selectableRowProps(onSelect)}
+        aria-label="Select this sentence to see rewrite options"
         className={cn(
           "-mx-2 flex cursor-pointer items-baseline gap-2 rounded-md px-2 py-1 transition-colors",
           selected ? "bg-em-soft" : "hover:bg-em-soft"
@@ -114,6 +134,7 @@ function DemoBulletToolbar({
     >
       <button
         onClick={() => cycle(-1)}
+        aria-label="Previous rewrite"
         className="h-7 w-7 rounded-md border border-[#4a463c] text-sm font-semibold text-paper hover:border-em-bright hover:text-em-bright"
       >
         ‹
@@ -138,6 +159,7 @@ function DemoBulletToolbar({
       </div>
       <button
         onClick={() => cycle(1)}
+        aria-label="Next rewrite"
         className="h-7 w-7 rounded-md border border-[#4a463c] text-sm font-semibold text-paper hover:border-em-bright hover:text-em-bright"
       >
         ›
