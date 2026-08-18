@@ -210,6 +210,25 @@ def test_extract_keywords_pulls_literal_phrases_from_lead_in_lists():
     assert keywords == ["k8s", "machine learning"]
 
 
+def test_acronym_definition_regex_does_not_catastrophically_backtrack():
+    # A long unbroken run of letters with no closing "(...)" (a garbled
+    # paste, a stuck-together token) made the old plain-* pattern backtrack
+    # character-by-character across every position in the run, compounded
+    # by the {0,5} repetition around it -- confirmed directly at ~5.6s for
+    # a 20,000-char run before the fix (possessive quantifiers). Reachable
+    # through parse_jd's real code path since JD text is never normalized
+    # before extract_keywords runs. Must stay fast, not just "not crash".
+    import time
+
+    from core.matching import extract_keywords
+
+    text = "Requirements " + "X" * 20000
+    start = time.monotonic()
+    extract_keywords(text)
+    elapsed = time.monotonic() - start
+    assert elapsed < 2.0, f"extract_keywords took {elapsed:.2f}s on a ReDoS-shaped JD"
+
+
 def test_extract_keywords_denies_a_denylisted_acronym_even_spelled_out():
     # "gnc" is denylisted as a bare acronym (too org-specific to generalize)
     # -- spelling it out with its own parenthetical shouldn't smuggle the
