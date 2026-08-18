@@ -163,6 +163,33 @@ def test_keyword_match_ignores_duplicate_and_blank_keywords(sample_master):
     assert keyword_match(jd, sample_master) == (1.0, ["Python"], [])
 
 
+def test_known_technical_span_does_not_resort_on_every_call(monkeypatch):
+    # _known_technical_span used to re-sort the ~700-entry tech-names set
+    # from scratch on every call -- cheap in isolation, but a JD with many
+    # short candidate phrases (a real formatting style: colon/comma
+    # -delimited segments) calls it thousands of times per request, turning
+    # a per-call sort into real, avoidable cost on every /jd/preview
+    # keystroke and every tailor job. It must reuse a precomputed,
+    # module-level sorted list instead -- checked directly (call count, not
+    # wall-clock time) since the actual timing difference is too close to
+    # assert on reliably across different machines.
+    import builtins
+
+    from core.matching import _known_technical_span
+
+    calls = {"n": 0}
+    real_sorted = builtins.sorted
+
+    def counting_sorted(*args, **kwargs):
+        calls["n"] += 1
+        return real_sorted(*args, **kwargs)
+
+    monkeypatch.setattr(builtins, "sorted", counting_sorted)
+    for _ in range(50):
+        _known_technical_span("distributed systems engineer")
+    assert calls["n"] == 0
+
+
 def test_extract_keywords_is_deterministic_across_calls():
     text = "We need a backend engineer with Python and PostgreSQL experience."
     assert extract_keywords(text) == extract_keywords(text)
